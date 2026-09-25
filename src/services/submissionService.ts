@@ -46,6 +46,14 @@ export const DEMO_USERS: UserSession[] = [
     role: 'ADMIN',
     institutionCode: '0000013',
   },
+  {
+    id: 'usr_nbe_1',
+    name: 'Dr. Solomon Tadesse',
+    email: 'solomon.tadesse@nbe.gov.et',
+    role: 'NBE_OFFICER',
+    institutionCode: '0000013',
+    department: 'Banking Supervision Directorate (NBE)',
+  },
 ];
 
 class SubmissionServiceClass {

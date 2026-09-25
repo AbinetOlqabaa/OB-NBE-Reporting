@@ -443,12 +443,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 setRoleFilter(e.target.value);
                 setAllUsersPage(1);
               }}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
             >
               <option value="ALL">All Roles</option>
               <option value="ADMIN">Administrator</option>
-              <option value="MAKER">Maker</option>
-              <option value="CHECKER">Checker</option>
+              <option value="MAKER">Maker (Reporting Officer)</option>
+              <option value="CHECKER">Checker (Prudential Reviewer)</option>
+              <option value="NBE_OFFICER">NBE Regulatory Officer</option>
             </select>
 
             <select
@@ -914,11 +915,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     value={editFormData.role}
                     onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as UserRole })}
                     disabled={editingUser.id === 'usr_admin_1'}
-                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
                   >
-                    <option value="MAKER">MAKER (Reporting)</option>
-                    <option value="CHECKER">CHECKER (Prudential)</option>
-                    <option value="ADMIN">ADMINISTRATOR</option>
+                    <option value="MAKER">MAKER (Reporting Officer)</option>
+                    <option value="CHECKER">CHECKER (Prudential Reviewer)</option>
+                    <option value="ADMIN">ADMINISTRATOR (System Admin)</option>
+                    <option value="NBE_OFFICER">NBE_OFFICER (Regulatory Auditor)</option>
                   </select>
                 </div>
 
@@ -928,7 +930,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     value={editFormData.status}
                     onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as UserStatus })}
                     disabled={editingUser.id === 'usr_admin_1'}
-                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
                   >
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="PENDING_APPROVAL">PENDING_APPROVAL</option>
@@ -939,12 +941,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Department</label>
-                <input
-                  type="text"
+                <select
                   value={editFormData.department}
                   onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
-                />
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                >
+                  <option value="Compliance & Regulatory Governance">Compliance & Regulatory Governance</option>
+                  <option value="Credit Risk & Portfolio Management">Credit Risk & Portfolio Management</option>
+                  <option value="Financial Reporting & Tax">Financial Reporting & Tax</option>
+                  <option value="Treasury & International Banking">Treasury & International Banking</option>
+                  <option value="Risk Management & Internal Audit">Risk Management & Internal Audit</option>
+                  <option value="Branch Operations & Retail Banking">Branch Operations & Retail Banking</option>
+                  <option value="Information Technology & Core Banking">Information Technology & Core Banking</option>
+                  <option value="Digital Banking & EthSwitch Operations">Digital Banking & EthSwitch Operations</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-2">

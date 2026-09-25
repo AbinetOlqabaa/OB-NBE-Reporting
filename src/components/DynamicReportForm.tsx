@@ -15,6 +15,7 @@ import { FormulaEngine } from '../utils/formulaEngine';
 import { ValidationEngine, ValidationSummary } from '../utils/validationEngine';
 import { ExcelService } from '../utils/excelService';
 import { Pagination } from './Pagination';
+import { PdfReportGenerator } from '../utils/pdfReportGenerator';
 import {
   Save,
   Send,
@@ -29,6 +30,7 @@ import {
   Info,
   Layers,
   Table as TableIcon,
+  FileText,
 } from 'lucide-react';
 
 interface DynamicReportFormProps {
@@ -57,6 +59,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   const [submitModalOpen, setSubmitModalOpen] = useState<boolean>(false);
   const [submitComment, setSubmitComment] = useState<string>('');
   const [filterQuery, setFilterQuery] = useState<string>('');
+  const [itemTypeFilter, setItemTypeFilter] = useState<string>('ALL');
   const [importNotification, setImportNotification] = useState<string | null>(null);
   const [activeFormTab, setActiveFormTab] = useState<'ITEMS' | 'DYNAMIC_SCHEDULES'>('ITEMS');
 
@@ -68,14 +71,28 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
 
   useEffect(() => {
     setItemsPage(1);
-  }, [filterQuery]);
+  }, [filterQuery, itemTypeFilter]);
 
   // Filter items
-  const filteredItems = metadata.ReturnItemsList.filter(
-    (item) =>
+  const filteredItems = metadata.ReturnItemsList.filter((item) => {
+    const matchesQuery =
+      !filterQuery ||
       item._description.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      item.Code.toLowerCase().includes(filterQuery.toLowerCase())
-  );
+      item.Code.toLowerCase().includes(filterQuery.toLowerCase());
+
+    const isFormula = metadata.Formulas.some((f) => f.targetCode === item.Code);
+    const val = values[item.Code];
+    const isPopulated = val !== '' && val !== undefined && val !== null && val !== 0;
+
+    let matchesType = true;
+    if (itemTypeFilter === 'REQUIRED') matchesType = !!item._required;
+    else if (itemTypeFilter === 'FORMULA_TOTAL') matchesType = isFormula || !!item.isTotal;
+    else if (itemTypeFilter === 'DIRECT_INPUT') matchesType = !isFormula && !item.isTotal;
+    else if (itemTypeFilter === 'POPULATED') matchesType = isPopulated;
+    else if (itemTypeFilter === 'EMPTY') matchesType = !isPopulated;
+
+    return matchesQuery && matchesType;
+  });
 
   // Paginated items slice
   const paginatedItems = filteredItems.slice(
@@ -250,7 +267,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <span>/</span>
               <span className="font-semibold text-slate-700">{metadata.Category}</span>
               <span>/</span>
-              <span className="font-mono font-bold text-red-700">{metadata.Code}</span>
+              <span className="font-mono font-bold text-ob-indigo-700">{metadata.Code}</span>
             </div>
             <h1 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight leading-tight truncate max-w-md sm:max-w-xl">
               {metadata.Title}
@@ -260,10 +277,23 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+          {/* Download as PDF button for APPROVED or SENT returns */}
+          {(submission.status === 'APPROVED' || submission.status === 'SENT') && (
+            <button
+              type="button"
+              onClick={() => PdfReportGenerator.generateReturnPdf(metadata, submission)}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 border border-ob-indigo-500 rounded-lg transition-colors shadow-2xs cursor-pointer"
+              title="Download official printable PDF regulatory return"
+            >
+              <FileText className="w-3.5 h-3.5 text-ob-green-300" />
+              <span>Download PDF</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleExportExcel}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors shadow-2xs"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors shadow-2xs cursor-pointer"
             title="Export return to Excel XLSX"
           >
             <Download className="w-3 h-3 text-slate-500" />
@@ -275,7 +305,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors shadow-2xs"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors shadow-2xs cursor-pointer"
                 title="Import data from Excel XLSX"
               >
                 <Upload className="w-3 h-3 text-slate-500" />
@@ -292,7 +322,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <button
                 type="button"
                 onClick={handleManualSave}
-                className={`flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
+                className={`flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                   hasUnsavedChanges
                     ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -308,7 +338,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 disabled={!validation?.isValid}
                 className={`flex items-center gap-1 px-3.5 py-1 text-xs font-bold rounded-lg transition-colors shadow-2xs ${
                   validation?.isValid
-                    ? 'bg-red-700 text-white hover:bg-red-800 cursor-pointer'
+                    ? 'bg-ob-indigo-600 text-white hover:bg-ob-indigo-700 cursor-pointer'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 }`}
               >
@@ -403,20 +433,35 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
       {/* 5. Main Form Items / Schedules (Strict flex-1 min-h-0 overflow-hidden) */}
       {activeFormTab === 'ITEMS' || metadata.DynamicItemsList.length === 0 ? (
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
-          {/* Search bar inside fixed return items */}
-          <div className="px-3 py-2 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
+          {/* Search and item filter bar inside fixed return items */}
+          <div className="px-3 py-2 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
             <span className="text-xs font-bold text-slate-800">
               Line Items: {filledCount} of {metadata.ReturnItemsList.length} populated ({Math.round((filledCount / metadata.ReturnItemsList.length) * 100)}%)
             </span>
 
-            <div className="relative w-56">
-              <input
-                type="text"
-                placeholder="Search line item or code..."
-                value={filterQuery}
-                onChange={(e) => setFilterQuery(e.target.value)}
-                className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-red-600"
-              />
+            <div className="flex items-center gap-2">
+              <select
+                value={itemTypeFilter}
+                onChange={(e) => setItemTypeFilter(e.target.value)}
+                className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer shadow-2xs"
+              >
+                <option value="ALL">All Items ({metadata.ReturnItemsList.length})</option>
+                <option value="REQUIRED">Mandatory Fields Only</option>
+                <option value="DIRECT_INPUT">Direct Input Cells Only</option>
+                <option value="FORMULA_TOTAL">Formula / Total Cells</option>
+                <option value="POPULATED">Populated Items ({filledCount})</option>
+                <option value="EMPTY">Unpopulated Items ({metadata.ReturnItemsList.length - filledCount})</option>
+              </select>
+
+              <div className="relative w-48 sm:w-56">
+                <input
+                  type="text"
+                  placeholder="Search line item or code..."
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 shadow-2xs"
+                />
+              </div>
             </div>
           </div>
 

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { ValidationEngine } from '../utils/validationEngine';
 import { Pagination } from './Pagination';
+import { PdfReportGenerator } from '../utils/pdfReportGenerator';
 
 interface CheckerInboxProps {
   submissions: ReportSubmission[];
@@ -57,6 +58,8 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
   const [reviewAction, setReviewAction] = useState<'APPROVE' | 'REJECT' | 'REQUEST_CORRECTION' | null>(null);
   const [reviewComment, setReviewComment] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('PENDING_CHECKER');
+  const [filterCategory, setFilterCategory] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isDelivering, setIsDelivering] = useState(false);
   const [deliveryResult, setDeliveryResult] = useState<any | null>(null);
 
@@ -66,16 +69,30 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
 
   const isChecker = currentUser.role === 'CHECKER' || currentUser.role === 'ADMIN';
 
+  const categories = ['ALL', ...Array.from(new Set(templates.map((t) => t.Category || 'General')))];
+
   // Filter submissions
   const filteredSubmissions = submissions.filter((sub) => {
-    if (filterStatus === 'ALL') return true;
-    return sub.status === filterStatus;
+    const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
+    const title = tpl ? tpl.Title : sub.reportKey;
+    const cat = tpl ? tpl.Category : 'General';
+
+    const matchesStatus = filterStatus === 'ALL' || sub.status === filterStatus;
+    const matchesCategory = filterCategory === 'ALL' || cat === filterCategory;
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      sub.reportKey.toLowerCase().includes(q) ||
+      title.toLowerCase().includes(q) ||
+      sub.makerName.toLowerCase().includes(q);
+
+    return matchesStatus && matchesCategory && matchesSearch;
   });
 
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [filterStatus]);
+  }, [filterStatus, filterCategory, searchQuery]);
 
   const paginatedSubmissions = filteredSubmissions.slice(
     (page - 1) * pageSize,
@@ -229,15 +246,15 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
       )}
 
       {/* 3. Filter Navigation Strip (Fixed Height) */}
-      <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-1.5">
+      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5">
           {(['PENDING_CHECKER', 'APPROVED', 'CORRECTION_REQUIRED', 'SENT', 'ALL'] as const).map((status) => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 filterStatus === status
-                  ? 'bg-red-700 text-white shadow-2xs'
+                  ? 'bg-ob-indigo-600 text-white shadow-2xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -254,9 +271,35 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
           ))}
         </div>
 
-        <span className="text-xs text-slate-500 font-mono hidden sm:inline-block">
-          Showing {paginatedSubmissions.length} of {filteredSubmissions.length}
-        </span>
+        <div className="flex items-center gap-2 text-xs">
+          {/* Category Dropdown */}
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer shadow-2xs"
+          >
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c === 'ALL' ? 'All Categories' : c}
+              </option>
+            ))}
+          </select>
+
+          {/* Search Box */}
+          <div className="relative w-40 sm:w-48">
+            <input
+              type="text"
+              placeholder="Search maker, return..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 shadow-2xs"
+            />
+          </div>
+
+          <span className="text-xs text-slate-500 font-mono hidden lg:inline-block">
+            {filteredSubmissions.length} returns
+          </span>
+        </div>
       </div>
 
       {/* 4. Submissions Review Queue Table (Strict flex-1 min-h-0 overflow-hidden) */}
@@ -381,7 +424,7 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-red-700 bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
+                    <span className="font-mono text-xs font-bold text-ob-indigo-700 bg-ob-indigo-50 px-1.5 py-0.2 rounded border border-ob-indigo-200">
                       {selectedSubForReview.reportKey}
                     </span>
                     <h3 className="text-sm font-bold text-slate-900">
@@ -393,12 +436,28 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedSubForReview(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {(selectedSubForReview.status === 'APPROVED' || selectedSubForReview.status === 'SENT') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tpl = templates.find((t) => t.ReturnKey === selectedSubForReview.reportKey);
+                      if (tpl) PdfReportGenerator.generateReturnPdf(tpl, selectedSubForReview);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-ob-indigo-700 bg-ob-indigo-50 hover:bg-ob-indigo-100 border border-ob-indigo-300 rounded-lg transition-colors cursor-pointer"
+                    title="Download Official PDF Report"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-ob-indigo-600" />
+                    <span>PDF</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedSubForReview(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Body */}
@@ -448,7 +507,7 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   placeholder="Enter remarks for the audit trail or specific correction instructions for the Maker..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-red-600 focus:bg-white"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
                 />
               </div>
 

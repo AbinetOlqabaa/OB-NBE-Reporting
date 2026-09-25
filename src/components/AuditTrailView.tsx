@@ -12,6 +12,11 @@ import {
   RotateCw,
   ShieldCheck,
   Calendar,
+  FileSpreadsheet,
+  CheckCircle2,
+  X,
+  UserCheck,
+  Layers,
 } from 'lucide-react';
 import { AuditLogEntry } from '../types/regulatory';
 import { Pagination } from './Pagination';
@@ -20,7 +25,10 @@ export const AuditTrailView: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('ALL');
+  const [roleFilter, setRoleFilter] = useState('ALL');
+  const [entityFilter, setEntityFilter] = useState('ALL');
   const [loading, setLoading] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   // Pagination state - 8 items per page keeps window strictly fixed
   const [page, setPage] = useState(1);
@@ -29,7 +37,7 @@ export const AuditTrailView: React.FC = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/audit-logs?limit=200');
+      const res = await fetch('/api/audit-logs?limit=300');
       const data = await res.json();
       setLogs(data || []);
     } catch (e) {
@@ -46,16 +54,53 @@ export const AuditTrailView: React.FC = () => {
   // Reset page when filter changes
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, actionFilter]);
+  }, [searchQuery, actionFilter, roleFilter, entityFilter]);
+
+  // Aggregate distinct actions from loaded logs + core regulatory actions catalog
+  const standardActions = [
+    'CREATE_DRAFT',
+    'SAVE_DRAFT',
+    'UPDATE_VALUES',
+    'SUBMIT_TO_CHECKER',
+    'CHECKER_APPROVE',
+    'CHECKER_REJECT',
+    'CHECKER_REQUEST_CORRECTION',
+    'DELIVER_TO_NBE',
+    'NBE_DELIVERY_SUCCESS',
+    'NBE_DELIVERY_FAILURE',
+    'USER_LOGIN',
+    'USER_REGISTER',
+    'USER_STATUS_ACTIVE',
+    'USER_STATUS_DISABLED',
+    'USER_STATUS_PENDING_APPROVAL',
+    'INGESTION_COMPLETED',
+    'GENERATE_REPORT_FROM_SSOT',
+    'SYSTEM_BOOTSTRAP',
+  ];
+
+  const distinctActions = Array.from(
+    new Set([...logs.map((l) => l.action).filter(Boolean), ...standardActions])
+  );
+
+  const distinctEntityTypes = Array.from(
+    new Set(['ALL', ...logs.map((l) => l.entityType).filter(Boolean)])
+  );
 
   const filteredLogs = logs.filter((log) => {
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.actorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.entityId.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      log.action.toLowerCase().includes(q) ||
+      log.actorName.toLowerCase().includes(q) ||
+      log.details.toLowerCase().includes(q) ||
+      log.entityId.toLowerCase().includes(q) ||
+      log.correlationId.toLowerCase().includes(q);
+
     const matchesAction = actionFilter === 'ALL' || log.action === actionFilter;
-    return matchesSearch && matchesAction;
+    const matchesRole = roleFilter === 'ALL' || log.actorRole === roleFilter;
+    const matchesEntity = entityFilter === 'ALL' || log.entityType === entityFilter;
+
+    return matchesSearch && matchesAction && matchesRole && matchesEntity;
   });
 
   const paginatedLogs = filteredLogs.slice(
@@ -63,46 +108,87 @@ export const AuditTrailView: React.FC = () => {
     page * pageSize
   );
 
+  /**
+   * Generates and downloads an official compliance CSV export of the filtered audit trail
+   */
   const exportCSV = () => {
     if (filteredLogs.length === 0) return;
-    const headers = ['Timestamp', 'Actor Name', 'Actor Role', 'Action', 'Entity ID', 'Details', 'Correlation ID'];
-    const rows = filteredLogs.map((l) => [
-      l.timestamp,
-      `"${l.actorName}"`,
-      l.actorRole,
-      l.action,
-      l.entityId,
-      `"${l.details.replace(/"/g, '""')}"`,
-      l.correlationId,
+
+    // Header metadata comments for regulatory compliance
+    const nowIso = new Date().toISOString();
+    const metaHeader = [
+      `# OROMIA BANK S.C. - NATIONAL BANK OF ETHIOPIA (NBE) REGULATORY COMPLIANCE AUDIT TRAIL`,
+      `# Institution Code: 0000013 | Directive: BSD/03/2020 | Exported At: ${nowIso}`,
+      `# Filter Criteria: Action=${actionFilter} | Role=${roleFilter} | Entity=${entityFilter} | SearchQuery="${searchQuery}" | Record Count=${filteredLogs.length}`,
+      ``,
+    ].join('\r\n');
+
+    const columnHeaders = [
+      'Log ID',
+      'Timestamp (UTC)',
+      'Timestamp (Local)',
+      'Actor Name',
+      'Actor Role',
+      'Compliance Action',
+      'Entity Type',
+      'Entity ID / Return Code',
+      'Audit Narrative & Details',
+      'Correlation / NBE Token',
+    ];
+
+    const dataRows = filteredLogs.map((l) => [
+      `"${l.id}"`,
+      `"${l.timestamp}"`,
+      `"${new Date(l.timestamp).toLocaleString('en-US')}"`,
+      `"${l.actorName.replace(/"/g, '""')}"`,
+      `"${l.actorRole}"`,
+      `"${l.action}"`,
+      `"${l.entityType || 'REGULATORY'}"`,
+      `"${l.entityId}"`,
+      `"${l.details.replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+      `"${l.correlationId}"`,
     ]);
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    const csvBody = [columnHeaders.join(','), ...dataRows.map((r) => r.join(','))].join('\r\n');
+    const fullCsvContent = metaHeader + csvBody;
+
+    const blob = new Blob([fullCsvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `OB_AUDIT_TRAIL_${Date.now()}.csv`);
+    const safeDate = new Date().toISOString().slice(0, 10);
+    link.setAttribute('download', `OROMIA_BANK_NBE_AUDIT_LOGS_${actionFilter}_${safeDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setExportNotice(`Exported ${filteredLogs.length} audit records to CSV.`);
+    setTimeout(() => setExportNotice(null), 4000);
   };
 
   const exportJSON = () => {
+    if (filteredLogs.length === 0) return;
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(filteredLogs, null, 2));
     const link = document.createElement('a');
     link.setAttribute('href', dataStr);
-    link.setAttribute('download', `OB_AUDIT_TRAIL_${Date.now()}.json`);
+    link.setAttribute('download', `OROMIA_BANK_NBE_AUDIT_LOGS_${Date.now()}.json`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    setExportNotice(`Exported ${filteredLogs.length} audit records to JSON.`);
+    setTimeout(() => setExportNotice(null), 4000);
   };
 
   const getActionBadgeColor = (action: string) => {
-    if (action.includes('APPROVE')) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    if (action.includes('REJECT')) return 'bg-rose-100 text-rose-800 border-rose-200';
-    if (action.includes('SUBMIT')) return 'bg-amber-100 text-amber-800 border-amber-200';
-    if (action.includes('DELIVER') || action.includes('SEND')) return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (action.includes('CREATE')) return 'bg-purple-100 text-purple-800 border-purple-200';
-    return 'bg-slate-100 text-slate-800 border-slate-200';
+    if (action.includes('APPROVE')) return 'bg-emerald-50 text-emerald-800 border-emerald-300';
+    if (action.includes('REJECT')) return 'bg-rose-50 text-rose-800 border-rose-300';
+    if (action.includes('SUBMIT')) return 'bg-amber-50 text-amber-800 border-amber-300';
+    if (action.includes('DELIVER') || action.includes('SEND')) return 'bg-ob-green-50 text-ob-green-900 border-ob-green-300';
+    if (action.includes('CREATE')) return 'bg-ob-indigo-50 text-ob-indigo-800 border-ob-indigo-200';
+    if (action.includes('USER_STATUS')) return 'bg-purple-50 text-purple-800 border-purple-200';
+    return 'bg-slate-50 text-slate-800 border-slate-200';
   };
 
   return (
@@ -111,50 +197,78 @@ export const AuditTrailView: React.FC = () => {
       <div className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1 bg-red-100 rounded-lg text-red-700">
-              <History className="w-3.5 h-3.5" />
+            <span className="p-1 bg-ob-indigo-50 rounded-lg text-ob-indigo-700 border border-ob-indigo-200">
+              <History className="w-4 h-4" />
             </span>
             <h2 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
               Immutable Regulatory Compliance Audit Trail
             </h2>
-            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-900 border border-amber-500/30">
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-ob-green-50 text-ob-green-800 border border-ob-green-300">
               BSD/03/2020
             </span>
           </div>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            Cryptographically timestamped audit logging for Maker drafts, Checker 4-eyes reviews, and NBE transmissions.
+            Cryptographically timestamped audit logging for Maker drafts, Checker 4-eyes reviews, user status updates, and NBE transmissions.
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* Enhanced Export CSV Button */}
           <button
+            type="button"
             onClick={exportCSV}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs cursor-pointer"
+            title={`Export ${filteredLogs.length} filtered audit logs to CSV for regulatory reporting`}
           >
-            <Download className="w-3 h-3" />
+            <Download className="w-3.5 h-3.5 text-ob-green-300" />
             <span>Export CSV</span>
+            <span className="px-1 py-0.2 rounded bg-ob-indigo-800 text-[10px] font-mono text-white">
+              {filteredLogs.length}
+            </span>
           </button>
+
           <button
+            type="button"
             onClick={exportJSON}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors shadow-2xs"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors shadow-2xs cursor-pointer"
+            title="Export audit logs as JSON dataset"
           >
-            <Download className="w-3 h-3" />
-            <span>Export JSON</span>
+            <Download className="w-3 h-3 text-slate-400" />
+            <span className="hidden sm:inline">JSON</span>
           </button>
+
           <button
+            type="button"
             onClick={fetchLogs}
-            className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
-            title="Refresh logs"
+            className="p-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer"
+            title="Refresh logs from server"
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-ob-indigo-600' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* 2. Filters & Search Strip (Fixed Height) */}
+      {/* Export Confirmation Notice */}
+      {exportNotice && (
+        <div className="shrink-0 p-2 rounded-xl bg-ob-green-50 border border-ob-green-300 text-ob-green-900 text-xs font-semibold flex items-center justify-between shadow-2xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-ob-green-600" />
+            <span>{exportNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExportNotice(null)}
+            className="p-0.5 rounded text-ob-green-700 hover:text-ob-green-900"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* 2. Filters & Search Strip with Action, Role, and Entity Dropdowns */}
       <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="relative flex-1 sm:max-w-xs">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-ob-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search action, actor, entity ID..."
@@ -162,28 +276,78 @@ export const AuditTrailView: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-400 font-medium text-[11px] flex items-center gap-1">
-            <Filter className="w-3 h-3" />
-            Action:
-          </span>
-          <select
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
-          >
-            <option value="ALL">All Actions ({logs.length})</option>
-            <option value="CREATE_DRAFT">CREATE_DRAFT</option>
-            <option value="UPDATE_VALUES">UPDATE_VALUES</option>
-            <option value="SUBMIT_TO_CHECKER">SUBMIT_TO_CHECKER</option>
-            <option value="REVIEW_APPROVE">REVIEW_APPROVE</option>
-            <option value="REVIEW_REJECT">REVIEW_REJECT</option>
-            <option value="REVIEW_CORRECTION">REVIEW_CORRECTION</option>
-            <option value="DELIVER_TO_NBE">DELIVER_TO_NBE</option>
-            <option value="INGEST_DATA">INGEST_DATA</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Action Filter Dropdown */}
+          <div className="flex items-center gap-1">
+            <span className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
+              <Filter className="w-3 h-3 text-ob-indigo-600" />
+              Action:
+            </span>
+            <select
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer max-w-[150px]"
+            >
+              <option value="ALL">All Actions ({logs.length})</option>
+              {distinctActions.map((act) => (
+                <option key={act} value={act}>
+                  {act}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Actor Role Filter Dropdown */}
+          <div className="flex items-center gap-1">
+            <span className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
+              <UserCheck className="w-3 h-3 text-ob-indigo-600" />
+              Role:
+            </span>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+            >
+              <option value="ALL">All Roles</option>
+              <option value="ADMIN">ADMIN</option>
+              <option value="MAKER">MAKER</option>
+              <option value="CHECKER">CHECKER</option>
+              <option value="SYSTEM">SYSTEM</option>
+              <option value="NBE_OFFICER">NBE_OFFICER</option>
+            </select>
+          </div>
+
+          {/* Entity Type Filter Dropdown */}
+          {distinctEntityTypes.length > 2 && (
+            <div className="flex items-center gap-1">
+              <span className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
+                <Layers className="w-3 h-3 text-ob-indigo-600" />
+                Entity:
+              </span>
+              <select
+                value={entityFilter}
+                onChange={(e) => setEntityFilter(e.target.value)}
+                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+              >
+                {distinctEntityTypes.map((ent) => (
+                  <option key={ent} value={ent}>
+                    {ent === 'ALL' ? 'All Entities' : ent}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -193,8 +357,22 @@ export const AuditTrailView: React.FC = () => {
           {paginatedLogs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <History className="w-8 h-8 text-slate-300 mb-2" />
-              <h3 className="text-sm font-bold text-slate-800">No Audit Events Found</h3>
-              <p className="text-xs text-slate-500 mt-1">Actions performed on reports and users will appear here.</p>
+              <h3 className="text-sm font-bold text-slate-800">No Audit Events Match Criteria</h3>
+              <p className="text-xs text-slate-500 mt-1">Actions performed on returns and user profiles will appear here.</p>
+              {(searchQuery || actionFilter !== 'ALL' || roleFilter !== 'ALL' || entityFilter !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setActionFilter('ALL');
+                    setRoleFilter('ALL');
+                    setEntityFilter('ALL');
+                  }}
+                  className="mt-2 text-xs font-bold text-ob-indigo-700 hover:underline cursor-pointer"
+                >
+                  Reset all filters
+                </button>
+              )}
             </div>
           ) : (
             <table className="w-full text-left border-collapse text-xs">
@@ -205,22 +383,24 @@ export const AuditTrailView: React.FC = () => {
                   <th className="py-2 px-3">Action</th>
                   <th className="py-2 px-3">Entity ID</th>
                   <th className="py-2 px-3">Audit Details</th>
-                  <th className="py-2 px-3 font-mono">Correlation ID</th>
+                  <th className="py-2 px-3 font-mono">Correlation Token</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {paginatedLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-2 px-3 font-mono text-slate-500 whitespace-nowrap text-[11px]">
-                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}{' '}
-                      <span className="text-slate-400">
+                    <td className="py-2 px-3 font-mono text-slate-600 whitespace-nowrap text-[11px]">
+                      <div className="font-semibold text-slate-900">
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
                         {new Date(log.timestamp).toLocaleDateString()}
-                      </span>
+                      </div>
                     </td>
 
                     <td className="py-2 px-3 whitespace-nowrap">
                       <div className="font-bold text-slate-900">{log.actorName}</div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400">{log.actorRole}</div>
+                      <div className="text-[10px] uppercase font-bold text-ob-indigo-700">{log.actorRole}</div>
                     </td>
 
                     <td className="py-2 px-3 whitespace-nowrap">

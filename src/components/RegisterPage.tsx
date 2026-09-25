@@ -368,14 +368,16 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                     <select
                       value={department}
                       onChange={(e) => setDepartment(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-[#101226]/90 border border-[#2B3369] rounded-xl text-white focus:outline-none focus:border-ob-indigo-400 focus:ring-1 focus:ring-ob-indigo-400 font-medium"
+                      className="w-full px-2.5 py-2 bg-[#101226]/90 border border-[#2B3369] rounded-xl text-white focus:outline-none focus:border-ob-indigo-400 focus:ring-1 focus:ring-ob-indigo-400 font-medium cursor-pointer"
                     >
-                      <option value="Credit Operations & Portfolio">Credit Operations</option>
+                      <option value="Compliance & Regulatory Governance">Compliance & Regulatory</option>
+                      <option value="Credit Risk & Portfolio Management">Credit Risk & Lending</option>
                       <option value="Financial Reporting & Tax">Financial Reporting</option>
                       <option value="Treasury & International Banking">Treasury & FX</option>
-                      <option value="Risk Management & Compliance">Risk & Compliance</option>
-                      <option value="Internal Audit & Oversight">Internal Audit</option>
-                      <option value="Branch Operations">Branch Operations</option>
+                      <option value="Risk Management & Internal Audit">Risk Management</option>
+                      <option value="Branch Operations & Retail Banking">Branch Operations</option>
+                      <option value="Information Technology & Core Banking">IT & Core Banking</option>
+                      <option value="Digital Banking & EthSwitch Operations">Digital Banking</option>
                     </select>
                   </div>
 

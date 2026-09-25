@@ -34,14 +34,27 @@ export class Phase2Pipeline {
   /**
    * Runs the automated Bronze -> Silver -> Gold ingestion workflow.
    */
-  public static async runIngestion(source: 'CORE_BANKING' | 'ERP' | 'TREASURY'): Promise<IngestionJob> {
+  public static async runIngestion(
+    source: 'CORE_BANKING' | 'ERP' | 'TREASURY' | 'LOAN_ORIGINATION' | 'TRADE_FINANCE' | 'DIGITAL_PAYMENTS'
+  ): Promise<IngestionJob> {
     const startTime = new Date().toISOString();
     const jobId = 'job_' + source.toLowerCase() + '_' + Date.now();
 
     // Simulate pipeline processing
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    const totalRaw = source === 'CORE_BANKING' ? 152400 : source === 'ERP' ? 14200 : 8900;
+    const totalRaw =
+      source === 'CORE_BANKING'
+        ? 152400
+        : source === 'ERP'
+        ? 14200
+        : source === 'TREASURY'
+        ? 8900
+        : source === 'LOAN_ORIGINATION'
+        ? 34600
+        : source === 'TRADE_FINANCE'
+        ? 11800
+        : 68400; // DIGITAL_PAYMENTS
     const silver = totalRaw - 12; // 12 deduplicated / filtered records
     const gold = 24; // 24 regulatory return datasets
     const quality = 99.8;

@@ -5,32 +5,29 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Database,
   Layers,
+  Database,
   CheckCircle2,
-  AlertCircle,
+  AlertTriangle,
   RefreshCw,
+  Sparkles,
+  Server,
   ArrowRight,
   TrendingUp,
-  FileCheck,
-  ShieldAlert,
-  Server,
-  Sparkles,
+  FileSpreadsheet,
   Zap,
 } from 'lucide-react';
 import { ReportMetadata } from '../types/regulatory';
 
-interface QualityCheck {
-  category: 'Completeness' | 'Uniqueness' | 'Referential Integrity' | 'Range Validity' | 'Duplicate Detection';
-  passed: boolean;
-  score: number;
-  description: string;
-  anomalyCount: number;
-}
-
 interface QualityReport {
   overallScore: number;
-  checks: QualityCheck[];
+  checks: {
+    category: string;
+    passed: boolean;
+    score: number;
+    description: string;
+    anomalyCount: number;
+  }[];
 }
 
 interface ReconciliationItem {
@@ -40,7 +37,7 @@ interface ReconciliationItem {
   glBalance: number;
   reportAggregate: number;
   variance: number;
-  status: 'BALANCED' | 'VARIANCE_ALERT';
+  status: string;
 }
 
 interface IngestionJobRecord {
@@ -62,7 +59,9 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
   templates,
   onOpenGeneratedSubmission,
 }) => {
-  const [selectedSource, setSelectedSource] = useState<'CORE_BANKING' | 'ERP' | 'TREASURY'>('CORE_BANKING');
+  const [selectedSource, setSelectedSource] = useState<
+    'CORE_BANKING' | 'ERP' | 'TREASURY' | 'LOAN_ORIGINATION' | 'TRADE_FINANCE' | 'DIGITAL_PAYMENTS'
+  >('CORE_BANKING');
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestionStep, setIngestionStep] = useState<number>(0);
   const [qualityReport, setQualityReport] = useState<QualityReport | null>(null);
@@ -88,35 +87,59 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
         fetch('/api/phase2/reconcile').then((r) => (r.ok ? r.json() : null)),
       ]);
       if (qRes) setQualityReport(qRes);
-      if (rRes && Array.isArray(rRes)) setReconciliation(rRes);
+      if (rRes) setReconciliation(rRes);
     } catch {
-      // Offline fallback data
+      // Fallback
       setQualityReport({
         overallScore: 99.4,
         checks: [
-          { category: 'Completeness', passed: true, score: 100, description: 'All mandatory regulatory attributes populated', anomalyCount: 0 },
-          { category: 'Uniqueness', passed: true, score: 99.8, description: 'Account numbers and customer identifiers unique', anomalyCount: 2 },
-          { category: 'Referential Integrity', passed: true, score: 100, description: 'All loan lines map to validated customer rosters', anomalyCount: 0 },
-          { category: 'Range Validity', passed: true, score: 98.9, description: 'Interest rates and loan amounts within Directive bounds', anomalyCount: 12 },
-          { category: 'Duplicate Detection', passed: true, score: 99.9, description: 'No redundant transaction records detected', anomalyCount: 1 },
+          {
+            category: 'Completeness',
+            passed: true,
+            score: 100,
+            description: '100% mandatory fields populated across all customer profiles and TINs',
+            anomalyCount: 0,
+          },
+          {
+            category: 'Uniqueness',
+            passed: true,
+            score: 100,
+            description: 'No duplicate account or customer tax IDs detected',
+            anomalyCount: 0,
+          },
+          {
+            category: 'Referential Integrity',
+            passed: true,
+            score: 98.5,
+            description: 'Collateral accounts correctly link to primary lending records',
+            anomalyCount: 1,
+          },
+          {
+            category: 'Range Validity',
+            passed: true,
+            score: 99.1,
+            description: 'Provisioning rates and maturity dates conform to NBE BSD/03/2020 thresholds',
+            anomalyCount: 2,
+          },
         ],
       });
+
       setReconciliation([
         {
           reconciled: true,
-          glAccount: 'GL-1010-001',
-          glAccountName: 'Cash on Hand & Central Bank Reserve Account',
-          glBalance: 12450000000,
-          reportAggregate: 12450000000,
+          glAccount: 'GL-1410-001',
+          glAccountName: 'Total Gross Loans and Advances to Customers',
+          glBalance: 48500000000,
+          reportAggregate: 48500000000,
           variance: 0,
           status: 'BALANCED',
         },
         {
           reconciled: true,
           glAccount: 'GL-1420-005',
-          glAccountName: 'Commercial Loans & Advances (Performing)',
-          glBalance: 48920000000,
-          reportAggregate: 48920000000,
+          glAccountName: 'Allowance for Loan Impairment & Provisions Held',
+          glBalance: 1250000000,
+          reportAggregate: 1250000000,
           variance: 0,
           status: 'BALANCED',
         },
@@ -175,9 +198,9 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportKey: selectedTargetReturn }),
       });
-      const data = await res.json();
+      await res.json();
       setGeneratedSuccessMsg(
-        `Successfully auto-generated return ${selectedTargetReturn} from Gold Layer SSOT. All regulatory fields populated with 100% lineage.`
+        `Successfully auto-generated return [${selectedTargetReturn}] from Gold Layer SSOT. All regulatory fields populated with 100% lineage.`
       );
       setTimeout(() => setGeneratedSuccessMsg(null), 5000);
       if (onOpenGeneratedSubmission) {
@@ -188,30 +211,35 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
     }
   };
 
+  // Group templates by category for structured dropdown navigation
+  const categories = Array.from(new Set(templates.map((t) => t.Category || 'General')));
+
   return (
     <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
       {/* 1. Top Concept Banner (Compact, Fixed Height) */}
       <div className="bg-slate-900 text-white rounded-xl p-3 shadow-md border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-red-700/80 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-red-600">
+          <div className="w-8 h-8 rounded-lg bg-ob-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-ob-indigo-500">
             SSOT
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <h2 className="text-xs sm:text-sm font-bold tracking-tight">
-                Phase 2: Single Source of Truth (SSOT) Lakehouse & GL Reconcile
+              <h2 className="text-xs sm:text-sm font-bold tracking-tight text-white">
+                Phase 2 Single Source of Truth (SSOT) Lakehouse & Medallion Pipeline
               </h2>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-ob-green-950 text-ob-green-400 border border-ob-green-800">
+                Granular Contract
+              </span>
             </div>
-            <p className="text-[10px] text-slate-400">
-              Bronze (Raw) → Silver (Cleansed) → Gold (Regulatory Aggregates) with GL balance sheet reconciliation.
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Automated ingestion from Core Banking, ERP, Treasury, and LOS into Bronze Landing, Silver Cleansed, and Gold NBE Return Aggregates.
             </p>
           </div>
         </div>
 
         <button
           onClick={loadPhase2Data}
-          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors shrink-0 self-end sm:self-auto"
+          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors shrink-0 self-end sm:self-auto cursor-pointer"
           title="Refresh Pipeline Metrics"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -222,7 +250,7 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
       <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs shrink-0 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-red-700" />
+            <Layers className="w-3.5 h-3.5 text-ob-indigo-600" />
             <span>Medallion Pipeline Ingestion</span>
           </span>
 
@@ -231,19 +259,22 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
             <select
               value={selectedSource}
               onChange={(e) => setSelectedSource(e.target.value as any)}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-red-600"
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
             >
-              <option value="CORE_BANKING">Core Banking (T24 / Oracle)</option>
-              <option value="ERP">ERP & General Ledger</option>
+              <option value="CORE_BANKING">Core Banking (T24 / Oracle Flexcube)</option>
+              <option value="ERP">ERP & General Ledger (SAP / Oracle GL)</option>
               <option value="TREASURY">Treasury & Forex System</option>
+              <option value="LOAN_ORIGINATION">Loan Origination System (LOS)</option>
+              <option value="TRADE_FINANCE">Trade Finance & LC Gateway</option>
+              <option value="DIGITAL_PAYMENTS">Digital Banking & EthSwitch</option>
             </select>
 
             <button
               onClick={handleTriggerIngestion}
               disabled={isIngesting}
-              className="px-3 py-1 bg-red-700 hover:bg-red-800 text-white font-bold text-xs rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3 py-1 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
-              <Zap className="w-3 h-3" />
+              <Zap className="w-3 h-3 text-ob-green-300" />
               <span>{isIngesting ? 'Ingesting...' : 'Trigger Pipeline Ingest'}</span>
             </button>
           </div>
@@ -288,18 +319,18 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
           <div
             className={`border rounded-lg p-2.5 transition-all ${
               ingestionStep === 3
-                ? 'border-amber-500 bg-amber-50 shadow-sm ring-1 ring-amber-400'
-                : 'border-amber-300 bg-amber-50/30'
+                ? 'border-ob-green-500 bg-ob-green-50 shadow-sm ring-1 ring-ob-green-400'
+                : 'border-ob-green-300 bg-ob-green-50/30'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-200 text-amber-900">
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-ob-green-200 text-ob-green-900">
                 Gold Layer
               </span>
-              <span className="text-[10px] font-mono text-amber-800 font-bold">NBE Aggregate</span>
+              <span className="text-[10px] font-mono text-ob-green-800 font-bold">NBE Aggregate</span>
             </div>
             <div className="font-bold text-slate-900 mt-1">Prudential Ready Returns</div>
-            <p className="text-[10px] text-slate-500 mt-0.5">Automated mapping to 24 NBE returns.</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Automated mapping to all 24 NBE returns.</p>
           </div>
         </div>
       </div>
@@ -315,15 +346,15 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
             </div>
           )}
 
-          {/* 1-Click Auto-Generation Box */}
-          <div className="bg-red-50/60 border border-red-200 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* 1-Click Auto-Generation Box with ALL 24 Returns */}
+          <div className="bg-ob-indigo-50/70 border border-ob-indigo-200 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div>
-              <span className="text-xs font-bold text-red-950 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-red-700" />
+              <span className="text-xs font-bold text-ob-indigo-950 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-ob-indigo-600" />
                 <span>1-Click Auto-Generate Regulatory Return from Gold Lakehouse</span>
               </span>
-              <p className="text-[11px] text-red-900/80 mt-0.5">
-                Populates all 24 NBE returns with verified balances directly from the Gold aggregate layer.
+              <p className="text-[11px] text-ob-indigo-900/80 mt-0.5">
+                Populates any of the 24 official NBE returns with verified subledger balances directly from the Gold aggregate layer.
               </p>
             </div>
 
@@ -331,19 +362,25 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
               <select
                 value={selectedTargetReturn}
                 onChange={(e) => setSelectedTargetReturn(e.target.value)}
-                className="text-xs bg-white border border-ob-indigo-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
+                className="text-xs bg-white border border-ob-indigo-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer max-w-xs"
               >
-                {templates.slice(0, 10).map((t) => (
-                  <option key={t.ReturnKey} value={t.ReturnKey}>
-                    {t.Code} - {t.Title.slice(0, 26)}...
-                  </option>
+                {categories.map((cat) => (
+                  <optgroup key={cat} label={cat}>
+                    {templates
+                      .filter((t) => (t.Category || 'General') === cat)
+                      .map((t) => (
+                        <option key={t.ReturnKey} value={t.ReturnKey}>
+                          [{t.Code}] {t.Title} ({t.Frequency})
+                        </option>
+                      ))}
+                  </optgroup>
                 ))}
               </select>
 
               <button
                 type="button"
                 onClick={handleGenerateReturnFromSSOT}
-                className="px-3.5 py-1.5 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-colors cursor-pointer shrink-0"
               >
                 Auto-Generate Return
               </button>
@@ -370,22 +407,22 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {reconciliation.map((rec) => (
-                    <tr key={rec.glAccount} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-2.5 px-3 font-mono font-bold text-red-700">{rec.glAccount}</td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-800">{rec.glAccountName}</td>
-                      <td className="py-2.5 px-3 font-mono text-right font-bold text-slate-900">
-                        {rec.glBalance.toLocaleString()}
+                  {reconciliation.map((r, i) => (
+                    <tr key={i} className="hover:bg-slate-50">
+                      <td className="py-2 px-3 font-mono font-bold text-ob-indigo-700">{r.glAccount}</td>
+                      <td className="py-2 px-3 font-medium text-slate-900">{r.glAccountName}</td>
+                      <td className="py-2 px-3 text-right font-mono font-semibold">
+                        {r.glBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-right font-bold text-slate-900">
-                        {rec.reportAggregate.toLocaleString()}
+                      <td className="py-2 px-3 text-right font-mono font-semibold">
+                        {r.reportAggregate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-right font-bold text-emerald-600">
-                        ETB {rec.variance}
+                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">
+                        {r.variance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-2.5 px-3 text-center">
+                      <td className="py-2 px-3 text-center">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {rec.status}
+                          {r.status}
                         </span>
                       </td>
                     </tr>
@@ -394,6 +431,39 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
               </table>
             </div>
           </div>
+
+          {/* Quality Gates Report */}
+          {qualityReport && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-ob-indigo-600" />
+                  <span>Automated Data Quality & Lineage Gates</span>
+                </h4>
+                <div className="text-xs font-bold text-slate-700">
+                  Overall Score:{' '}
+                  <span className="text-emerald-600 font-mono font-bold">{qualityReport.overallScore}%</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {qualityReport.checks.map((c, i) => (
+                  <div key={i} className="p-3 border border-slate-200 rounded-xl bg-slate-50/50 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">{c.category}</span>
+                        <span className="text-[11px] font-mono font-bold text-emerald-600">{c.score}%</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">{c.description}</p>
+                    </div>
+                    <div className="mt-2 text-[10px] text-slate-400">
+                      Anomalies: <span className="font-bold text-slate-600">{c.anomalyCount}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

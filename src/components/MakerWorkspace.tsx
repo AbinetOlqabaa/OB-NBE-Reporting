@@ -25,6 +25,8 @@ import {
   LayoutGrid,
   List as ListIcon,
   Sparkles,
+  X,
+  Building2,
 } from 'lucide-react';
 import { ExcelService } from '../utils/excelService';
 import { Pagination } from './Pagination';
@@ -51,7 +53,6 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedFrequency, setSelectedFrequency] = useState<string>('ALL');
-  const [selectedTemplateForDetail, setSelectedTemplateForDetail] = useState<ReportMetadata | null>(null);
 
   // Pagination states - 6 per page keeps cards/lists balanced and strictly within fixed window
   const [templatesPage, setTemplatesPage] = useState(1);
@@ -60,16 +61,10 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
   const [submissionsPage, setSubmissionsPage] = useState(1);
   const [submissionsPageSize, setSubmissionsPageSize] = useState(6);
 
-  // Categories
-  const categories = [
-    'ALL',
-    'Credit & Lending',
-    'Classification & Provisioning',
-    'Exposures & Concentration',
-    'Assets & Collateral',
-    'Restructuring',
-    'Sector Breakdown',
-  ];
+  const [selectedSubmissionStatus, setSelectedSubmissionStatus] = useState<string>('ALL');
+
+  // Dynamically compute all distinct categories from templates
+  const dynamicCategories = ['ALL', ...Array.from(new Set(templates.map((t) => t.Category || 'General')))];
 
   // Reset pagination when filter changes
   useEffect(() => {
@@ -78,18 +73,24 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
 
   useEffect(() => {
     setSubmissionsPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, selectedSubmissionStatus]);
 
-  // Filtering templates
+  // Filtering templates by Name, Regulatory ID/Code, Description, or Category
   const filteredTemplates = templates.filter((tpl) => {
+    const q = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      tpl.Code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tpl.Title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tpl.Description.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      tpl.Code.toLowerCase().includes(q) ||
+      tpl.Title.toLowerCase().includes(q) ||
+      tpl.ReturnKey.toLowerCase().includes(q) ||
+      (tpl.Category && tpl.Category.toLowerCase().includes(q)) ||
+      (tpl.Description && tpl.Description.toLowerCase().includes(q));
+
     const matchesCategory =
       selectedCategory === 'ALL' || tpl.Category === selectedCategory;
     const matchesFreq =
       selectedFrequency === 'ALL' || tpl.Frequency === selectedFrequency;
+
     return matchesSearch && matchesCategory && matchesFreq;
   });
 
@@ -101,13 +102,19 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
 
   // Filtering submissions
   const filteredSubmissions = submissions.filter((sub) => {
+    const q = searchQuery.trim().toLowerCase();
     const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
     const title = tpl ? tpl.Title : sub.reportKey;
     const matchesSearch =
-      sub.reportKey.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.makerName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+      !q ||
+      sub.reportKey.toLowerCase().includes(q) ||
+      title.toLowerCase().includes(q) ||
+      sub.makerName.toLowerCase().includes(q);
+
+    const matchesStatus =
+      selectedSubmissionStatus === 'ALL' || sub.status === selectedSubmissionStatus;
+
+    return matchesSearch && matchesStatus;
   });
 
   // Paginated submissions slice
@@ -136,8 +143,8 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
     switch (status) {
       case 'DRAFT':
         return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-ob-indigo-50 text-ob-indigo-700 border border-ob-indigo-200 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-ob-indigo-500"></span>
             Draft
           </span>
         );
@@ -164,8 +171,8 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
         );
       case 'SENT':
         return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-purple-600" />
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-ob-green-50 text-ob-green-800 border border-ob-green-300 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-ob-green-600" />
             Delivered to NBE
           </span>
         );
@@ -184,63 +191,57 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
 
   return (
     <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
-      {/* 1. Compact Top Metrics Ribbon (Strictly Fixed Height ~56px) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
-        <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">NBE Returns</span>
-            <div className="text-lg font-bold text-slate-900 leading-tight">{templates.length}</div>
-            <span className="text-[10px] text-slate-500">100% Schema Mapped</span>
+      {/* 1. Top Search Bar & Key Metrics Ribbon (Strictly Fixed Height) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2.5 shrink-0">
+        {/* Top Search Bar with Oromia Bank Brand Styling */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-ob-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search return templates by name or regulatory ID (e.g. SBR-01, Balance Sheet, Loans, BSD/03/2020)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ob-indigo-500/30 focus:border-ob-indigo-500 focus:bg-white transition-all shadow-2xs font-medium"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200"
+                title="Clear search query"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-          <div className="w-7 h-7 rounded-lg bg-red-50 text-red-700 flex items-center justify-center">
-            <Layers className="w-3.5 h-3.5" />
+
+          {/* Quick Metrics & State Count Pill */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs">
+              <span className="text-[11px] text-slate-500 font-medium">Catalog:</span>
+              <span className="font-mono font-bold text-ob-indigo-700 bg-ob-indigo-50 px-1.5 py-0.2 rounded border border-ob-indigo-200">
+                {filteredTemplates.length} / {templates.length}
+              </span>
+              <span className="text-slate-300">|</span>
+              <span className="text-[11px] text-slate-500 font-medium">Drafts:</span>
+              <span className="font-mono font-bold text-blue-700">{draftCount}</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-[11px] text-slate-500 font-medium">Queue:</span>
+              <span className="font-mono font-bold text-amber-700">{pendingCount}</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">Active Drafts</span>
-            <div className="text-lg font-bold text-blue-700 leading-tight">{draftCount}</div>
-            <span className="text-[10px] text-slate-500">In preparation</span>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
-            <Edit3 className="w-3.5 h-3.5" />
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Pending Checker</span>
-            <div className="text-lg font-bold text-amber-700 leading-tight">{pendingCount}</div>
-            <span className="text-[10px] text-slate-500">4-Eyes Review Queue</span>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
-            <Clock className="w-3.5 h-3.5" />
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Delivered NBE</span>
-            <div className="text-lg font-bold text-emerald-700 leading-tight">{sentCount}</div>
-            <span className="text-[10px] text-slate-500">Cryptographic Receipt</span>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Controls & Filter Bar (Compact, Fixed Height) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2 shrink-0">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        {/* Navigation Tabs, Filter, and View Mode Toggles */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1 border-t border-slate-100">
           {/* Sub-tab selection */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setActiveTab('TEMPLATES')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 activeTab === 'TEMPLATES'
-                  ? 'bg-red-700 text-white shadow-2xs'
+                  ? 'bg-ob-indigo-600 text-white shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -249,7 +250,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
               <span
                 className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                   activeTab === 'TEMPLATES'
-                    ? 'bg-red-800 text-white'
+                    ? 'bg-ob-indigo-700 text-white'
                     : 'bg-slate-200 text-slate-700'
                 }`}
               >
@@ -259,9 +260,9 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
 
             <button
               onClick={() => setActiveTab('SUBMISSIONS')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 activeTab === 'SUBMISSIONS'
-                  ? 'bg-red-700 text-white shadow-2xs'
+                  ? 'bg-ob-indigo-600 text-white shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -270,7 +271,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
               <span
                 className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                   activeTab === 'SUBMISSIONS'
-                    ? 'bg-red-800 text-white'
+                    ? 'bg-ob-indigo-700 text-white'
                     : 'bg-slate-200 text-slate-700'
                 }`}
               >
@@ -279,93 +280,90 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
             </button>
           </div>
 
-          {/* Search & Layout toggle */}
+          {/* Filter & View Mode Controls */}
           <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-60">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search return code, title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-red-600 focus:bg-white"
-              />
-            </div>
+            {activeTab === 'TEMPLATES' ? (
+              <>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                >
+                  {dynamicCategories.map((c) => (
+                    <option key={c} value={c}>
+                      {c === 'ALL' ? 'All Categories' : c}
+                    </option>
+                  ))}
+                </select>
 
-            {activeTab === 'TEMPLATES' && (
-              <div className="flex items-center border border-slate-200 rounded-lg p-0.5 bg-slate-50">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('GRID')}
-                  className={`p-1 rounded text-xs transition-colors ${
-                    viewMode === 'GRID'
-                      ? 'bg-white text-red-700 shadow-2xs font-bold'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                  title="Balanced Card Grid View (6 per page)"
+                <div className="hidden lg:flex items-center gap-1">
+                  {(['ALL', 'MONTHLY', 'QUARTERLY', 'ANNUAL'] as const).map((freq) => (
+                    <button
+                      key={freq}
+                      onClick={() => setSelectedFrequency(freq)}
+                      className={`px-2 py-0.8 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                        selectedFrequency === freq
+                          ? 'bg-ob-indigo-50 text-ob-indigo-700 border border-ob-indigo-200'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {freq}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('GRID')}
+                    className={`p-1 rounded text-xs transition-colors cursor-pointer ${
+                      viewMode === 'GRID'
+                        ? 'bg-white text-ob-indigo-700 shadow-2xs font-bold'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                    title="Balanced Card Grid View (6 per page)"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('LIST')}
+                    className={`p-1 rounded text-xs transition-colors cursor-pointer ${
+                      viewMode === 'LIST'
+                        ? 'bg-white text-ob-indigo-700 shadow-2xs font-bold'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                    title="Dense Structured List View (6 per page)"
+                  >
+                    <ListIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                  <Filter className="w-3 h-3 text-ob-indigo-600" />
+                  Status:
+                </span>
+                <select
+                  value={selectedSubmissionStatus}
+                  onChange={(e) => setSelectedSubmissionStatus(e.target.value)}
+                  className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
                 >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('LIST')}
-                  className={`p-1 rounded text-xs transition-colors ${
-                    viewMode === 'LIST'
-                      ? 'bg-white text-red-700 shadow-2xs font-bold'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                  title="Dense Structured List View (6 per page)"
-                >
-                  <ListIcon className="w-3.5 h-3.5" />
-                </button>
+                  <option value="ALL">All Status ({submissions.length})</option>
+                  <option value="DRAFT">Draft ({submissions.filter((s) => s.status === 'DRAFT').length})</option>
+                  <option value="PENDING_CHECKER">Pending Checker ({submissions.filter((s) => s.status === 'PENDING_CHECKER').length})</option>
+                  <option value="CORRECTION_REQUIRED">Needs Correction ({submissions.filter((s) => s.status === 'CORRECTION_REQUIRED').length})</option>
+                  <option value="APPROVED">Approved ({submissions.filter((s) => s.status === 'APPROVED').length})</option>
+                  <option value="SENT">Delivered to NBE ({submissions.filter((s) => s.status === 'SENT').length})</option>
+                </select>
               </div>
             )}
           </div>
         </div>
-
-        {/* Filter Row (Only when in TEMPLATES view) */}
-        {activeTab === 'TEMPLATES' && (
-          <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-slate-100 text-xs">
-            <span className="text-slate-400 flex items-center gap-1 font-medium text-[11px]">
-              <Filter className="w-3 h-3" />
-              Category:
-            </span>
-
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-red-600"
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c === 'ALL' ? 'All Categories (24 Returns)' : c}
-                </option>
-              ))}
-            </select>
-
-            <span className="text-slate-300">|</span>
-
-            <span className="text-slate-400 font-medium text-[11px]">Frequency:</span>
-            <div className="flex items-center gap-1">
-              {(['ALL', 'MONTHLY', 'QUARTERLY', 'ANNUAL'] as const).map((freq) => (
-                <button
-                  key={freq}
-                  onClick={() => setSelectedFrequency(freq)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    selectedFrequency === freq
-                      ? 'bg-red-50 text-red-700 border border-red-200'
-                      : 'text-slate-500 hover:bg-slate-100'
-                  }`}
-                >
-                  {freq}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* 3. Main Content Viewport (Strictly flex-1 min-h-0 overflow-hidden with internal pagination) */}
+      {/* 2. Main Content Viewport (Strictly flex-1 min-h-0 overflow-hidden with internal pagination) */}
       {activeTab === 'TEMPLATES' ? (
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
           {/* Scrollable Container */}
@@ -373,8 +371,19 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
             {paginatedTemplates.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
                 <FileSpreadsheet className="w-8 h-8 text-slate-300 mb-2" />
-                <h3 className="text-sm font-bold text-slate-800">No NBE Returns Found</h3>
-                <p className="text-xs text-slate-500 mt-1">Try relaxing your search terms or category filter.</p>
+                <h3 className="text-sm font-bold text-slate-800">No NBE Returns Match Filter</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  No returns found for "{searchQuery}". Try clearing search or selecting "All Categories".
+                </p>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="mt-3 px-3 py-1.5 bg-ob-indigo-50 text-ob-indigo-700 border border-ob-indigo-200 font-bold text-xs rounded-lg hover:bg-ob-indigo-100"
+                  >
+                    Clear Search
+                  </button>
+                )}
               </div>
             ) : viewMode === 'GRID' ? (
               /* Balanced Compact Card Grid - 3 columns x 2 rows, perfectly fitting inside window */
@@ -386,11 +395,11 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                   return (
                     <div
                       key={tpl.ReturnKey}
-                      className="bg-slate-50/60 hover:bg-white border border-slate-200 hover:border-red-300 rounded-xl p-3 transition-all flex flex-col justify-between shadow-2xs hover:shadow-xs group h-[122px]"
+                      className="bg-slate-50/60 hover:bg-white border border-slate-200 hover:border-ob-indigo-300 rounded-xl p-3 transition-all flex flex-col justify-between shadow-2xs hover:shadow-xs group h-[122px]"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-1.5 mb-1">
-                          <span className="font-mono text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.2 rounded shrink-0">
+                          <span className="font-mono text-[11px] font-bold text-ob-indigo-700 bg-ob-indigo-50 border border-ob-indigo-200 px-1.5 py-0.2 rounded shrink-0">
                             {tpl.Code}
                           </span>
                           <span
@@ -407,7 +416,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                         </div>
 
                         <h4
-                          className="text-xs font-bold text-slate-900 truncate group-hover:text-red-700 transition-colors"
+                          className="text-xs font-bold text-slate-900 truncate group-hover:text-ob-indigo-700 transition-colors"
                           title={tpl.Title}
                         >
                           {tpl.Title}
@@ -440,7 +449,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                           <button
                             type="button"
                             onClick={() => handleExportBlank(tpl)}
-                            className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                            className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
                             title="Download Official Blank Excel (XLSX) Template"
                           >
                             <Download className="w-3 h-3" />
@@ -450,7 +459,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => onSelectSubmission(latestSub)}
-                              className="px-2 py-0.8 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors flex items-center gap-1"
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
                             >
                               <Edit3 className="w-2.5 h-2.5" />
                               <span>Open Form</span>
@@ -459,7 +468,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => onCreateDraft(tpl.ReturnKey)}
-                              className="px-2 py-0.8 bg-red-700 hover:bg-red-800 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors flex items-center gap-1"
+                              className="px-2.5 py-1 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
                             >
                               <Plus className="w-2.5 h-2.5" />
                               <span>Initiate</span>
@@ -492,7 +501,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
 
                     return (
                       <tr key={tpl.ReturnKey} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-2 px-3 font-mono font-bold text-red-700">
+                        <td className="py-2 px-3 font-mono font-bold text-ob-indigo-700">
                           {tpl.Code}
                         </td>
                         <td className="py-2 px-3 font-bold text-slate-900 max-w-xs truncate" title={tpl.Title}>
@@ -523,7 +532,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                           <button
                             type="button"
                             onClick={() => handleExportBlank(tpl)}
-                            className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors inline-flex items-center"
+                            className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors inline-flex items-center cursor-pointer"
                             title="Export Excel (XLSX) Template"
                           >
                             <Download className="w-3 h-3" />
@@ -533,7 +542,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => onSelectSubmission(latestSub)}
-                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1"
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>Open Form</span>
@@ -542,7 +551,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => onCreateDraft(tpl.ReturnKey)}
-                              className="px-2.5 py-1 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1"
+                              className="px-2.5 py-1 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                               <span>Initiate Draft</span>
@@ -596,7 +605,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                     const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
                     return (
                       <tr key={sub.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-2.5 px-3 font-mono font-bold text-red-700">
+                        <td className="py-2.5 px-3 font-mono font-bold text-ob-indigo-700">
                           {sub.reportKey}
                         </td>
                         <td className="py-2.5 px-3 font-bold text-slate-900 max-w-xs truncate">
@@ -613,7 +622,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                           <button
                             type="button"
                             onClick={() => onSelectSubmission(sub)}
-                            className="px-2.5 py-1 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1"
+                            className="px-2.5 py-1 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Edit3 className="w-3 h-3" />
                             <span>{sub.status === 'DRAFT' ? 'Edit Draft' : 'View Return'}</span>
@@ -623,7 +632,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                             <button
                               type="button"
                               onClick={() => onSubmitToChecker(sub.id)}
-                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1"
+                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                               title="Submit prepared return for Checker 4-eyes review"
                             >
                               <Clock className="w-3 h-3" />

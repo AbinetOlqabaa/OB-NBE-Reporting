@@ -293,6 +293,30 @@ app.delete('/api/nbe-simulator/logs', (req, res) => {
   res.json({ message: 'Logs cleared' });
 });
 
+app.get('/api/nbe-simulator/gateway-health', (req, res) => {
+  const scenario = nbeSimulator.getScenario();
+  const isHealthy = scenario.mode !== 'SERVER_ERROR' && scenario.mode !== 'TIMEOUT';
+  const status = (scenario.mode === 'SERVER_ERROR' || scenario.mode === 'TIMEOUT')
+    ? 'DEGRADED'
+    : scenario.mode === 'RANDOM_FLAKY'
+    ? 'DEGRADED'
+    : 'ONLINE';
+  const latency = scenario.latencyMs || Math.floor(25 + Math.random() * 20);
+
+  res.json({
+    status,
+    healthy: isHealthy,
+    gateway: 'National Bank of Ethiopia (NBE) BSD Gateway',
+    endpoint: 'https://nbe.gov.et/api/v2/regulatory/gateway',
+    institutionCode: '0000013',
+    latencyMs: latency,
+    tlsVersion: 'TLSv1.3 / mTLS',
+    directives: ['BSD/03/2020', 'SBR/2026'],
+    mode: scenario.mode,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get('/api/nbe-simulator/scenario', (req, res) => {
   res.json(nbeSimulator.getScenario());
 });

@@ -29,13 +29,23 @@ export const DocumentationView: React.FC<DocumentationViewProps> = ({ templates 
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogPage, setCatalogPage] = useState(1);
   const [catalogPageSize, setCatalogPageSize] = useState(6);
+  const [catalogCategory, setCatalogCategory] = useState<string>('ALL');
+  const [catalogFrequency, setCatalogFrequency] = useState<string>('ALL');
 
-  const filteredCatalog = templates.filter(
-    (t) =>
+  const categories = ['ALL', ...Array.from(new Set(templates.map((t) => t.Category || 'General')))];
+
+  const filteredCatalog = templates.filter((t) => {
+    const matchesSearch =
+      !catalogSearch ||
       t.Code.toLowerCase().includes(catalogSearch.toLowerCase()) ||
       t.Title.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-      t.Category.toLowerCase().includes(catalogSearch.toLowerCase())
-  );
+      t.Category.toLowerCase().includes(catalogSearch.toLowerCase());
+
+    const matchesCategory = catalogCategory === 'ALL' || t.Category === catalogCategory;
+    const matchesFreq = catalogFrequency === 'ALL' || t.Frequency === catalogFrequency;
+
+    return matchesSearch && matchesCategory && matchesFreq;
+  });
 
   const paginatedCatalog = filteredCatalog.slice(
     (catalogPage - 1) * catalogPageSize,
@@ -136,24 +146,58 @@ export const DocumentationView: React.FC<DocumentationViewProps> = ({ templates 
 
         {docTab === 'CATALOG' && (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            {/* Search Bar in Catalog */}
-            <div className="p-2.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
-              <div className="relative w-64">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Filter catalog code, title..."
-                  value={catalogSearch}
+            {/* Search and Filters Bar in Catalog */}
+            <div className="p-2.5 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+              <div className="flex items-center gap-2 flex-1 sm:max-w-md">
+                <div className="relative flex-1">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Filter catalog code, title..."
+                    value={catalogSearch}
+                    onChange={(e) => {
+                      setCatalogSearch(e.target.value);
+                      setCatalogPage(1);
+                    }}
+                    className="w-full pl-8 pr-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <select
+                  value={catalogCategory}
                   onChange={(e) => {
-                    setCatalogSearch(e.target.value);
+                    setCatalogCategory(e.target.value);
                     setCatalogPage(1);
                   }}
-                  className="w-full pl-8 pr-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
-                />
+                  className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer shadow-2xs"
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c === 'ALL' ? 'All Categories' : c}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={catalogFrequency}
+                  onChange={(e) => {
+                    setCatalogFrequency(e.target.value);
+                    setCatalogPage(1);
+                  }}
+                  className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer shadow-2xs"
+                >
+                  <option value="ALL">All Frequencies</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="ANNUAL">Annual</option>
+                </select>
+
+                <span className="text-xs text-slate-500 font-mono">
+                  {filteredCatalog.length} / {templates.length} templates
+                </span>
               </div>
-              <span className="text-xs text-slate-500 font-mono">
-                {filteredCatalog.length} templates
-              </span>
             </div>
 
             {/* Catalog Table */}

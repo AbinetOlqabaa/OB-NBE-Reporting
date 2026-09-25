@@ -58,7 +58,7 @@ export interface SSOTGeneralLedger extends TemporalEntity {
 
 export interface IngestionJob {
   id: string;
-  source: "CORE_BANKING" | "ERP" | "TREASURY";
+  source: "CORE_BANKING" | "ERP" | "TREASURY" | "LOAN_ORIGINATION" | "TRADE_FINANCE" | "DIGITAL_PAYMENTS";
   startTime: string;
   endTime?: string;
   status: "RUNNING" | "COMPLETED" | "FAILED";
