@@ -25,6 +25,8 @@ import { AuditTrailView } from './components/AuditTrailView';
 import { DocumentationView } from './components/DocumentationView';
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { CommandPaletteModal } from './components/CommandPaletteModal';
 
 export default function App() {
   // First visitor starts on the Login Page
@@ -55,6 +57,118 @@ export default function App() {
   const [submissions, setSubmissions] = useState<ReportSubmission[]>(submissionService.getAll());
   const [editingSubmission, setEditingSubmission] = useState<ReportSubmission | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global Keyboard Shortcuts Listener
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const isInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement;
+
+      // 1. Ctrl+K or Cmd+K: Open Universal Command Palette
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        setIsShortcutsModalOpen(false);
+        return;
+      }
+
+      // 2. '?' or Ctrl+/ : Open Keyboard Shortcuts Cheat Sheet
+      if ((e.key === '?' && !isInput) || ((e.ctrlKey || e.metaKey) && e.key === '/')) {
+        e.preventDefault();
+        setIsShortcutsModalOpen((prev) => !prev);
+        setIsCommandPaletteOpen(false);
+        return;
+      }
+
+      // 3. Escape: Close modals
+      if (e.key === 'Escape') {
+        if (isCommandPaletteOpen) {
+          setIsCommandPaletteOpen(false);
+          return;
+        }
+        if (isShortcutsModalOpen) {
+          setIsShortcutsModalOpen(false);
+          return;
+        }
+      }
+
+      // 4. Ctrl+M or Cmd+M: Jump to Maker Workspace
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        setActiveTab('MAKER_WORKSPACE');
+        setEditingSubmission(null);
+        showToast('Navigated to Maker Workspace (Ctrl+M)');
+        return;
+      }
+
+      // 5. Ctrl+Shift+C / Cmd+Shift+C: Jump to Checker Inbox
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        if (currentUser.role === 'CHECKER' || currentUser.role === 'ADMIN') {
+          setActiveTab('CHECKER_INBOX');
+          setEditingSubmission(null);
+          showToast('Navigated to Checker Inbox (Ctrl+Shift+C)');
+        }
+        return;
+      }
+
+      // 6. Ctrl+Shift+A / Cmd+Shift+A: Jump to Admin Dashboard
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (currentUser.role === 'ADMIN') {
+          setActiveTab('ADMIN_DASHBOARD');
+          setEditingSubmission(null);
+          showToast('Navigated to Admin Governance (Ctrl+Shift+A)');
+        }
+        return;
+      }
+
+      // 7. Ctrl+Shift+N / Cmd+Shift+N: Jump to NBE Simulator
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setActiveTab('NBE_SIMULATOR');
+        setEditingSubmission(null);
+        showToast('Navigated to NBE API Gateway Simulator (Ctrl+Shift+N)');
+        return;
+      }
+
+      // 8. Ctrl+Shift+S / Cmd+Shift+S: Jump to Phase 2 SSOT
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        setActiveTab('PHASE2_SSOT');
+        setEditingSubmission(null);
+        showToast('Navigated to Phase 2 SSOT Medallion Lakehouse (Ctrl+Shift+S)');
+        return;
+      }
+
+      // 9. Ctrl+Shift+L / Cmd+Shift+L: Jump to Audit Trail
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        setActiveTab('AUDIT_TRAIL');
+        setEditingSubmission(null);
+        showToast('Navigated to Regulatory Audit Trail (Ctrl+Shift+L)');
+        return;
+      }
+
+      // 10. Ctrl+Shift+D / Cmd+Shift+D: Jump to Documentation
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        setActiveTab('DOCUMENTATION');
+        setEditingSubmission(null);
+        showToast('Navigated to NBE Specifications & Documentation (Ctrl+Shift+D)');
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [currentUser, isCommandPaletteOpen, isShortcutsModalOpen]);
 
   // Collapsible Sidebar state persisted in localStorage
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -317,6 +431,8 @@ export default function App() {
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
           onLogout={handleLogout}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
         />
 
         {/* Dynamic Main Viewport (Fixed Window, No Outer Scrolling) */}
@@ -386,6 +502,26 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Global Command Palette Modal (Ctrl+K) */}
+      <CommandPaletteModal
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          setEditingSubmission(null);
+        }}
+        onSelectReturn={(key) => handleOpenGeneratedSubmission(key)}
+        templates={templates}
+        currentUser={currentUser}
+        onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
+      />
+
+      {/* Global Keyboard Shortcuts Cheat Sheet Modal (?) */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
+      />
 
       {/* Global Toast Notification */}
       {toastMessage && (

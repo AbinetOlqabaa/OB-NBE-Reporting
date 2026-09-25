@@ -15,6 +15,7 @@ import {
   PanelLeftOpen,
   Users,
   LogOut,
+  Search,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory';
 
@@ -35,6 +36,8 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onLogout?: () => void;
+  onOpenCommandPalette?: () => void;
+  onOpenShortcutsModal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -45,7 +48,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
   onLogout,
+  onOpenCommandPalette,
+  onOpenShortcutsModal,
 }) => {
+  const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  const modKey = isMac ? '⌘' : 'Ctrl';
+
   // Listen for Ctrl+B or Cmd+B to toggle sidebar collapse
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onToggleCollapse]);
 
-  // Complete nav items catalog
+  // Complete nav items catalog with associated global keyboard shortcuts
   const allNavItems = [
     {
       id: 'ADMIN_DASHBOARD' as ViewTab,
@@ -67,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Users,
       description: 'Super user lifecycle & controls',
       badge: null,
+      shortcut: `${modKey}+⇧+A`,
       roles: ['ADMIN'],
     },
     {
@@ -76,6 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: FileText,
       description: 'Report catalog & dynamic forms',
       badge: null,
+      shortcut: `${modKey}+M`,
       roles: ['ADMIN', 'MAKER'],
     },
     {
@@ -85,6 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Inbox,
       description: 'Review & approval workflows',
       badge: pendingCheckerCount > 0 ? pendingCheckerCount : null,
+      shortcut: `${modKey}+⇧+C`,
       roles: ['ADMIN', 'CHECKER'],
     },
     {
@@ -94,6 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Send,
       description: 'Intake console & test probe',
       badge: null,
+      shortcut: `${modKey}+⇧+N`,
       roles: ['ADMIN', 'CHECKER'],
     },
     {
@@ -103,7 +115,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Database,
       description: 'Lakehouse & GL reconcile',
       badge: null,
-      roles: ['ADMIN', 'MAKER'],
+      shortcut: `${modKey}+⇧+S`,
+      roles: ['ADMIN', 'MAKER', 'CHECKER'],
     },
     {
       id: 'AUDIT_TRAIL' as ViewTab,
@@ -112,7 +125,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: History,
       description: 'Immutable event history',
       badge: null,
-      roles: ['ADMIN', 'CHECKER'],
+      shortcut: `${modKey}+⇧+L`,
+      roles: ['ADMIN', 'CHECKER', 'MAKER', 'NBE_OFFICER'],
     },
     {
       id: 'DOCUMENTATION' as ViewTab,
@@ -121,6 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: HelpCircle,
       description: 'Regulatory contracts & formulas',
       badge: null,
+      shortcut: `${modKey}+⇧+D`,
       roles: ['ADMIN', 'MAKER', 'CHECKER', 'NBE_OFFICER'],
     },
   ];
@@ -198,7 +213,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {!isCollapsed && (
                   <div className="flex-1 truncate">
-                    <div className="leading-tight truncate">{item.label}</div>
+                    <div className="leading-tight truncate flex items-center justify-between gap-1">
+                      <span>{item.label}</span>
+                      <kbd className={`text-[9px] font-mono px-1 py-0.2 rounded border ${
+                        isActive
+                          ? 'bg-ob-indigo-700/80 border-ob-indigo-500 text-ob-indigo-100'
+                          : 'bg-black/40 border-[#2B3369] text-slate-500 opacity-60 group-hover:opacity-100'
+                      }`}>
+                        {item.shortcut}
+                      </kbd>
+                    </div>
                     <div
                       className={`text-[10px] font-normal truncate ${
                         isActive ? 'text-ob-indigo-100' : 'text-slate-500'
@@ -231,6 +255,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className={`p-3 border-t border-[#22284D] shrink-0 ${isCollapsed ? 'text-center' : ''}`}>
         {!isCollapsed ? (
           <div className="space-y-2">
+            {/* Quick Helper Buttons */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {onOpenCommandPalette && (
+                <button
+                  type="button"
+                  onClick={onOpenCommandPalette}
+                  className="flex items-center justify-center gap-1 p-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors cursor-pointer"
+                  title={`Command Palette (${modKey}+K)`}
+                >
+                  <Search className="w-3 h-3 text-ob-indigo-300" />
+                  <span>Search</span>
+                  <kbd className="text-[9px] font-mono opacity-60 ml-0.5">{modKey}+K</kbd>
+                </button>
+              )}
+
+              {onOpenShortcutsModal && (
+                <button
+                  type="button"
+                  onClick={onOpenShortcutsModal}
+                  className="flex items-center justify-center gap-1 p-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors cursor-pointer"
+                  title="Keyboard Shortcuts (?)"
+                >
+                  <HelpCircle className="w-3 h-3 text-ob-green-400" />
+                  <span>Hotkeys</span>
+                  <kbd className="text-[9px] font-mono opacity-60 ml-0.5">?</kbd>
+                </button>
+              )}
+            </div>
+
             <div className="flex items-center gap-2.5 p-2 rounded-xl bg-black/30 border border-[#262D55]">
               <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shrink-0 shadow-xs">
                 <img
@@ -263,6 +316,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
+            {onOpenShortcutsModal && (
+              <button
+                type="button"
+                onClick={onOpenShortcutsModal}
+                className="p-2 rounded-lg text-slate-400 hover:text-ob-green-300 hover:bg-white/5 transition-colors cursor-pointer"
+                title="Keyboard Shortcuts (?)"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            )}
+
             <div
               className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shadow-xs cursor-pointer"
               title={`${currentUser.name} (${currentUser.role})`}

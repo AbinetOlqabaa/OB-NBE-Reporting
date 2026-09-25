@@ -186,11 +186,33 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     onSave(calculated, nextDynamic);
   };
 
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+
+  const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  const modKey = isMac ? '⌘' : 'Ctrl';
+
   const handleManualSave = () => {
     const calculated = recalculateAndValidate(values, dynamicRows);
     onSave(calculated, dynamicRows);
     setHasUnsavedChanges(false);
+    setSaveFeedback('Draft saved successfully (' + modKey + '+S)');
+    setTimeout(() => setSaveFeedback(null), 3000);
   };
+
+  // Keyboard shortcuts listener in form: Ctrl+S to save, Esc to close modal/go back
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S or Cmd+S for quick save
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (!readOnly) {
+          handleManualSave();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [values, dynamicRows, readOnly]);
 
   const handleExportExcel = () => {
     const binary = ExcelService.exportToBinary(metadata, values, dynamicRows);
@@ -322,14 +344,20 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <button
                 type="button"
                 onClick={handleManualSave}
-                className={`flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                   hasUnsavedChanges
                     ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
+                title={`Save Changes (${modKey}+S)`}
               >
                 <Save className="w-3 h-3" />
                 <span>{hasUnsavedChanges ? 'Save Changes' : 'Saved'}</span>
+                <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded border ${
+                  hasUnsavedChanges ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-300 text-slate-500'
+                }`}>
+                  {modKey}+S
+                </kbd>
               </button>
 
               <button
@@ -351,6 +379,21 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
       </div>
 
       {/* 2. Notification Toast if active */}
+      {saveFeedback && (
+        <div className="bg-ob-green-50 border border-ob-green-300 text-ob-green-950 px-3 py-1.5 rounded-lg text-xs flex items-center justify-between shadow-2xs shrink-0 animate-in fade-in">
+          <div className="flex items-center gap-2 font-semibold">
+            <CheckCircle2 className="w-3.5 h-3.5 text-ob-green-700 shrink-0" />
+            <span>{saveFeedback}</span>
+          </div>
+          <button
+            onClick={() => setSaveFeedback(null)}
+            className="text-ob-green-800 hover:text-ob-green-950 font-bold text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {importNotification && (
         <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 px-3 py-1.5 rounded-lg text-xs flex items-center justify-between shadow-2xs shrink-0">
           <div className="flex items-center gap-2">
