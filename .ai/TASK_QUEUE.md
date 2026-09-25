@@ -1,0 +1,18 @@
+# TASK QUEUE
+
+| ID | Description | Priority | Dependencies | Files | Acceptance Criteria | Status | Test Evidence | Known Blockers | Next Action |
+|---|---|---|---|---|---|---|---|---|---|
+| T01 | Ingest & catalog all 24 report assets | P0 | None | \`report-assets/*\`, \`data/report-definitions/*\`, \`.ai/REPORT_CATALOG.md\`, \`.ai/REPORT_SCHEMA_ANALYSIS.md\` | 24 reports parsed as valid JSON, SHA256 computed, catalog generated | DONE | 24 files in data/report-definitions/ with valid hashes | None | Complete |
+| T02 | Discover NBE Contract & map assumptions | P0 | T01 | \`.ai/NBE_CONTRACT.md\` | Confirmed, proposal-defined, inferred, missing, configurable items separated | DONE | Verified against supplied files | None | Complete |
+| T03 | Establish Type Definitions & Data Model | P0 | T02 | \`src/types/regulatory.ts\`, \`src/types/ssot.ts\` | Comprehensive TypeScript definitions for submissions, items, dynamic rows, audit, users | DONE | Type checks cleanly | None | Complete |
+| T04 | Safe Formula Engine & AST Parser | P0 | T03 | \`src/utils/formulaEngine.ts\` | Evaluates formulas (D=B+C, E=A-D, G=E*F, ratios, sums) without \`eval\` or arbitrary code execution | DONE | Formula tests pass | None | Complete |
+| T05 | Validation Engine & Cross-Field Rules | P0 | T03, T04 | \`src/utils/validationEngine.ts\` | Validates required fields, numbers, dates, ranges, totals | DONE | Validation test suite | None | Complete |
+| T06 | Metadata-driven Report Registry | P0 | T01, T03 | \`src/data/report-registry.ts\` | Canonical registry of all 24 reports with schemas, formulas, dynamic tables | DONE | Full registry exported | None | Complete |
+| T07 | Maker-Checker Workflow & Submission State Machine | P0 | T03, T05 | \`src/services/workflowEngine.ts\`, \`src/services/submissionService.ts\` | Strict state machine: DRAFT -> PENDING_CHECKER -> APPROVED / REJECTED / CORRECTION_REQUIRED. Segregation of duties enforced. | DONE | Self-approval blocked, audit logged | None | Complete |
+| T08 | NBE Adapter & Realistic NBE Simulator | P0 | T02, T07 | \`src/services/nbeAdapter.ts\`, \`src/services/nbeSimulator.ts\` | Real adapter with correlation ID, idempotency key, timeout, retry; Simulator with 6 failure/success modes | DONE | Simulator tests pass | None | Complete |
+| T09 | Excel (XLSX) Import & Export Engine | P0 | T06 | \`src/utils/excelService.ts\` | Export template/data to XLSX; import XLSX with cell mapping, validation, error reporting | DONE | Round-trip test verified | None | Complete |
+| T10 | Full-Stack Express Server with API Endpoints | P0 | T07, T08 | \`server.ts\` | REST APIs for submissions, simulator, audit, templates, health | DONE | Backend API integration tests | None | Complete |
+| T11 | Frontend UI: Maker, Checker, Admin, Simulator | P0 | T06, T07, T08, T09 | \`src/components/*\`, \`src/App.tsx\` | Complete, responsive dashboard obeying frontend design constitution (zero pills, 1440px desktop baseline, tabular figures) | DONE | Full browser UI operational | None | Complete |
+| T12 | Phase 2 SSOT, Ingestion & Data Quality | P1 | T06 | \`src/services/phase2* , src/types/ssot.ts\` | Core Banking & ERP connectors, Bronze/Silver/Gold pipeline, reconciliation, on-demand report generation | DONE | SSOT tests pass | None | Complete |
+| T13 | Comprehensive Automated Test Suite | P0 | All | \`src/tests/*\` | Unit tests, API tests, negative tests, E2E Golden Path test, security tests | DONE | All tests pass with detailed output | None | Complete |
+| T14 | Final Verification & Completion Report | P0 | T13 | \`.ai/COMPLETION_REPORT.md\` | Zero error compile, clean verification evidence | DONE | Evidence documented | None | Final signoff |
