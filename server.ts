@@ -7,13 +7,13 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { getAllReports, getReportByKey } from './src/data/report-registry';
-import { submissionService, DEMO_USERS } from './src/services/submissionService';
-import { nbeSimulator } from './src/services/nbeSimulator';
-import { auditService } from './src/services/auditService';
-import { ExcelService } from './src/utils/excelService';
-import { Phase2Pipeline } from './src/services/phase2Pipeline';
-import { userService } from './src/services/userService';
+import { getAllReports, getReportByKey } from './src/data/report-registry.ts';
+import { submissionService, DEMO_USERS } from './src/services/submissionService.ts';
+import { nbeSimulator } from './src/services/nbeSimulator.ts';
+import { auditService } from './src/services/auditService.ts';
+import { ExcelService } from './src/utils/excelService.ts';
+import { Phase2Pipeline } from './src/services/phase2Pipeline.ts';
+import { userService } from './src/services/userService.ts';
 
 dotenv.config();
 

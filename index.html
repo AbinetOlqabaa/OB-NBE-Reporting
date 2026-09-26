@@ -13,6 +13,28 @@
     <meta property="og:description" content="Comprehensive regulatory reporting, validation, simulation, and data integration platform for National Bank of Ethiopia (NBE) returns with Maker-Checker workflow." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function() {
+        try {
+          const stored = localStorage.getItem('oromia_nbe_theme_preference');
+          const mode = (stored === 'light' || stored === 'dark' || stored === 'system') ? stored : 'system';
+          const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+          const themeVal = isDark ? 'dark' : 'light';
+          
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          }
+          document.documentElement.setAttribute('data-theme', themeVal);
+          document.documentElement.setAttribute('data-theme-mode', mode);
+          document.documentElement.style.colorScheme = themeVal;
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

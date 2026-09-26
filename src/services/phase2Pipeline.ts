@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ssotRegistry } from './ssotRegistry';
-import { IngestionJob } from '../types/ssot';
-import { auditService } from './auditService';
-import { submissionService } from './submissionService';
-import { DEMO_USERS } from './submissionService';
+import { ssotRegistry } from './ssotRegistry.ts';
+import type { IngestionJob } from '../types/ssot.ts';
+import { auditService } from './auditService.ts';
+import { submissionService } from './submissionService.ts';
+import { DEMO_USERS } from './submissionService.ts';
 
 export interface DataQualityReport {
   overallScore: number;

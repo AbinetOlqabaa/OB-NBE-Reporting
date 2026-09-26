@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuditLogEntry } from '../types/regulatory';
+import type { AuditLogEntry } from '../types/regulatory.ts';
 
 class AuditServiceClass {
   private logs: AuditLogEntry[] = [];

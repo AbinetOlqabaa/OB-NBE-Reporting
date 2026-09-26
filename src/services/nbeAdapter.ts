@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ReportSubmission, DeliveryAttempt } from '../types/regulatory';
-import { nbeSimulator } from './nbeSimulator';
-import { auditService } from './auditService';
+import type { ReportSubmission, DeliveryAttempt } from '../types/regulatory.ts';
+import { nbeSimulator } from './nbeSimulator.ts';
+import { auditService } from './auditService.ts';
 
 export interface DeliveryResult {
   success: boolean;

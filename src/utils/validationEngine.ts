@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ReportMetadata, DynamicRowRecord } from '../types/regulatory';
+import type { ReportMetadata, DynamicRowRecord } from '../types/regulatory.ts';
 
 export interface FieldValidationError {
   code: string;

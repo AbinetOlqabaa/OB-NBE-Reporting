@@ -419,16 +419,16 @@ export const NbeSimulatorView: React.FC = () => {
       </div>
 
       {/* 2. Gateway Simulation Scenario Controls Bar (Fixed Height) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 shrink-0 text-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 shrink-0 text-xs">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-            <Sliders className="w-3.5 h-3.5 text-ob-indigo-600" />
+          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+            <Sliders className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
             <span>Active Scenario Mode:</span>
           </span>
           <select
             value={scenario.mode}
             onChange={(e) => handleUpdateScenario({ mode: e.target.value as any })}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 font-semibold focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
           >
             <option value="ALWAYS_SUCCESS">Always Success (200 OK + Digital Receipt)</option>
             <option value="VALIDATION_FAILURE">Validation Failure (422 Unprocessable)</option>
@@ -441,7 +441,7 @@ export const NbeSimulatorView: React.FC = () => {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-slate-500">Latency Delay:</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">Latency Delay:</span>
             <input
               type="range"
               min="0"
@@ -451,11 +451,11 @@ export const NbeSimulatorView: React.FC = () => {
               onChange={(e) => handleUpdateScenario({ latencyMs: parseInt(e.target.value, 10) })}
               className="w-24 accent-ob-indigo-600 cursor-pointer"
             />
-            <span className="font-mono font-bold text-[11px] text-slate-700">{scenario.latencyMs}ms</span>
+            <span className="font-mono font-bold text-[11px] text-slate-700 dark:text-slate-200">{scenario.latencyMs}ms</span>
           </div>
 
-          <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3">
-            <label className="text-[11px] text-slate-600 flex items-center gap-1.5 cursor-pointer select-none">
+          <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-3">
+            <label className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={autoPoll}
@@ -477,7 +477,7 @@ export const NbeSimulatorView: React.FC = () => {
       </div>
 
       {/* 3. Sub-Tabs & Filtering Toolbar (Fixed Height) */}
-      <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
@@ -485,7 +485,7 @@ export const NbeSimulatorView: React.FC = () => {
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'LOGS'
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Terminal className="w-3.5 h-3.5" />
@@ -498,7 +498,7 @@ export const NbeSimulatorView: React.FC = () => {
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'RECEIVED'
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -517,7 +517,7 @@ export const NbeSimulatorView: React.FC = () => {
                   placeholder="Search log, token, return..."
                   value={logSearchQuery}
                   onChange={(e) => setLogSearchQuery(e.target.value)}
-                  className="w-full pl-7 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
+                  className="w-full pl-7 pr-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
                 />
               </div>
 
@@ -525,7 +525,7 @@ export const NbeSimulatorView: React.FC = () => {
               <select
                 value={logStatusFilter}
                 onChange={(e) => setLogStatusFilter(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
               >
                 <option value="ALL">All Status Codes</option>
                 <option value="200_SUCCESS">200 / 201 Success</option>
@@ -539,7 +539,7 @@ export const NbeSimulatorView: React.FC = () => {
               <select
                 value={logMethodFilter}
                 onChange={(e) => setLogMethodFilter(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
               >
                 <option value="ALL">All Methods</option>
                 <option value="POST">POST</option>
@@ -550,10 +550,10 @@ export const NbeSimulatorView: React.FC = () => {
               <button
                 type="button"
                 onClick={exportLogsCSV}
-                className="flex items-center gap-1 px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors shadow-2xs cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg transition-colors shadow-2xs cursor-pointer"
                 title="Export detailed API interaction logs to CSV"
               >
-                <Download className="w-3 h-3 text-ob-indigo-600" />
+                <Download className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
                 <span className="hidden sm:inline">CSV</span>
               </button>
 
@@ -561,7 +561,7 @@ export const NbeSimulatorView: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleClearLogs}
-                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
                   title="Clear API Interaction Logs"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -570,8 +570,8 @@ export const NbeSimulatorView: React.FC = () => {
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                <Filter className="w-3 h-3 text-ob-indigo-600" />
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                <Filter className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
                 Status:
               </span>
               <select
@@ -580,7 +580,7 @@ export const NbeSimulatorView: React.FC = () => {
                   setReceivedStatusFilter(e.target.value);
                   setReceivedPage(1);
                 }}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
               >
                 <option value="ALL">All Status ({receivedSubmissions.length})</option>
                 <option value="ACCEPTED">ACCEPTED ({receivedSubmissions.filter((s) => s.status === 'ACCEPTED').length})</option>
@@ -594,20 +594,20 @@ export const NbeSimulatorView: React.FC = () => {
 
       {/* 4. Tab 1: Detailed API Interaction Log Table (Strict flex-1 min-h-0 overflow-hidden) */}
       {activeTab === 'LOGS' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
           <div className="flex-1 min-h-0 overflow-y-auto">
             {paginatedLogs.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <Terminal className="w-8 h-8 text-slate-300 mb-2" />
-                <h3 className="text-sm font-bold text-slate-800">No Gateway API Logs Found</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <Terminal className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Gateway API Logs Found</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Trigger a Test Probe or deliver a report from Checker Inbox to inspect live NBE traffic.
                 </p>
                 {logSearchQuery && (
                   <button
                     type="button"
                     onClick={() => setLogSearchQuery('')}
-                    className="mt-2 text-xs font-bold text-ob-indigo-700 hover:underline"
+                    className="mt-2 text-xs font-bold text-ob-indigo-700 dark:text-ob-indigo-400 hover:underline"
                   >
                     Clear search filter
                   </button>
@@ -616,7 +616,7 @@ export const NbeSimulatorView: React.FC = () => {
             ) : (
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                     <th className="py-2 px-3">Timestamp (UTC/Local)</th>
                     <th className="py-2 px-3">Method & Path</th>
                     <th className="py-2 px-3">Return Code</th>
@@ -626,14 +626,14 @@ export const NbeSimulatorView: React.FC = () => {
                     <th className="py-2 px-3 text-right">Inspect</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {paginatedLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/90 transition-colors">
-                      <td className="py-2 px-3 font-mono text-slate-600 whitespace-nowrap text-[11px]">
-                        <div className="font-semibold text-slate-900">
+                    <tr key={log.id} className="hover:bg-slate-50/90 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-2 px-3 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap text-[11px]">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">
                           {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
                           {new Date(log.timestamp).toISOString().slice(0, 10)}
                         </div>
                       </td>
@@ -647,7 +647,7 @@ export const NbeSimulatorView: React.FC = () => {
                           >
                             {log.method}
                           </span>
-                          <span className="text-slate-800 font-medium truncate max-w-[170px]" title={log.path}>
+                          <span className="text-slate-800 dark:text-slate-200 font-medium truncate max-w-[170px]" title={log.path}>
                             {log.path}
                           </span>
                         </div>
@@ -655,11 +655,11 @@ export const NbeSimulatorView: React.FC = () => {
 
                       <td className="py-2 px-3 whitespace-nowrap">
                         {log.returnKey ? (
-                          <span className="font-mono font-bold text-ob-indigo-700 bg-ob-indigo-50 px-1.5 py-0.5 rounded border border-ob-indigo-200 text-[11px]">
+                          <span className="font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950/60 px-1.5 py-0.5 rounded border border-ob-indigo-200 dark:border-ob-indigo-800 text-[11px]">
                             {log.returnKey}
                           </span>
                         ) : (
-                          <span className="text-slate-400 font-mono text-[10px]">Gateway Core</span>
+                          <span className="text-slate-400 dark:text-slate-500 font-mono text-[10px]">Gateway Core</span>
                         )}
                       </td>
 
@@ -671,20 +671,20 @@ export const NbeSimulatorView: React.FC = () => {
                         <span
                           className={`font-semibold ${
                             log.durationMs < 100
-                              ? 'text-emerald-700'
+                              ? 'text-emerald-700 dark:text-emerald-400'
                               : log.durationMs < 500
-                              ? 'text-amber-700'
-                              : 'text-rose-700'
+                              ? 'text-amber-700 dark:text-amber-400'
+                              : 'text-rose-700 dark:text-rose-400'
                           }`}
                         >
                           {log.durationMs || 0}ms
                         </span>
                       </td>
 
-                      <td className="py-2 px-3 font-mono text-[11px] text-slate-600 max-w-[180px] truncate" title={log.correlationId || log.idempotencyKey}>
-                        <div className="truncate text-slate-700 font-semibold">{log.correlationId || 'N/A'}</div>
+                      <td className="py-2 px-3 font-mono text-[11px] text-slate-600 dark:text-slate-400 max-w-[180px] truncate" title={log.correlationId || log.idempotencyKey}>
+                        <div className="truncate text-slate-700 dark:text-slate-200 font-semibold">{log.correlationId || 'N/A'}</div>
                         {log.idempotencyKey && (
-                          <div className="text-[10px] text-slate-400 truncate">Idemp: {log.idempotencyKey}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">Idemp: {log.idempotencyKey}</div>
                         )}
                       </td>
 
@@ -692,7 +692,7 @@ export const NbeSimulatorView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setSelectedLog(log)}
-                          className="px-2.5 py-1 bg-ob-indigo-50 hover:bg-ob-indigo-100 text-ob-indigo-700 rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                          className="px-2.5 py-1 bg-ob-indigo-50 dark:bg-ob-indigo-950/60 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900/60 text-ob-indigo-700 dark:text-ob-indigo-300 rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
                         >
                           <Eye className="w-3 h-3" />
                           <span>Inspect Payload</span>
@@ -706,7 +706,7 @@ export const NbeSimulatorView: React.FC = () => {
           </div>
 
           {/* Pagination Footer */}
-          <div className="shrink-0 p-2 border-t border-slate-200 bg-slate-50/50">
+          <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
             <Pagination
               currentPage={logsPage}
               totalItems={filteredLogs.length}
@@ -722,20 +722,20 @@ export const NbeSimulatorView: React.FC = () => {
 
       {/* 5. Tab 2: Ingested Returns Repository Table */}
       {activeTab === 'RECEIVED' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
           <div className="flex-1 min-h-0 overflow-y-auto">
             {paginatedReceived.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <Server className="w-8 h-8 text-slate-300 mb-2" />
-                <h3 className="text-sm font-bold text-slate-800">No Ingested Returns Match</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <Server className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Ingested Returns Match</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Deliver an approved return from the Checker Inbox or click "Test Probe" above to simulate intake.
                 </p>
               </div>
             ) : (
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                     <th className="py-2 px-3">Receipt Time</th>
                     <th className="py-2 px-3">Return Code</th>
                     <th className="py-2 px-3">Institution Code</th>
@@ -744,44 +744,44 @@ export const NbeSimulatorView: React.FC = () => {
                     <th className="py-2 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {paginatedReceived.map((sub) => (
-                    <tr key={sub.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-2 px-3 text-slate-600 font-mono text-[11px]">
-                        <div className="font-semibold text-slate-900">
+                    <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-2 px-3 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">
                           {new Date(sub.receivedAt).toLocaleTimeString()}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
                           {new Date(sub.receivedAt).toLocaleDateString()}
                         </div>
                       </td>
-                      <td className="py-2 px-3 font-mono font-bold text-ob-indigo-700">
+                      <td className="py-2 px-3 font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-400">
                         {sub.returnKey}
                       </td>
-                      <td className="py-2 px-3 font-semibold text-slate-800">
+                      <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
                         {sub.institutionCode} (Oromia Bank S.C.)
                       </td>
                       <td className="py-2 px-3">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             sub.status === 'ACCEPTED'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                               : sub.status === 'DUPLICATE'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
                           }`}
                         >
                           {sub.status}
                         </span>
                       </td>
-                      <td className="py-2 px-3 font-mono text-[11px] text-slate-700 font-bold">
+                      <td className="py-2 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold">
                         {sub.submissionReceiptNumber}
                       </td>
                       <td className="py-2 px-3 text-right">
                         <button
                           type="button"
                           onClick={() => setSelectedSubmission(sub)}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
                         >
                           <Eye className="w-3 h-3" />
                           <span>View Payload</span>
@@ -795,7 +795,7 @@ export const NbeSimulatorView: React.FC = () => {
           </div>
 
           {/* Pagination Footer */}
-          <div className="shrink-0 p-2 border-t border-slate-200 bg-slate-50/50">
+          <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
             <Pagination
               currentPage={receivedPage}
               totalItems={filteredReceived.length}
@@ -816,7 +816,7 @@ export const NbeSimulatorView: React.FC = () => {
           onClick={() => setSelectedLog(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -845,38 +845,38 @@ export const NbeSimulatorView: React.FC = () => {
             <div className="p-5 flex-1 min-h-0 overflow-y-auto space-y-4 text-xs">
               {/* Telemetry Summary Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="text-[10px] text-slate-400 block">Round-Trip Latency</span>
-                  <span className="font-mono font-bold text-sm text-slate-900">{selectedLog.durationMs || 0} ms</span>
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 block">Round-Trip Latency</span>
+                  <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-100">{selectedLog.durationMs || 0} ms</span>
                 </div>
-                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="text-[10px] text-slate-400 block">Transport Security</span>
-                  <span className="font-mono font-bold text-xs text-slate-900">
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 block">Transport Security</span>
+                  <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100">
                     {selectedLog.tlsInfo?.protocol || 'TLSv1.3 / mTLS'}
                   </span>
                 </div>
-                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="text-[10px] text-slate-400 block">Target Return</span>
-                  <span className="font-mono font-bold text-xs text-ob-indigo-700">
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 block">Target Return</span>
+                  <span className="font-mono font-bold text-xs text-ob-indigo-700 dark:text-ob-indigo-400">
                     {selectedLog.returnKey || 'N/A'}
                   </span>
                 </div>
-                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  <span className="text-[10px] text-slate-400 block">Institution Code</span>
-                  <span className="font-mono font-bold text-xs text-slate-900">
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-400 block">Institution Code</span>
+                  <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100">
                     {selectedLog.institutionCode || '0000013'}
                   </span>
                 </div>
               </div>
 
               {/* Message Banner */}
-              <div className="p-3 bg-ob-indigo-50/70 border border-ob-indigo-200 rounded-xl text-ob-indigo-950 font-medium">
+              <div className="p-3 bg-ob-indigo-50/70 dark:bg-ob-indigo-950/50 border border-ob-indigo-200 dark:border-ob-indigo-800/60 rounded-xl text-ob-indigo-950 dark:text-ob-indigo-200 font-medium">
                 <span className="font-bold">Gateway Audit Event: </span>
                 <span>{selectedLog.message}</span>
               </div>
 
               {/* Correlation & Idempotency Bar */}
-              <div className="p-3 bg-slate-900 text-slate-200 rounded-xl font-mono text-[11px] space-y-1.5">
+              <div className="p-3 bg-slate-900 dark:bg-slate-950 text-slate-200 rounded-xl font-mono text-[11px] space-y-1.5 border border-slate-800">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">X-Correlation-ID:</span>
                   <div className="flex items-center gap-1.5">
@@ -917,15 +917,15 @@ export const NbeSimulatorView: React.FC = () => {
                 {/* Request Payload */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800 flex items-center gap-1">
-                      <Code2 className="w-3.5 h-3.5 text-ob-indigo-600" />
+                    <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                      <Code2 className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
                       <span>Request Payload (Body)</span>
                     </span>
                     {selectedLog.requestBody && (
                       <button
                         type="button"
                         onClick={() => copyToClipboard(JSON.stringify(selectedLog.requestBody, null, 2), 'reqBody')}
-                        className="text-[11px] font-bold text-ob-indigo-600 hover:underline flex items-center gap-1"
+                        className="text-[11px] font-bold text-ob-indigo-600 dark:text-ob-indigo-400 hover:underline flex items-center gap-1"
                       >
                         {copiedKey === 'reqBody' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         <span>Copy JSON</span>
@@ -943,15 +943,15 @@ export const NbeSimulatorView: React.FC = () => {
                 {/* Response Payload */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800 flex items-center gap-1">
-                      <Terminal className="w-3.5 h-3.5 text-ob-green-600" />
+                    <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                      <Terminal className="w-3.5 h-3.5 text-ob-green-600 dark:text-ob-green-400" />
                       <span>Response Body (HTTP {selectedLog.statusCode})</span>
                     </span>
                     {selectedLog.responseBody && (
                       <button
                         type="button"
                         onClick={() => copyToClipboard(JSON.stringify(selectedLog.responseBody, null, 2), 'respBody')}
-                        className="text-[11px] font-bold text-ob-green-700 hover:underline flex items-center gap-1"
+                        className="text-[11px] font-bold text-ob-green-700 dark:text-ob-green-400 hover:underline flex items-center gap-1"
                       >
                         {copiedKey === 'respBody' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         <span>Copy JSON</span>
@@ -970,12 +970,12 @@ export const NbeSimulatorView: React.FC = () => {
               {/* Request Headers Inspection */}
               {selectedLog.requestHeaders && (
                 <div className="space-y-1">
-                  <span className="font-bold text-slate-800 block">HTTP Request Headers</span>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-[11px] space-y-1">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block">HTTP Request Headers</span>
+                  <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 font-mono text-[11px] space-y-1">
                     {Object.entries(selectedLog.requestHeaders).map(([k, v]) => (
-                      <div key={k} className="flex items-start justify-between gap-2 border-b border-slate-100 pb-0.5 last:border-0">
-                        <span className="text-slate-500 font-semibold">{k}:</span>
-                        <span className="text-slate-900 font-medium truncate max-w-sm">{v}</span>
+                      <div key={k} className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-700/50 pb-0.5 last:border-0">
+                        <span className="text-slate-500 dark:text-slate-400 font-semibold">{k}:</span>
+                        <span className="text-slate-900 dark:text-slate-100 font-medium truncate max-w-sm">{v}</span>
                       </div>
                     ))}
                   </div>
@@ -984,8 +984,8 @@ export const NbeSimulatorView: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-[11px] text-slate-400 font-mono">
+            <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400 dark:text-slate-400 font-mono">
                 Log ID: {selectedLog.id} · Timestamp: {selectedLog.timestamp}
               </span>
 
@@ -1008,7 +1008,7 @@ export const NbeSimulatorView: React.FC = () => {
           onClick={() => setSelectedSubmission(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-3.5 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between">
@@ -1031,21 +1031,21 @@ export const NbeSimulatorView: React.FC = () => {
 
             <div className="p-4 flex-1 min-h-0 overflow-y-auto space-y-3 text-xs">
               <div>
-                <span className="font-bold text-slate-700 block mb-1">Receipt Envelope Headers:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Receipt Envelope Headers:</span>
                 <pre className="bg-slate-950 text-slate-100 p-2.5 rounded-lg font-mono text-[11px] overflow-x-auto">
                   {JSON.stringify(selectedSubmission.headers, null, 2)}
                 </pre>
               </div>
 
               <div>
-                <span className="font-bold text-slate-700 block mb-1">Digital Return Payload (NBE Format):</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Digital Return Payload (NBE Format):</span>
                 <pre className="bg-slate-950 text-slate-100 p-2.5 rounded-lg font-mono text-[11px] overflow-x-auto">
                   {JSON.stringify(selectedSubmission.payload, null, 2)}
                 </pre>
               </div>
             </div>
 
-            <div className="p-3 border-t border-slate-200 bg-slate-50 flex justify-end">
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 flex justify-end">
               <button
                 type="button"
                 onClick={() => setSelectedSubmission(null)}

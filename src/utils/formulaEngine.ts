@@ -244,4 +244,19 @@ export class FormulaEngine {
 
     return { updatedValues, errors };
   }
+
+  /**
+   * Safe helper to calculate all formulas for a report metadata instance
+   */
+  public static calculateReport(
+    metadata: { Formulas?: Array<{ targetCode: string; expression: string; description: string; dependencies?: string[] }> },
+    values: Record<string, string | number>,
+    _dynamicRows?: Record<number, any[]>
+  ): Record<string, string | number> {
+    if (!metadata || !metadata.Formulas || metadata.Formulas.length === 0) {
+      return { ...values };
+    }
+    const { updatedValues } = this.calculateAllFormulas(metadata.Formulas, values);
+    return updatedValues;
+  }
 }

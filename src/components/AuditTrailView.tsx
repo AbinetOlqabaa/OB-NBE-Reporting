@@ -194,20 +194,20 @@ export const AuditTrailView: React.FC = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
       {/* 1. Header Banner (Compact, Fixed Height) */}
-      <div className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1 bg-ob-indigo-50 rounded-lg text-ob-indigo-700 border border-ob-indigo-200">
+            <span className="p-1 bg-ob-indigo-50 dark:bg-ob-indigo-950/60 rounded-lg text-ob-indigo-700 dark:text-ob-indigo-300 border border-ob-indigo-200 dark:border-ob-indigo-800">
               <History className="w-4 h-4" />
             </span>
-            <h2 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+            <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
               Immutable Regulatory Compliance Audit Trail
             </h2>
-            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-ob-green-50 text-ob-green-800 border border-ob-green-300">
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-ob-green-50 dark:bg-ob-green-950/60 text-ob-green-800 dark:text-ob-green-300 border border-ob-green-300 dark:border-ob-green-800">
               BSD/03/2020
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             Cryptographically timestamped audit logging for Maker drafts, Checker 4-eyes reviews, user status updates, and NBE transmissions.
           </p>
         </div>
@@ -230,7 +230,7 @@ export const AuditTrailView: React.FC = () => {
           <button
             type="button"
             onClick={exportJSON}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors shadow-2xs cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition-colors shadow-2xs cursor-pointer"
             title="Export audit logs as JSON dataset"
           >
             <Download className="w-3 h-3 text-slate-400" />
@@ -240,25 +240,25 @@ export const AuditTrailView: React.FC = () => {
           <button
             type="button"
             onClick={fetchLogs}
-            className="p-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg transition-colors cursor-pointer"
             title="Refresh logs from server"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-ob-indigo-600' : ''}`} />
+            <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-ob-indigo-600 dark:text-ob-indigo-400' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Export Confirmation Notice */}
       {exportNotice && (
-        <div className="shrink-0 p-2 rounded-xl bg-ob-green-50 border border-ob-green-300 text-ob-green-900 text-xs font-semibold flex items-center justify-between shadow-2xs animate-in fade-in">
+        <div className="shrink-0 p-2 rounded-xl bg-ob-green-50 dark:bg-ob-green-950/60 border border-ob-green-300 dark:border-ob-green-800 text-ob-green-900 dark:text-ob-green-300 text-xs font-semibold flex items-center justify-between shadow-2xs animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-ob-green-600" />
+            <CheckCircle2 className="w-4 h-4 text-ob-green-600 dark:text-ob-green-400" />
             <span>{exportNotice}</span>
           </div>
           <button
             type="button"
             onClick={() => setExportNotice(null)}
-            className="p-0.5 rounded text-ob-green-700 hover:text-ob-green-900"
+            className="p-0.5 rounded text-ob-green-700 dark:text-ob-green-400 hover:text-ob-green-900"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -266,15 +266,15 @@ export const AuditTrailView: React.FC = () => {
       )}
 
       {/* 2. Filters & Search Strip with Action, Role, and Entity Dropdowns */}
-      <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-2xs flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="relative flex-1 sm:max-w-xs">
-          <Search className="w-3.5 h-3.5 text-ob-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-ob-indigo-500 dark:text-ob-indigo-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search action, actor, entity ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
+            className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white dark:focus:bg-slate-800"
           />
           {searchQuery && (
             <button
@@ -290,14 +290,14 @@ export const AuditTrailView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* Action Filter Dropdown */}
           <div className="flex items-center gap-1">
-            <span className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
-              <Filter className="w-3 h-3 text-ob-indigo-600" />
+            <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px] flex items-center gap-1">
+              <Filter className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
               Action:
             </span>
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer max-w-[150px]"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer max-w-[150px]"
             >
               <option value="ALL">All Actions ({logs.length})</option>
               {distinctActions.map((act) => (
@@ -310,14 +310,14 @@ export const AuditTrailView: React.FC = () => {
 
           {/* Actor Role Filter Dropdown */}
           <div className="flex items-center gap-1">
-            <span className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
-              <UserCheck className="w-3 h-3 text-ob-indigo-600" />
+            <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px] flex items-center gap-1">
+              <UserCheck className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
               Role:
             </span>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
             >
               <option value="ALL">All Roles</option>
               <option value="ADMIN">ADMIN</option>
@@ -331,14 +331,14 @@ export const AuditTrailView: React.FC = () => {
           {/* Entity Type Filter Dropdown */}
           {distinctEntityTypes.length > 2 && (
             <div className="flex items-center gap-1">
-              <span className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
-                <Layers className="w-3 h-3 text-ob-indigo-600" />
+              <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px] flex items-center gap-1">
+                <Layers className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
                 Entity:
               </span>
               <select
                 value={entityFilter}
                 onChange={(e) => setEntityFilter(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
               >
                 {distinctEntityTypes.map((ent) => (
                   <option key={ent} value={ent}>
@@ -352,13 +352,13 @@ export const AuditTrailView: React.FC = () => {
       </div>
 
       {/* 3. Audit Logs Table (Strict flex-1 min-h-0 overflow-hidden) */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
         <div className="flex-1 min-h-0 overflow-y-auto">
           {paginatedLogs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
-              <History className="w-8 h-8 text-slate-300 mb-2" />
-              <h3 className="text-sm font-bold text-slate-800">No Audit Events Match Criteria</h3>
-              <p className="text-xs text-slate-500 mt-1">Actions performed on returns and user profiles will appear here.</p>
+              <History className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Audit Events Match Criteria</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Actions performed on returns and user profiles will appear here.</p>
               {(searchQuery || actionFilter !== 'ALL' || roleFilter !== 'ALL' || entityFilter !== 'ALL') && (
                 <button
                   type="button"
@@ -368,7 +368,7 @@ export const AuditTrailView: React.FC = () => {
                     setRoleFilter('ALL');
                     setEntityFilter('ALL');
                   }}
-                  className="mt-2 text-xs font-bold text-ob-indigo-700 hover:underline cursor-pointer"
+                  className="mt-2 text-xs font-bold text-ob-indigo-700 dark:text-ob-indigo-400 hover:underline cursor-pointer"
                 >
                   Reset all filters
                 </button>
@@ -377,7 +377,7 @@ export const AuditTrailView: React.FC = () => {
           ) : (
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold sticky top-0 z-10">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                   <th className="py-2 px-3">Timestamp</th>
                   <th className="py-2 px-3">Actor & Role</th>
                   <th className="py-2 px-3">Action</th>
@@ -386,21 +386,21 @@ export const AuditTrailView: React.FC = () => {
                   <th className="py-2 px-3 font-mono">Correlation Token</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {paginatedLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-2 px-3 font-mono text-slate-600 whitespace-nowrap text-[11px]">
-                      <div className="font-semibold text-slate-900">
+                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="py-2 px-3 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap text-[11px]">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">
                         {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500">
                         {new Date(log.timestamp).toLocaleDateString()}
                       </div>
                     </td>
 
                     <td className="py-2 px-3 whitespace-nowrap">
-                      <div className="font-bold text-slate-900">{log.actorName}</div>
-                      <div className="text-[10px] uppercase font-bold text-ob-indigo-700">{log.actorRole}</div>
+                      <div className="font-bold text-slate-900 dark:text-slate-100">{log.actorName}</div>
+                      <div className="text-[10px] uppercase font-bold text-ob-indigo-700 dark:text-ob-indigo-400">{log.actorRole}</div>
                     </td>
 
                     <td className="py-2 px-3 whitespace-nowrap">
@@ -413,15 +413,15 @@ export const AuditTrailView: React.FC = () => {
                       </span>
                     </td>
 
-                    <td className="py-2 px-3 font-mono font-semibold text-slate-800 whitespace-nowrap text-[11px]">
+                    <td className="py-2 px-3 font-mono font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap text-[11px]">
                       {log.entityId}
                     </td>
 
-                    <td className="py-2 px-3 text-slate-600 max-w-sm truncate" title={log.details}>
+                    <td className="py-2 px-3 text-slate-600 dark:text-slate-300 max-w-sm truncate" title={log.details}>
                       {log.details}
                     </td>
 
-                    <td className="py-2 px-3 font-mono text-[10px] text-slate-400 whitespace-nowrap">
+                    <td className="py-2 px-3 font-mono text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap">
                       {log.correlationId}
                     </td>
                   </tr>
@@ -432,7 +432,7 @@ export const AuditTrailView: React.FC = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="shrink-0 p-2 border-t border-slate-200 bg-slate-50/50">
+        <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
           <Pagination
             currentPage={page}
             totalItems={filteredLogs.length}

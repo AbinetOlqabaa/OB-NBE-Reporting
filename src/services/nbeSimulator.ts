@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SimulationScenarioConfig } from '../types/regulatory';
+import type { SimulationScenarioConfig } from '../types/regulatory.ts';
 
 export interface ReceivedReportRecord {
   id: string;

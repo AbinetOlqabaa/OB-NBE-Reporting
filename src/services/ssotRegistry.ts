@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
+import type {
   SSOTCustomer,
   SSOTAccount,
   SSOTCollateral,
   SSOTGeneralLedger,
   IngestionJob,
-} from '../types/ssot';
+} from '../types/ssot.ts';
 
 class SSOTRegistryClass {
   private customers: SSOTCustomer[] = [];

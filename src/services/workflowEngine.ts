@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ReportSubmission, SubmissionStatus, UserSession, SubmissionComment } from '../types/regulatory';
+import type { ReportSubmission, SubmissionStatus, UserSession, SubmissionComment } from '../types/regulatory.ts';
 
 export interface TransitionResult {
   success: boolean;

@@ -18,8 +18,9 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
-import { UserSession } from '../types/regulatory';
-import { userService } from '../services/userService';
+import { UserSession } from '../types/regulatory.ts';
+import { userService } from '../services/userService.ts';
+import { ThemeToggle } from './ThemeToggle.tsx';
 
 interface LoginPageProps {
   onLoginSuccess: (user: UserSession, redirectTab?: string) => void;
@@ -83,15 +84,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className="h-screen max-h-screen overflow-y-auto sm:overflow-hidden bg-[#0D0F1F] flex flex-col justify-between relative font-sans text-slate-100 selection:bg-ob-indigo-600 selection:text-white">
-      {/* Harmonious Oromia Bank Brand Background Accents (Indigo & Leaf Green) */}
-      <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-ob-indigo-600/15 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32"></div>
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-ob-green-500/10 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32"></div>
+    <div className="h-screen max-h-screen overflow-y-auto sm:overflow-hidden bg-slate-50 dark:bg-[#0D0F1F] flex flex-col justify-between relative font-sans text-slate-900 dark:text-slate-100 selection:bg-ob-indigo-600 selection:text-white transition-colors">
+      {/* Harmonious Oromia Bank Brand Background Accents */}
+      <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-ob-indigo-500/10 dark:bg-ob-indigo-600/15 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32"></div>
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-ob-green-500/10 dark:bg-ob-green-500/10 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32"></div>
 
       {/* Top Brand Bar */}
-      <header className="px-5 sm:px-8 py-3.5 flex items-center justify-between border-b border-[#22284D] bg-[#121428]/80 backdrop-blur-md relative z-10 shrink-0">
+      <header className="px-4 sm:px-8 py-3.5 flex items-center justify-between border-b border-slate-200 dark:border-[#22284D] bg-white/80 dark:bg-[#121428]/80 backdrop-blur-md relative z-10 shrink-0 transition-colors">
         <div className="flex items-center gap-3 sm:gap-4">
-          <div className="h-9 sm:h-10 bg-white/95 px-2.5 py-1 rounded-xl shadow-md border border-white/20 flex items-center justify-center">
+          <div className="h-9 sm:h-10 bg-white/95 dark:bg-white/90 px-2.5 py-1 rounded-xl shadow-xs border border-slate-200 dark:border-white/20 flex items-center justify-center">
             <img
               src="/brand/oromia-logo-full.png"
               alt="Oromia Bank"
@@ -103,59 +104,64 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm sm:text-base font-bold tracking-tight text-white">
+              <span className="text-sm sm:text-base font-bold tracking-tight text-ob-indigo-900 dark:text-white">
                 Oromia Bank
               </span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-ob-green-500/20 text-ob-green-300 border border-ob-green-500/40">
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-ob-green-50 dark:bg-ob-green-500/20 text-ob-green-800 dark:text-ob-green-300 border border-ob-green-300 dark:border-ob-green-500/40">
                 0000013
               </span>
             </div>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
               National Bank of Ethiopia (NBE) Prudential Reporting Gateway
             </span>
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-xs text-slate-300 font-medium bg-[#1B2042] px-3 py-1.5 rounded-lg border border-[#2B3369]">
-          <ShieldCheck className="w-4 h-4 text-ob-green-400" />
-          <span>Directive BSD/03/2020 Compliant</span>
+        <div className="flex items-center gap-2.5">
+          <div className="hidden md:flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-medium bg-slate-100 dark:bg-[#1B2042] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#2B3369]">
+            <ShieldCheck className="w-4 h-4 text-ob-green-600 dark:text-ob-green-400" />
+            <span>Directive BSD/03/2020 Compliant</span>
+          </div>
+
+          {/* Dedicated Theme Toggle Dropdown Button (Light / Dark / Device) */}
+          <ThemeToggle align="right" showLabelOnMobile={true} />
         </div>
       </header>
 
       {/* Main Login Card Viewport */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 relative z-10 min-h-0">
-        <div className="max-w-md w-full bg-[#161933]/90 border border-[#262D55] rounded-2xl p-6 sm:p-7 shadow-2xl backdrop-blur-md space-y-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#161933]/90 border border-slate-200 dark:border-[#262D55] rounded-2xl p-6 sm:p-7 shadow-xl dark:shadow-2xl backdrop-blur-md space-y-4 transition-colors">
           {/* Card Header with Oromia Bank Emblem */}
           <div className="text-center space-y-1.5">
-            <div className="inline-flex p-2 rounded-2xl bg-white shadow-md border border-ob-indigo-200 mb-1">
+            <div className="inline-flex p-2 rounded-2xl bg-white shadow-md border border-ob-indigo-100 dark:border-ob-indigo-900/60 mb-1">
               <img
                 src="/brand/oromia-logo-mark-transparent.png"
                 alt="Oromia Bank Emblem"
                 className="w-8 h-8 object-contain"
               />
             </div>
-            <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
               Sign In to OB Regulatory Portal
             </h1>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-500 dark:text-slate-300">
               Enter credentials to navigate to your role dashboard
             </p>
           </div>
 
           {/* Quick Demo Role Fill Selector */}
-          <div className="bg-[#101226]/80 border border-[#22284D] rounded-xl p-3 space-y-2">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-ob-green-400" />
+          <div className="bg-slate-50 dark:bg-[#101226]/80 border border-slate-200 dark:border-[#22284D] rounded-xl p-3 space-y-2">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              <KeyRound className="w-3.5 h-3.5 text-ob-green-600 dark:text-ob-green-400" />
               <span>One-Click Role Login (Testing):</span>
             </span>
             <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 onClick={() => handleQuickPreset('admin@oromiabank.com')}
-                className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center ${
+                className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center cursor-pointer ${
                   email.includes('admin')
                     ? 'bg-ob-indigo-600 text-white border-ob-indigo-400 shadow-sm ring-1 ring-ob-indigo-400/40'
-                    : 'bg-[#181C3B] text-slate-300 border-[#262D55] hover:bg-[#20254D]'
+                    : 'bg-white dark:bg-[#181C3B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#262D55] hover:bg-slate-100 dark:hover:bg-[#20254D]'
                 }`}
               >
                 Administrator
@@ -163,10 +169,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickPreset('abebe.kebede@oromiabank.com')}
-                className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center ${
+                className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center cursor-pointer ${
                   email.includes('abebe')
                     ? 'bg-ob-green-600 text-white border-ob-green-400 shadow-sm ring-1 ring-ob-green-400/40'
-                    : 'bg-[#181C3B] text-slate-300 border-[#262D55] hover:bg-[#20254D]'
+                    : 'bg-white dark:bg-[#181C3B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#262D55] hover:bg-slate-100 dark:hover:bg-[#20254D]'
                 }`}
               >
                 Maker
@@ -174,10 +180,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickPreset('chala.desta@oromiabank.com')}
-                className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center ${
+                className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center cursor-pointer ${
                   email.includes('chala')
                     ? 'bg-amber-600 text-white border-amber-400 shadow-sm ring-1 ring-amber-400/40'
-                    : 'bg-[#181C3B] text-slate-300 border-[#262D55] hover:bg-[#20254D]'
+                    : 'bg-white dark:bg-[#181C3B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#262D55] hover:bg-slate-100 dark:hover:bg-[#20254D]'
                 }`}
               >
                 Checker
@@ -187,8 +193,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
           {/* Error Banner */}
           {errorMessage && (
-            <div className="p-3 bg-rose-950/80 border border-rose-800 rounded-xl text-rose-200 text-xs flex items-start gap-2.5 shadow-sm">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-200 text-xs flex items-start gap-2.5 shadow-sm">
+              <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
               <div className="leading-snug">{errorMessage}</div>
             </div>
           )}
@@ -196,7 +202,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Corporate Email Address
               </label>
               <div className="relative">
@@ -207,13 +213,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   placeholder="username@oromiabank.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-[#101226]/90 border border-[#2B3369] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-ob-indigo-400 focus:ring-1 focus:ring-ob-indigo-400 transition-colors"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 focus:ring-1 focus:ring-ob-indigo-500 dark:focus:ring-ob-indigo-400 transition-colors font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Password
               </label>
               <div className="relative">
@@ -224,7 +230,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-[#101226]/90 border border-[#2B3369] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-ob-indigo-400 focus:ring-1 focus:ring-ob-indigo-400 transition-colors"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 focus:ring-1 focus:ring-ob-indigo-500 dark:focus:ring-ob-indigo-400 transition-colors font-medium"
                 />
               </div>
             </div>
@@ -232,7 +238,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-ob-indigo-950/60 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-1 cursor-pointer"
+              className="w-full py-2.5 px-4 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-ob-indigo-950/40 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-1 cursor-pointer"
             >
               <span>{loading ? 'Authenticating...' : 'Sign In to Dashboard'}</span>
               <ArrowRight className="w-3.5 h-3.5 text-ob-green-300" />
@@ -240,14 +246,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </form>
 
           {/* Registration Link */}
-          <div className="pt-3 border-t border-[#22284D] text-center space-y-1.5">
-            <p className="text-xs text-slate-400">
+          <div className="pt-3 border-t border-slate-200 dark:border-[#22284D] text-center space-y-1.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Need access as a new Maker or Checker?
             </p>
             <button
               type="button"
               onClick={onNavigateRegister}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-ob-green-400 hover:text-ob-green-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-ob-indigo-700 dark:text-ob-green-400 hover:text-ob-indigo-800 dark:hover:text-ob-green-300 transition-colors cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>Register for Maker / Checker Account</span>
@@ -257,11 +263,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="px-6 py-3 border-t border-[#22284D] bg-[#121428]/80 text-center text-slate-400 text-xs relative z-10 flex flex-col sm:flex-row items-center justify-between gap-1 shrink-0">
+      <footer className="px-6 py-3 border-t border-slate-200 dark:border-[#22284D] bg-white/80 dark:bg-[#121428]/80 text-center text-slate-500 dark:text-slate-400 text-xs relative z-10 flex flex-col sm:flex-row items-center justify-between gap-1 shrink-0 transition-colors">
         <div>
           © 2026 Oromia Bank S.C. All rights reserved.
         </div>
-        <div className="text-[11px] text-slate-400">
+        <div className="text-[11px] text-slate-500 dark:text-slate-400">
           Authorized for National Bank of Ethiopia Commercial Banking Supervision
         </div>
       </footer>

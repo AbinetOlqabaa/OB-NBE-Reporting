@@ -4,7 +4,7 @@
  */
 
 import * as XLSX from 'xlsx';
-import { ReportMetadata, ReportSubmission, DynamicRowRecord } from '../types/regulatory';
+import type { ReportMetadata, ReportSubmission, DynamicRowRecord } from '../types/regulatory.ts';
 
 export interface ExcelImportResult {
   success: boolean;

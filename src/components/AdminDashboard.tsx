@@ -270,65 +270,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div className="h-full flex flex-col overflow-hidden space-y-3 font-sans">
       {/* 1. Top Ribbon Metrics (Compact, Fixed Height) */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 shrink-0">
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Users</span>
-            <span className="text-xl font-bold text-slate-900 leading-tight">{totalCount}</span>
-            <span className="text-[10px] text-slate-500 block">{activeCount} active</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Total Users</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{totalCount}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{activeCount} active</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
             <Users className="w-4 h-4" />
           </div>
         </div>
 
         <div className={`border rounded-xl p-3 shadow-2xs flex items-center justify-between transition-colors ${
-          pendingCount > 0 ? 'bg-amber-50/80 border-amber-300' : 'bg-white border-slate-200'
+          pendingCount > 0 ? 'bg-amber-50/80 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
         }`}>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block flex items-center gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block flex items-center gap-1">
               <span>Pending Review</span>
               {pendingCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>}
             </span>
-            <span className="text-xl font-bold text-amber-700 leading-tight">{pendingCount}</span>
-            <span className="text-[10px] text-amber-600 block">Awaiting Authorization</span>
+            <span className="text-xl font-bold text-amber-700 dark:text-amber-300 leading-tight">{pendingCount}</span>
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 block">Awaiting Authorization</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 flex items-center justify-center">
             <Clock className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 block">Active Makers</span>
-            <span className="text-xl font-bold text-blue-700 leading-tight">{makerCount}</span>
-            <span className="text-[10px] text-slate-500 block">Returns Preparation</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">Active Makers</span>
+            <span className="text-xl font-bold text-blue-700 dark:text-blue-300 leading-tight">{makerCount}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Returns Preparation</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center justify-center">
             <FileText className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Active Checkers</span>
-            <span className="text-xl font-bold text-amber-700 leading-tight">{checkerCount}</span>
-            <span className="text-[10px] text-slate-500 block">Prudential Review</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 block">Active Checkers</span>
+            <span className="text-xl font-bold text-amber-700 dark:text-amber-300 leading-tight">{checkerCount}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Prudential Review</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 flex items-center justify-center">
             <Shield className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between col-span-2 sm:col-span-1">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs flex items-center justify-between col-span-2 sm:col-span-1">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ob-indigo-700 block">NBE Compliance</span>
-            <span className="text-xs font-bold text-ob-green-700 flex items-center gap-1 leading-tight mt-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-ob-green-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-ob-indigo-700 dark:text-ob-indigo-400 block">NBE Compliance</span>
+            <span className="text-xs font-bold text-ob-green-700 dark:text-ob-green-400 flex items-center gap-1 leading-tight mt-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-ob-green-600 dark:text-ob-green-400" />
               <span>BSD/03/2020</span>
             </span>
-            <span className="text-[10px] text-slate-500 block">4-Eyes Enforced</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">4-Eyes Enforced</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-ob-indigo-50 text-ob-indigo-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-ob-indigo-50 dark:bg-ob-indigo-950/60 text-ob-indigo-700 dark:text-ob-indigo-300 flex items-center justify-center">
             <Building2 className="w-4 h-4" />
           </div>
         </div>
@@ -361,14 +361,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* 3. Controls & Navigation Sub-Tabs (Fixed Height) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setActiveSubTab('PENDING')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeSubTab === 'PENDING'
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -378,8 +378,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 activeSubTab === 'PENDING'
                   ? 'bg-ob-indigo-700 text-white'
                   : pendingCount > 0
-                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                  : 'bg-slate-200 text-slate-700'
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
               }`}
             >
               {pendingCount}
@@ -388,10 +388,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <button
             onClick={() => setActiveSubTab('ALL_USERS')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeSubTab === 'ALL_USERS'
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -400,7 +400,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                 activeSubTab === 'ALL_USERS'
                   ? 'bg-ob-indigo-700 text-white'
-                  : 'bg-slate-200 text-slate-700'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
               }`}
             >
               {filteredUsers.length}
@@ -409,10 +409,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <button
             onClick={() => setActiveSubTab('GOVERNANCE')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeSubTab === 'GOVERNANCE'
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
@@ -433,7 +433,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   setSearchQuery(e.target.value);
                   setAllUsersPage(1);
                 }}
-                className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
+                className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
               />
             </div>
 
@@ -443,7 +443,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 setRoleFilter(e.target.value);
                 setAllUsersPage(1);
               }}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
             >
               <option value="ALL">All Roles</option>
               <option value="ADMIN">Administrator</option>
@@ -458,7 +458,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 setStatusFilter(e.target.value);
                 setAllUsersPage(1);
               }}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
             >
               <option value="ALL">All Status</option>
               <option value="ACTIVE">Active</option>
@@ -469,22 +469,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
       </div>
 
-      {/* 4. Tab 1: Pending Authorizations View (Fixed Box, No Window Extension) */}
+      {/* 4. Tab 1: Pending Authorizations View */}
       {activeSubTab === 'PENDING' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
           {/* Section Sub-Header */}
-          <div className="px-4 py-2.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between shrink-0">
+          <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Awaiting Administrator Review & Authorization
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 (Mandatory 4-Eyes Segregation of Duties Control)
               </span>
             </div>
             <button
               onClick={fetchUsers}
-              className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 font-medium transition-colors"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 font-medium transition-colors cursor-pointer"
               title="Refresh list"
             >
               <RotateCw className="w-3 h-3" />
@@ -496,18 +496,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex-1 min-h-0 overflow-y-auto">
             {pendingUsers.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">All Registrations Authorized</h3>
-                <p className="text-xs text-slate-500 max-w-sm mt-1">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">All Registrations Authorized</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
                   There are currently no new Maker or Checker registrations pending authorization. New user signups will appear here immediately for administrator sign-off.
                 </p>
               </div>
             ) : (
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                     <th className="py-2 px-3">Applicant Name & Email</th>
                     <th className="py-2 px-3">Requested Role</th>
                     <th className="py-2 px-3">Department</th>
@@ -516,37 +516,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <th className="py-2 px-3 text-right">Administrative Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {paginatedPending.map((user) => (
-                    <tr key={user.id} className="hover:bg-amber-50/40 transition-colors">
+                    <tr key={user.id} className="hover:bg-amber-50/40 dark:hover:bg-amber-950/20 transition-colors">
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-900">{user.name}</div>
-                        <div className="text-[11px] text-slate-500 font-mono">{user.email}</div>
+                        <div className="font-bold text-slate-900 dark:text-white">{user.name}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{user.email}</div>
                       </td>
 
                       <td className="py-2.5 px-3">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                             user.role === 'MAKER'
-                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                              : 'bg-amber-100 text-amber-800 border border-amber-200'
+                              ? 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                              : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                           }`}
                         >
                           {user.role} (Reporting)
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 text-slate-700">
+                      <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
                         {user.department || 'Regulatory Operations'}
                       </td>
 
-                      <td className="py-2.5 px-3 font-mono text-slate-700 font-medium">
+                      <td className="py-2.5 px-3 font-mono text-slate-700 dark:text-slate-300 font-medium">
                         {user.employeeId}
                       </td>
 
-                      <td className="py-2.5 px-3 text-slate-500 text-[11px]">
+                      <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400 text-[11px]">
                         {new Date(user.createdAt).toLocaleDateString()}{' '}
-                        <span className="text-slate-400">
+                        <span className="text-slate-400 dark:text-slate-500">
                           {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
@@ -556,7 +556,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           type="button"
                           onClick={() => handleAuthorizeUser(user.id)}
                           disabled={loading}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-all inline-flex items-center gap-1"
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-2xs transition-all inline-flex items-center gap-1 cursor-pointer"
                           title="Authorize and grant access to OB Regulatory Portal"
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -566,17 +566,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(user)}
-                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1"
+                          className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                           title="Edit role or details before activating"
                         >
-                          <Edit2 className="w-3 h-3 text-slate-500" />
+                          <Edit2 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                           <span>Edit</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleDeleteUser(user.id, user.name)}
-                          className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1"
+                          className="px-2 py-1 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                           title="Reject and delete this registration"
                         >
                           <Trash2 className="w-3 h-3 text-rose-500" />
@@ -592,7 +592,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Pagination Footer */}
           {pendingUsers.length > 0 && (
-            <div className="shrink-0 p-2 border-t border-slate-200 bg-slate-50/50">
+            <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850">
               <Pagination
                 currentPage={pendingPage}
                 totalItems={pendingUsers.length}
@@ -608,18 +608,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 5. Tab 2: All Users & Roles Management (Fixed Box, No Window Extension) */}
       {activeSubTab === 'ALL_USERS' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
           <div className="flex-1 min-h-0 overflow-y-auto">
             {filteredUsers.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                <Users className="w-8 h-8 text-slate-300 mb-2" />
-                <h3 className="text-sm font-bold text-slate-800">No Users Found</h3>
-                <p className="text-xs text-slate-500 mt-1">Try adjusting your search query or filters.</p>
+                <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Users Found</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Try adjusting your search query or filters.</p>
               </div>
             ) : (
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                     <th className="py-2 px-3">Name & Email</th>
                     <th className="py-2 px-3">Role</th>
                     <th className="py-2 px-3">Status</th>
@@ -628,29 +628,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <th className="py-2 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {paginatedAllUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           <span>{user.name}</span>
                           {user.id === 'usr_admin_1' && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-700">
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
                               SUPER USER
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono">{user.email}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{user.email}</div>
                       </td>
 
                       <td className="py-2.5 px-3">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                             user.role === 'ADMIN'
-                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                              ? 'bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
                               : user.role === 'CHECKER'
-                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                              : 'bg-blue-100 text-blue-800 border border-blue-200'
+                              ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                              : 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                           }`}
                         >
                           {user.role}
@@ -661,10 +661,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 ${
                             user.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                               : user.status === 'PENDING_APPROVAL'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                           }`}
                         >
                           <span
@@ -672,7 +672,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               user.status === 'ACTIVE'
                                 ? 'bg-emerald-500'
                                 : user.status === 'PENDING_APPROVAL'
-                                ? 'bg-amber-500'
+                                ? 'bg-amber-500 animate-pulse'
                                 : 'bg-rose-500'
                             }`}
                           ></span>
@@ -681,15 +681,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </td>
 
                       <td className="py-2.5 px-3">
-                        <div className="text-slate-800 font-medium">{user.department}</div>
-                        <div className="text-[11px] font-mono text-slate-500">ID: {user.employeeId}</div>
+                        <div className="text-slate-800 dark:text-slate-200 font-medium">{user.department}</div>
+                        <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">ID: {user.employeeId}</div>
                       </td>
 
-                      <td className="py-2.5 px-3 text-[11px] text-slate-600">
+                      <td className="py-2.5 px-3 text-[11px] text-slate-600 dark:text-slate-400">
                         {user.approvedBy ? (
                           <span>{user.approvedBy}</span>
                         ) : (
-                          <span className="text-slate-400 italic">Pending authorization</span>
+                          <span className="text-slate-400 dark:text-slate-500 italic">Pending authorization</span>
                         )}
                       </td>
 
@@ -698,7 +698,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleAuthorizeUser(user.id)}
-                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors inline-flex items-center gap-1"
+                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Check className="w-3 h-3" />
                             <span>Authorize</span>
@@ -708,10 +708,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <button
                               type="button"
                               onClick={() => handleToggleDisable(user)}
-                              className={`px-2 py-1 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 ${
+                              className={`px-2 py-1 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer ${
                                 user.status === 'ACTIVE'
-                                  ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-                                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800'
+                                  : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800'
                               }`}
                               title={user.status === 'ACTIVE' ? 'Disable this user' : 'Re-enable this user'}
                             >
@@ -724,10 +724,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(user)}
-                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1"
+                          className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                           title="Edit user information"
                         >
-                          <Edit2 className="w-3 h-3 text-slate-500" />
+                          <Edit2 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                           <span>Edit</span>
                         </button>
 
@@ -735,7 +735,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleDeleteUser(user.id, user.name)}
-                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1"
+                            className="px-2 py-1 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
                             title="Delete this user account"
                           >
                             <Trash2 className="w-3 h-3 text-rose-500" />
@@ -751,7 +751,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {/* Pagination Footer */}
-          <div className="shrink-0 p-2 border-t border-slate-200 bg-slate-50/50">
+          <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850">
             <Pagination
               currentPage={allUsersPage}
               totalItems={filteredUsers.length}
@@ -768,22 +768,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeSubTab === 'GOVERNANCE' && (
         <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
           {/* Segregation of Duties Matrix */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-ob-indigo-600" />
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-ob-indigo-600 dark:text-ob-indigo-400" />
               <span>NBE Banking Directive BSD/03/2020: Maker-Checker Role Matrix</span>
             </h3>
-            <p className="text-xs text-slate-600 leading-relaxed mb-3">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
               The National Bank of Ethiopia mandates strict segregation of duties for all prudential and statistical returns. The Administrator oversees user lifecycle, while Maker and Checker responsibilities remain strictly partitioned:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div className="border border-ob-indigo-200 bg-ob-indigo-50/50 rounded-xl p-3">
-                <div className="font-bold text-ob-indigo-900 mb-1 flex items-center justify-between">
+              <div className="border border-ob-indigo-200 dark:border-ob-indigo-800 bg-ob-indigo-50/50 dark:bg-ob-indigo-950/40 rounded-xl p-3">
+                <div className="font-bold text-ob-indigo-900 dark:text-ob-indigo-300 mb-1 flex items-center justify-between">
                   <span>Administrator (Super User)</span>
-                  <span className="text-[10px] bg-ob-indigo-200 text-ob-indigo-800 px-1.5 py-0.2 rounded font-mono font-bold">SUPREME</span>
+                  <span className="text-[10px] bg-ob-indigo-200 dark:bg-ob-indigo-900 text-ob-indigo-800 dark:text-ob-indigo-200 px-1.5 py-0.2 rounded font-mono font-bold">SUPREME</span>
                 </div>
-                <ul className="space-y-1 text-slate-600 list-disc list-inside">
+                <ul className="space-y-1 text-slate-600 dark:text-slate-300 list-disc list-inside">
                   <li>Review & authorize new Maker/Checker signups</li>
                   <li>Enable, disable, edit, and delete user profiles</li>
                   <li>Configure NBE Gateway Simulator & failure modes</li>
@@ -791,12 +791,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </ul>
               </div>
 
-              <div className="border border-ob-green-200 bg-ob-green-50/50 rounded-xl p-3">
-                <div className="font-bold text-ob-green-900 mb-1 flex items-center justify-between">
+              <div className="border border-ob-green-200 dark:border-ob-green-800 bg-ob-green-50/50 dark:bg-ob-green-950/40 rounded-xl p-3">
+                <div className="font-bold text-ob-green-900 dark:text-ob-green-300 mb-1 flex items-center justify-between">
                   <span>Maker (Reporting Officer)</span>
-                  <span className="text-[10px] bg-ob-green-200 text-ob-green-800 px-1.5 py-0.2 rounded font-mono font-bold">PREPARATION</span>
+                  <span className="text-[10px] bg-ob-green-200 dark:bg-ob-green-900 text-ob-green-800 dark:text-ob-green-200 px-1.5 py-0.2 rounded font-mono font-bold">PREPARATION</span>
                 </div>
-                <ul className="space-y-1 text-slate-600 list-disc list-inside">
+                <ul className="space-y-1 text-slate-600 dark:text-slate-300 list-disc list-inside">
                   <li>Initiate drafts for 24 NBE Return Templates</li>
                   <li>Input return items & dynamic rosters (loans, etc.)</li>
                   <li>Run mathematical formula validation engine</li>
@@ -804,12 +804,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </ul>
               </div>
 
-              <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-3">
-                <div className="font-bold text-amber-900 mb-1 flex items-center justify-between">
+              <div className="border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/40 rounded-xl p-3">
+                <div className="font-bold text-amber-900 dark:text-amber-300 mb-1 flex items-center justify-between">
                   <span>Checker (Review Officer)</span>
-                  <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.2 rounded font-mono font-bold">4-EYES APPROVAL</span>
+                  <span className="text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-1.5 py-0.2 rounded font-mono font-bold">4-EYES APPROVAL</span>
                 </div>
-                <ul className="space-y-1 text-slate-600 list-disc list-inside">
+                <ul className="space-y-1 text-slate-600 dark:text-slate-300 list-disc list-inside">
                   <li>Inspect Maker drafts against GL & balance sheets</li>
                   <li>Approve or Request Corrections with comments</li>
                   <li>Sign off and deliver returns to NBE Gateway</li>
@@ -820,54 +820,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {/* Quick Jump Links for Administrator */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2">
               Super User Navigation & Direct Oversight
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
               <button
                 onClick={() => onNavigateTab('MAKER_WORKSPACE')}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left transition-colors flex flex-col justify-between"
+                className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-xl text-left transition-colors flex flex-col justify-between cursor-pointer"
               >
-                <FileText className="w-4 h-4 text-ob-green-600 mb-1" />
-                <span className="font-bold text-slate-800">Maker Workspace</span>
-                <span className="text-[10px] text-slate-500">Inspect drafts</span>
+                <FileText className="w-4 h-4 text-ob-green-600 dark:text-ob-green-400 mb-1" />
+                <span className="font-bold text-slate-800 dark:text-slate-200">Maker Workspace</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Inspect drafts</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab('CHECKER_INBOX')}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left transition-colors flex flex-col justify-between"
+                className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-xl text-left transition-colors flex flex-col justify-between cursor-pointer"
               >
-                <Inbox className="w-4 h-4 text-amber-600 mb-1" />
-                <span className="font-bold text-slate-800">Checker Inbox</span>
-                <span className="text-[10px] text-slate-500">Sign-off queue</span>
+                <Inbox className="w-4 h-4 text-amber-600 dark:text-amber-400 mb-1" />
+                <span className="font-bold text-slate-800 dark:text-slate-200">Checker Inbox</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Sign-off queue</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab('NBE_SIMULATOR')}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left transition-colors flex flex-col justify-between"
+                className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-xl text-left transition-colors flex flex-col justify-between cursor-pointer"
               >
-                <Send className="w-4 h-4 text-ob-indigo-600 mb-1" />
-                <span className="font-bold text-slate-800">NBE Simulator</span>
-                <span className="text-[10px] text-slate-500">Gateway intake</span>
+                <Send className="w-4 h-4 text-ob-indigo-600 dark:text-ob-indigo-400 mb-1" />
+                <span className="font-bold text-slate-800 dark:text-slate-200">NBE Simulator</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Gateway intake</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab('PHASE2_SSOT')}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left transition-colors flex flex-col justify-between"
+                className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-xl text-left transition-colors flex flex-col justify-between cursor-pointer"
               >
-                <Database className="w-4 h-4 text-purple-600 mb-1" />
-                <span className="font-bold text-slate-800">SSOT Pipeline</span>
-                <span className="text-[10px] text-slate-500">GL reconcile</span>
+                <Database className="w-4 h-4 text-purple-600 dark:text-purple-400 mb-1" />
+                <span className="font-bold text-slate-800 dark:text-slate-200">SSOT Pipeline</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">GL reconcile</span>
               </button>
 
               <button
                 onClick={() => onNavigateTab('AUDIT_TRAIL')}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left transition-colors flex flex-col justify-between"
+                className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-xl text-left transition-colors flex flex-col justify-between cursor-pointer"
               >
-                <History className="w-4 h-4 text-slate-600 mb-1" />
-                <span className="font-bold text-slate-800">Audit Trail</span>
-                <span className="text-[10px] text-slate-500">Immutable ledger</span>
+                <History className="w-4 h-4 text-slate-600 dark:text-slate-400 mb-1" />
+                <span className="font-bold text-slate-800 dark:text-slate-200">Audit Trail</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Immutable ledger</span>
               </button>
             </div>
           </div>
@@ -876,21 +876,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 7. Edit User Floating Modal */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-ob-indigo-50 text-ob-indigo-700 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-ob-indigo-50 dark:bg-ob-indigo-950 text-ob-indigo-700 dark:text-ob-indigo-300 flex items-center justify-center">
                   <Edit2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Edit User Profile</h3>
-                  <span className="text-xs text-slate-500 font-mono">{editingUser.email}</span>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Edit User Profile</h3>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{editingUser.email}</span>
                 </div>
               </div>
               <button
                 onClick={() => setEditingUser(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -898,24 +898,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <form onSubmit={handleSaveEdit} className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
+                  className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Role</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Role</label>
                   <select
                     value={editFormData.role}
                     onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as UserRole })}
                     disabled={editingUser.id === 'usr_admin_1'}
-                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
                   >
                     <option value="MAKER">MAKER (Reporting Officer)</option>
                     <option value="CHECKER">CHECKER (Prudential Reviewer)</option>
@@ -925,12 +925,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Status</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Status</label>
                   <select
                     value={editFormData.status}
                     onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as UserStatus })}
                     disabled={editingUser.id === 'usr_admin_1'}
-                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
                   >
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="PENDING_APPROVAL">PENDING_APPROVAL</option>
@@ -940,11 +940,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Department</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Department</label>
                 <select
                   value={editFormData.department}
                   onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
                 >
                   <option value="Compliance & Regulatory Governance">Compliance & Regulatory Governance</option>
                   <option value="Credit Risk & Portfolio Management">Credit Risk & Portfolio Management</option>
@@ -959,31 +959,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Employee ID</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Employee ID</label>
                   <input
                     type="text"
                     value={editFormData.employeeId}
                     onChange={(e) => setEditFormData({ ...editFormData, employeeId: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
+                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
                   <input
                     type="text"
                     value={editFormData.phoneNumber}
                     onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 focus:bg-white"
+                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-ob-indigo-500"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

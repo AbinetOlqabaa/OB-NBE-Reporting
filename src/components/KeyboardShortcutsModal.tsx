@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   Shield,
   Zap,
+  SunMoon,
 } from 'lucide-react';
 
 interface KeyboardShortcutsModalProps {
@@ -53,9 +54,15 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
     },
     {
       keys: [modKey, 'K'],
-      description: 'Open Command Palette & Quick Navigation',
+      description: 'Open Command Palette & Universal Search',
       context: 'Global',
       icon: Command,
+    },
+    {
+      keys: [modKey, 'Shift', 'T'],
+      description: 'Cycle Theme Mode (Light / Dark / Device)',
+      context: 'Global',
+      icon: SunMoon,
     },
     {
       keys: ['?'],
@@ -125,15 +132,15 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150"
+      className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150"
+        className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150 transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div className="px-5 py-4 bg-slate-900 dark:bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg bg-ob-indigo-600 text-white border border-ob-indigo-500">
               <Keyboard className="w-5 h-5" />
@@ -169,7 +176,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 
             return (
               <div key={ctx} className="space-y-2">
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-1">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-1">
                   <span>{ctx} Shortcuts</span>
                 </h4>
 
@@ -179,11 +186,11 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                     return (
                       <div
                         key={idx}
-                        className="p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/70 transition-colors flex items-center justify-between gap-2"
+                        className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/60 hover:bg-slate-100/70 dark:hover:bg-slate-800 transition-colors flex items-center justify-between gap-2"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <IconComp className="w-3.5 h-3.5 text-ob-indigo-600 shrink-0" />
-                          <span className="text-slate-700 font-medium truncate text-xs" title={item.description}>
+                          <IconComp className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400 shrink-0" />
+                          <span className="text-slate-700 dark:text-slate-300 font-medium truncate text-xs" title={item.description}>
                             {item.description}
                           </span>
                         </div>
@@ -192,7 +199,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                           {item.keys.map((k, kIdx) => (
                             <kbd
                               key={kIdx}
-                              className="px-1.5 py-0.5 rounded bg-white text-slate-900 border border-slate-300 shadow-2xs font-mono font-bold text-[10px] min-w-[20px] text-center"
+                              className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 shadow-2xs font-mono font-bold text-[10px] min-w-[20px] text-center"
                             >
                               {k}
                             </kbd>
@@ -208,16 +215,16 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+        <div className="px-5 py-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-1.5">
             <Command className="w-3.5 h-3.5 text-slate-400" />
-            <span>Tip: Press <kbd className="px-1 py-0.2 rounded bg-white border border-slate-300 font-mono text-[10px] text-slate-800">?</kbd> anywhere to open this menu</span>
+            <span>Tip: Press <kbd className="px-1 py-0.2 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono text-[10px] text-slate-800 dark:text-slate-200">?</kbd> anywhere to open this menu</span>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-2xs"
+            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-2xs"
           >
             Got it
           </button>

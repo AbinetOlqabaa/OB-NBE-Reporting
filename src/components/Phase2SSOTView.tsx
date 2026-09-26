@@ -247,10 +247,10 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
       </div>
 
       {/* 2. Visual Medallion Flow Pipeline (Compact Strip, Fixed Height) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs shrink-0 space-y-2">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs shrink-0 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-ob-indigo-600" />
+          <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
             <span>Medallion Pipeline Ingestion</span>
           </span>
 
@@ -259,7 +259,7 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
             <select
               value={selectedSource}
               onChange={(e) => setSelectedSource(e.target.value as any)}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
             >
               <option value="CORE_BANKING">Core Banking (T24 / Oracle Flexcube)</option>
               <option value="ERP">ERP & General Ledger (SAP / Oracle GL)</option>
@@ -285,75 +285,75 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
           <div
             className={`border rounded-lg p-2.5 transition-all ${
               ingestionStep === 1
-                ? 'border-amber-500 bg-amber-50 shadow-sm ring-1 ring-amber-300'
-                : 'border-amber-200 bg-amber-50/20'
+                ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 shadow-sm ring-1 ring-amber-300 dark:ring-amber-600'
+                : 'border-amber-200 dark:border-amber-800/60 bg-amber-50/20 dark:bg-amber-950/20'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-100 text-amber-900">
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-300">
                 Bronze Layer
               </span>
-              <span className="text-[10px] font-mono text-amber-700 font-bold">Raw Ingest</span>
+              <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 font-bold">Raw Ingest</span>
             </div>
-            <div className="font-bold text-slate-900 mt-1">Landing & Immutable CDC</div>
-            <p className="text-[10px] text-slate-500 mt-0.5">Captures deltas with audit timestamp.</p>
+            <div className="font-bold text-slate-900 dark:text-slate-100 mt-1">Landing & Immutable CDC</div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Captures deltas with audit timestamp.</p>
           </div>
 
           <div
             className={`border rounded-lg p-2.5 transition-all ${
               ingestionStep === 2
-                ? 'border-slate-500 bg-slate-100 shadow-sm ring-1 ring-slate-300'
-                : 'border-slate-200 bg-slate-50/50'
+                ? 'border-slate-500 bg-slate-100 dark:bg-slate-800 shadow-sm ring-1 ring-slate-300 dark:ring-slate-600'
+                : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-200 text-slate-800">
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                 Silver Layer
               </span>
-              <span className="text-[10px] font-mono text-slate-700 font-bold">Cleansed</span>
+              <span className="text-[10px] font-mono text-slate-700 dark:text-slate-300 font-bold">Cleansed</span>
             </div>
-            <div className="font-bold text-slate-900 mt-1">Validation & Normalization</div>
-            <p className="text-[10px] text-slate-500 mt-0.5">Deduplication and range conformance.</p>
+            <div className="font-bold text-slate-900 dark:text-slate-100 mt-1">Validation & Normalization</div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Deduplication and range conformance.</p>
           </div>
 
           <div
             className={`border rounded-lg p-2.5 transition-all ${
               ingestionStep === 3
-                ? 'border-ob-green-500 bg-ob-green-50 shadow-sm ring-1 ring-ob-green-400'
-                : 'border-ob-green-300 bg-ob-green-50/30'
+                ? 'border-ob-green-500 bg-ob-green-50 dark:bg-ob-green-950/40 shadow-sm ring-1 ring-ob-green-400 dark:ring-ob-green-600'
+                : 'border-ob-green-300 dark:border-ob-green-800/60 bg-ob-green-50/30 dark:bg-ob-green-950/20'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-ob-green-200 text-ob-green-900">
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-ob-green-200 dark:bg-ob-green-900/60 text-ob-green-900 dark:text-ob-green-300">
                 Gold Layer
               </span>
-              <span className="text-[10px] font-mono text-ob-green-800 font-bold">NBE Aggregate</span>
+              <span className="text-[10px] font-mono text-ob-green-800 dark:text-ob-green-300 font-bold">NBE Aggregate</span>
             </div>
-            <div className="font-bold text-slate-900 mt-1">Prudential Ready Returns</div>
-            <p className="text-[10px] text-slate-500 mt-0.5">Automated mapping to all 24 NBE returns.</p>
+            <div className="font-bold text-slate-900 dark:text-slate-100 mt-1">Prudential Ready Returns</div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Automated mapping to all 24 NBE returns.</p>
           </div>
         </div>
       </div>
 
       {/* 3. Main Data Tabs Area (Strict flex-1 min-h-0 overflow-hidden) */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white border border-slate-200 rounded-xl shadow-2xs">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
         <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
           {/* Notification if return auto-generated */}
           {generatedSuccessMsg && (
-            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-semibold flex items-center gap-2 shadow-2xs animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-xl text-emerald-900 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 shadow-2xs animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{generatedSuccessMsg}</span>
             </div>
           )}
 
           {/* 1-Click Auto-Generation Box with ALL 24 Returns */}
-          <div className="bg-ob-indigo-50/70 border border-ob-indigo-200 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="bg-ob-indigo-50/70 dark:bg-ob-indigo-950/40 border border-ob-indigo-200 dark:border-ob-indigo-800/60 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div>
-              <span className="text-xs font-bold text-ob-indigo-950 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-ob-indigo-600" />
+              <span className="text-xs font-bold text-ob-indigo-950 dark:text-ob-indigo-200 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
                 <span>1-Click Auto-Generate Regulatory Return from Gold Lakehouse</span>
               </span>
-              <p className="text-[11px] text-ob-indigo-900/80 mt-0.5">
+              <p className="text-[11px] text-ob-indigo-900/80 dark:text-ob-indigo-300/80 mt-0.5">
                 Populates any of the 24 official NBE returns with verified subledger balances directly from the Gold aggregate layer.
               </p>
             </div>
@@ -362,10 +362,10 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
               <select
                 value={selectedTargetReturn}
                 onChange={(e) => setSelectedTargetReturn(e.target.value)}
-                className="text-xs bg-white border border-ob-indigo-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer max-w-xs"
+                className="text-xs bg-white dark:bg-slate-800 border border-ob-indigo-300 dark:border-ob-indigo-700 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer max-w-xs"
               >
                 {categories.map((cat) => (
-                  <optgroup key={cat} label={cat}>
+                  <optgroup key={cat} label={cat} className="dark:bg-slate-800 dark:text-slate-200">
                     {templates
                       .filter((t) => (t.Category || 'General') === cat)
                       .map((t) => (
@@ -389,15 +389,15 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
 
           {/* GL Reconciliation Table */}
           <div>
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>General Ledger (GL) to Regulatory Return Reconciliation Engine</span>
             </h4>
 
-            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
+                  <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
                     <th className="py-2 px-3">GL Account Code</th>
                     <th className="py-2 px-3">Account Description</th>
                     <th className="py-2 px-3 text-right">GL Balance (ETB)</th>
@@ -406,22 +406,22 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
                     <th className="py-2 px-3 text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {reconciliation.map((r, i) => (
-                    <tr key={i} className="hover:bg-slate-50">
-                      <td className="py-2 px-3 font-mono font-bold text-ob-indigo-700">{r.glAccount}</td>
-                      <td className="py-2 px-3 font-medium text-slate-900">{r.glAccountName}</td>
-                      <td className="py-2 px-3 text-right font-mono font-semibold">
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="py-2 px-3 font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-400">{r.glAccount}</td>
+                      <td className="py-2 px-3 font-medium text-slate-900 dark:text-slate-100">{r.glAccountName}</td>
+                      <td className="py-2 px-3 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
                         {r.glBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-2 px-3 text-right font-mono font-semibold">
+                      <td className="py-2 px-3 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
                         {r.reportAggregate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600">
+                      <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {r.variance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-2 px-3 text-center">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                           {r.status}
                         </span>
                       </td>
@@ -436,28 +436,28 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
           {qualityReport && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-ob-indigo-600" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
                   <span>Automated Data Quality & Lineage Gates</span>
                 </h4>
-                <div className="text-xs font-bold text-slate-700">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Overall Score:{' '}
-                  <span className="text-emerald-600 font-mono font-bold">{qualityReport.overallScore}%</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">{qualityReport.overallScore}%</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {qualityReport.checks.map((c, i) => (
-                  <div key={i} className="p-3 border border-slate-200 rounded-xl bg-slate-50/50 flex flex-col justify-between">
+                  <div key={i} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-800/40 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-900 text-xs">{c.category}</span>
-                        <span className="text-[11px] font-mono font-bold text-emerald-600">{c.score}%</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">{c.category}</span>
+                        <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">{c.score}%</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1">{c.description}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{c.description}</p>
                     </div>
-                    <div className="mt-2 text-[10px] text-slate-400">
-                      Anomalies: <span className="font-bold text-slate-600">{c.anomalyCount}</span>
+                    <div className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">
+                      Anomalies: <span className="font-bold text-slate-600 dark:text-slate-300">{c.anomalyCount}</span>
                     </div>
                   </div>
                 ))}

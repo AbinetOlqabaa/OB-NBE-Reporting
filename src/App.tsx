@@ -27,6 +27,8 @@ import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
+import { ThemeStateInspector } from './components/ThemeStateInspector';
+import { ThemeSyncMonitor } from './components/ThemeSyncMonitor';
 
 export default function App() {
   // First visitor starts on the Login Page
@@ -382,20 +384,23 @@ export default function App() {
 
   // If visitor is NOT authenticated, display Login or Register page
   if (!currentUser) {
-    if (authView === 'REGISTER') {
-      return (
-        <RegisterPage
-          onRegisterSuccess={() => setAuthView('LOGIN')}
-          onNavigateLogin={() => setAuthView('LOGIN')}
-          onFastLoginAdmin={handleFastLoginAdmin}
-        />
-      );
-    }
     return (
-      <LoginPage
-        onLoginSuccess={handleLoginSuccess}
-        onNavigateRegister={() => setAuthView('REGISTER')}
-      />
+      <>
+        {authView === 'REGISTER' ? (
+          <RegisterPage
+            onRegisterSuccess={() => setAuthView('LOGIN')}
+            onNavigateLogin={() => setAuthView('LOGIN')}
+            onFastLoginAdmin={handleFastLoginAdmin}
+          />
+        ) : (
+          <LoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateRegister={() => setAuthView('REGISTER')}
+          />
+        )}
+        <ThemeSyncMonitor />
+        <ThemeStateInspector />
+      </>
     );
   }
 
@@ -405,7 +410,7 @@ export default function App() {
     : null;
 
   return (
-    <div className="h-screen max-h-screen w-screen overflow-hidden flex flex-col font-sans bg-slate-100 text-slate-900 antialiased selection:bg-ob-indigo-600 selection:text-white">
+    <div className="h-screen max-h-screen w-screen overflow-hidden flex flex-col font-sans bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-ob-indigo-600 selection:text-white transition-colors">
       {/* 1. Top Navigation Bar (Strictly Fixed Height h-14 / h-16) */}
       <Navbar
         currentUser={currentUser}
@@ -415,6 +420,10 @@ export default function App() {
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={toggleSidebar}
         onLogout={handleLogout}
+        onNavigateToSimulator={() => {
+          setActiveTab('NBE_SIMULATOR');
+          setEditingSubmission(null);
+        }}
       />
 
       {/* 2. Main Window Container (Equal Full Length between Sidebar and Viewport) */}
@@ -522,6 +531,12 @@ export default function App() {
         isOpen={isShortcutsModalOpen}
         onClose={() => setIsShortcutsModalOpen(false)}
       />
+
+      {/* Centralized Theme Synchronization & Mismatch Monitor */}
+      <ThemeSyncMonitor />
+
+      {/* Global Theme State & MutationObserver Inspector */}
+      <ThemeStateInspector />
 
       {/* Global Toast Notification */}
       {toastMessage && (

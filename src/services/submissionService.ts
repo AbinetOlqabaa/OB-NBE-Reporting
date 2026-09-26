@@ -3,18 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
+import type {
   ReportSubmission,
   SubmissionStatus,
   UserSession,
   DynamicRowRecord,
-} from '../types/regulatory';
-import { getReportByKey, getAllReports } from '../data/report-registry';
-import { WorkflowEngine } from './workflowEngine';
-import { FormulaEngine } from '../utils/formulaEngine';
-import { ValidationEngine, ValidationSummary } from '../utils/validationEngine';
-import { nbeAdapter, DeliveryResult } from './nbeAdapter';
-import { auditService } from './auditService';
+} from '../types/regulatory.ts';
+import { getReportByKey, getAllReports } from '../data/report-registry.ts';
+import { WorkflowEngine } from './workflowEngine.ts';
+import { FormulaEngine } from '../utils/formulaEngine.ts';
+import { ValidationEngine } from '../utils/validationEngine.ts';
+import type { ValidationSummary } from '../utils/validationEngine.ts';
+import { nbeAdapter } from './nbeAdapter.ts';
+import type { DeliveryResult } from './nbeAdapter.ts';
+import { auditService } from './auditService.ts';
 
 // Default Demo User Accounts
 export const DEMO_USERS: UserSession[] = [
