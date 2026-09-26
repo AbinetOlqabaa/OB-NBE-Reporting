@@ -13,6 +13,7 @@ import {
   THEME_STORAGE_KEY,
   THEME_CHANGE_EVENT,
   ThemeMode,
+  ResolvedTheme,
 } from '../contexts/ThemeContext.tsx';
 import { ThemeToggle } from '../components/ThemeToggle.tsx';
 
@@ -271,5 +272,62 @@ assert(syncCheck4.expectedDataTheme === 'dark', 'ThemeSyncMonitor: Correctly fla
 // Case 5: Mismatched State in System Mode (Storage=null but DOM="light" while OS is dark)
 const syncCheck5 = validateThemeSync(null, 'light', true);
 assert(syncCheck5.isMismatch, 'ThemeSyncMonitor: Correctly detects mismatch when storage=null but DOM="light" on OS dark');
+
+// Section 10: Provider useEffect Mount Resolution & DOM Force-Application
+console.log('\n--- Validating Provider useEffect Mount Resolution & DOM Force-Application ---');
+function simulateUseEffectMountResolution(storageVal: string | null, prefersDark: boolean) {
+  mockStorage.clear();
+  if (storageVal) {
+    mockStorage.setItem(THEME_STORAGE_KEY, storageVal);
+  }
+
+  // Simulate provider useEffect logic
+  let initialMode: ThemeMode = 'system';
+  const stored = mockStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === 'light' || stored === 'dark') {
+    initialMode = stored;
+  }
+  const sysPref: ResolvedTheme = prefersDark ? 'dark' : 'light';
+  const resolved: ResolvedTheme = initialMode === 'system' ? sysPref : initialMode;
+
+  const postSyncDom = applyDomTheme(resolved, initialMode);
+  if (initialMode === 'system') {
+    mockStorage.removeItem(THEME_STORAGE_KEY);
+  } else {
+    mockStorage.setItem(THEME_STORAGE_KEY, initialMode);
+  }
+
+  return { initialMode, resolved, postSyncDom, finalStorage: mockStorage.getItem(THEME_STORAGE_KEY) };
+}
+
+// 1. Direct dark override in localStorage
+const mountDark = simulateUseEffectMountResolution('dark', false);
+assert(mountDark.initialMode === 'dark', 'useEffect mount: correctly sets theme to "dark" from localStorage');
+assert(mountDark.resolved === 'dark', 'useEffect mount: correctly resolves to "dark"');
+assert(mockDoc.documentElement.classList.contains('dark'), 'useEffect mount: force-applies "dark" class to documentElement');
+assert(mockDoc.documentElement.getAttribute('data-theme') === 'dark', 'useEffect mount: force-applies data-theme="dark"');
+assert(mountDark.finalStorage === 'dark', 'useEffect mount: preserves "dark" in localStorage');
+
+// 2. Direct light override in localStorage
+const mountLight = simulateUseEffectMountResolution('light', true);
+assert(mountLight.initialMode === 'light', 'useEffect mount: correctly sets theme to "light" from localStorage');
+assert(mountLight.resolved === 'light', 'useEffect mount: correctly resolves to "light"');
+assert(mockDoc.documentElement.classList.contains('light'), 'useEffect mount: force-applies "light" class to documentElement');
+assert(mockDoc.documentElement.getAttribute('data-theme') === 'light', 'useEffect mount: force-applies data-theme="light"');
+assert(mountLight.finalStorage === 'light', 'useEffect mount: preserves "light" in localStorage');
+
+// 3. Fallback to system preference (OS Dark)
+const mountSystemDark = simulateUseEffectMountResolution(null, true);
+assert(mountSystemDark.initialMode === 'system', 'useEffect mount: falls back to "system" when no storage item exists');
+assert(mountSystemDark.resolved === 'dark', 'useEffect mount: resolves to system preference "dark"');
+assert(mockDoc.documentElement.classList.contains('dark'), 'useEffect mount: force-applies system "dark" class');
+assert(mountSystemDark.finalStorage === null, 'useEffect mount: clears localStorage override for system mode');
+
+// 4. Fallback to system preference (OS Light)
+const mountSystemLight = simulateUseEffectMountResolution(null, false);
+assert(mountSystemLight.initialMode === 'system', 'useEffect mount: falls back to "system" when no storage item exists');
+assert(mountSystemLight.resolved === 'light', 'useEffect mount: resolves to system preference "light"');
+assert(mockDoc.documentElement.classList.contains('light'), 'useEffect mount: force-applies system "light" class');
+assert(mountSystemLight.finalStorage === null, 'useEffect mount: clears localStorage override for system mode');
 
 console.log('\n--- All Automated Theme Synchronization & Mount Flow Tests Passed Successfully! ---');

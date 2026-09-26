@@ -176,8 +176,8 @@ export function getSystemPreference(): ResolvedTheme {
 }
 
 /**
- * Checks for a manual user override in localStorage.
- * Returns 'light' | 'dark' if a manual override is active, or null if system mode / no override.
+ * Checks for an explicit user manual override in localStorage.
+ * Returns 'light' | 'dark' if permanent local override exists, or null for system mode.
  */
 export function getStoredOverride(): 'light' | 'dark' | null {
   if (typeof window === 'undefined') return null;
@@ -194,31 +194,20 @@ export function getStoredOverride(): 'light' | 'dark' | null {
 
 /**
  * Resolves the initial stored theme:
- * 1. Strictly prioritizes manual user overrides ('light' | 'dark') from localStorage.
- * 2. If no override in localStorage, checks documentElement attributes.
- * 3. Defaults to 'system' (device preference).
+ * Strictly prioritizes manual user overrides ('light' | 'dark') from localStorage.
+ * If no override in localStorage (i.e. 'system' mode selected or unconfigured),
+ * standardizes on 'system' mode allowing natural browser preference reflection.
  */
 export function getStoredTheme(): ThemeMode {
   if (typeof window === 'undefined') return 'system';
 
-  // 1. Strict priority: Manual user override in localStorage
+  // Strict priority: Manual user override in localStorage
   const override = getStoredOverride();
   if (override) {
     return override;
   }
 
-  // 2. Fallback to DOM attributes to prevent flash and resolve storage-DOM conflicts
-  if (typeof document !== 'undefined') {
-    const domMode = document.documentElement.getAttribute('data-theme-mode');
-    if (domMode === 'light' || domMode === 'dark' || domMode === 'system') {
-      return domMode;
-    }
-    const domTheme = document.documentElement.getAttribute('data-theme');
-    if (domTheme === 'light' || domTheme === 'dark') {
-      return domTheme;
-    }
-  }
-
+  // When no permanent override exists in localStorage, standard is 'system'
   return 'system';
 }
 
@@ -348,9 +337,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return theme;
   }, [theme, systemTheme]);
 
-  // Synchronous layout effect on provider initialization:
-  // Forces re-application of theme classes on the document element immediately upon provider initialization,
-  // ensuring that the DOM attributes are synchronized with state before the component tree fully hydrates.
+  // Robust useLayoutEffect on provider initialization:
+  // Runs synchronously before browser paint and before component hydration completes.
+  // Prioritizes user's manual selection over system preference logic, locking in DOM classes
+  // and ensuring no post-render race conditions can alter documentElement classes.
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return;
 
@@ -373,10 +363,24 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       pageContext = 'UNKNOWN';
     }
 
-    const currentOverride = getStoredOverride();
+    // 1. Check for explicit permanent manual user override in localStorage
+    const manualOverride = getStoredOverride();
     const currentSysPref = getSystemPreference();
 
-    // Immediately force re-application of theme classes and DOM attributes before initial paint
+    // Determine authoritative mode: manual override STRICTLY takes priority over system logic
+    const authoritativeMode: ThemeMode = manualOverride ? manualOverride : 'system';
+    const authoritativeResolved: ResolvedTheme =
+      authoritativeMode === 'system' ? currentSysPref : authoritativeMode;
+
+    // 2. Synchronize React state if out of sync
+    if (theme !== authoritativeMode) {
+      setThemeState(authoritativeMode);
+    }
+    if (systemTheme !== currentSysPref) {
+      setSystemTheme(currentSysPref);
+    }
+
+    // 3. Immediately and forcefully re-apply classes and attributes on documentElement before paint
     isEnforcingRef.current = true;
     let postSyncDom: {
       classes: string;
@@ -386,11 +390,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     try {
-      postSyncDom = applyDomTheme(resolvedTheme, theme);
-      if (theme === 'system') {
+      postSyncDom = applyDomTheme(authoritativeResolved, authoritativeMode);
+
+      // Standardize system mode: if system, clear localStorage to allow natural browser reflection.
+      // If manual override (light/dark), preserve permanent local override.
+      if (authoritativeMode === 'system') {
         localStorage.removeItem(THEME_STORAGE_KEY);
       } else {
-        localStorage.setItem(THEME_STORAGE_KEY, theme);
+        localStorage.setItem(THEME_STORAGE_KEY, authoritativeMode);
       }
     } finally {
       setTimeout(() => {
@@ -402,18 +409,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const hasRaceCondition =
       preMountDom.dataTheme !== null &&
       preMountDom.dataThemeMode !== null &&
-      (preMountDom.dataTheme !== resolvedTheme || preMountDom.dataThemeMode !== theme);
+      (preMountDom.dataTheme !== authoritativeResolved ||
+        preMountDom.dataThemeMode !== authoritativeMode);
 
     const validationReport: ThemeSyncMountValidation = {
       timestamp: new Date().toISOString(),
       pageContext,
       preMountDom,
-      localStorageOverride: currentOverride,
+      localStorageOverride: manualOverride,
       systemPreference: currentSysPref,
       reactState: {
-        theme,
-        resolvedTheme,
-        hasManualOverride: theme !== 'system',
+        theme: authoritativeMode,
+        resolvedTheme: authoritativeResolved,
+        hasManualOverride: authoritativeMode !== 'system',
       },
       postSyncDom: {
         classList: postSyncDom.classes,
@@ -442,8 +450,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     const log = logThemeDebug(`MOUNT_VALIDATION (${pageContext})`, {
-      theme,
-      resolvedTheme,
+      theme: authoritativeMode,
+      resolvedTheme: authoritativeResolved,
       source: `mount_validation_${pageContext.toLowerCase()}`,
       domClasses: postSyncDom.classes,
       dataTheme: postSyncDom.dataTheme,
@@ -452,16 +460,82 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       extra: {
         hasRaceCondition,
         pageContext,
-        localStorageOverride: currentOverride,
+        localStorageOverride: manualOverride,
       },
     });
 
     setDebugLogs((prev) => [log, ...prev].slice(0, 30));
-  }, [theme, resolvedTheme]);
+  }, []); // Run synchronously on provider initialization before paint
+
+  // Set initial 'theme' state during the provider's 'useEffect' hook,
+  // reading directly from localStorage with fallback to system preference,
+  // and simultaneously force-applying the correct classes to document.documentElement
+  // to completely prevent any style or attribute mismatches.
+  useEffect(() => {
+    let initialMode: ThemeMode = 'system';
+    try {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === 'light' || stored === 'dark') {
+        initialMode = stored;
+      }
+    } catch {
+      // Storage access restricted or disabled
+    }
+
+    const sysPref = getSystemPreference();
+    const resolved: ResolvedTheme =
+      initialMode === 'system' ? sysPref : initialMode;
+
+    // Set initial React state
+    setThemeState(initialMode);
+    setSystemTheme(sysPref);
+
+    // Simultaneously force-apply the correct classes to document.documentElement
+    isEnforcingRef.current = true;
+    let postSyncDom: {
+      classes: string;
+      dataTheme: string | null;
+      dataThemeMode: string | null;
+      colorScheme: string;
+    };
+
+    try {
+      postSyncDom = applyDomTheme(resolved, initialMode);
+      if (initialMode === 'system') {
+        try {
+          localStorage.removeItem(THEME_STORAGE_KEY);
+        } catch {}
+      } else {
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, initialMode);
+        } catch {}
+      }
+    } finally {
+      setTimeout(() => {
+        isEnforcingRef.current = false;
+      }, 10);
+    }
+
+    const log = logThemeDebug('INITIAL_USE_EFFECT_STORAGE_SYNC', {
+      theme: initialMode,
+      resolvedTheme: resolved,
+      source: 'provider_use_effect_mount',
+      domClasses: postSyncDom.classes,
+      dataTheme: postSyncDom.dataTheme,
+      dataThemeMode: postSyncDom.dataThemeMode,
+      colorScheme: postSyncDom.colorScheme,
+      extra: {
+        readFromLocalStorage: localStorage.getItem(THEME_STORAGE_KEY),
+        fallbackSystemPreference: sysPref,
+      },
+    });
+
+    setDebugLogs((prev) => [log, ...prev].slice(0, 30));
+  }, []);
 
   // Central Unified Synchronization useEffect:
   // Synchronizes with localStorage, document.documentElement.classList,
-  // and the data-theme / data-theme-mode attributes whenever theme or systemTheme changes.
+  // and the data-theme / data-theme-mode attributes whenever theme or resolvedTheme changes.
   useEffect(() => {
     isEnforcingRef.current = true;
 
@@ -475,8 +549,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       domState = applyDomTheme(resolvedTheme, theme);
 
-      // Requirement: Specifically clear the override localStorage item when user selects 'system',
-      // and set it when an explicit user override ('light' | 'dark') is active.
+      // Standardize system mode: if system, clear localStorage to allow natural browser preference reflection.
+      // If explicit light or dark, persist as permanent local override.
       if (theme === 'system') {
         try {
           localStorage.removeItem(THEME_STORAGE_KEY);
@@ -697,8 +771,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [resolvedTheme, theme]);
 
   // Set Theme:
-  // If 'system', specifically clears the localStorage override item.
-  // If 'light' or 'dark', stores the manual user override.
+  // If 'system', specifically clears the localStorage override item to allow natural browser reflection.
+  // If 'light' or 'dark', stores the permanent manual user override.
   const setTheme = useCallback((newTheme: ThemeMode) => {
     if (newTheme === 'system') {
       try {
