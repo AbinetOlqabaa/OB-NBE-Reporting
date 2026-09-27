@@ -52,6 +52,67 @@ html.dark body {
   color: #F1F5F9;
 }
 
+/* Touch Ergonomics & Mobile Web App Feel */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent double-tap zoom on buttons and interactive triggers */
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Safe Area Insets for Modern Mobile Devices (iOS Notch / Dynamic Island / Android Navigation) */
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+  .pl-safe {
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+  }
+  .pr-safe {
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+}
+
+/* Ensure minimum 44px by 44px touch targets on mobile interactive elements */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Touch Reactive Active Press Affordance */
+.touch-press {
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.12s ease, opacity 0.12s ease;
+  user-select: none;
+}
+.touch-press:active {
+  transform: scale(0.96);
+  opacity: 0.92;
+}
+
+/* Momentum Touch Scrolling for Financial Data Tables */
+.touch-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+}
+
+.touch-scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

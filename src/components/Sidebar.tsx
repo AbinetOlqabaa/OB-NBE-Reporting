@@ -16,6 +16,7 @@ import {
   Users,
   LogOut,
   Search,
+  X,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory';
 
@@ -35,6 +36,8 @@ interface SidebarProps {
   pendingCheckerCount: number;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  isMobileDrawerOpen?: boolean;
+  onCloseMobileDrawer?: () => void;
   onLogout?: () => void;
   onOpenCommandPalette?: () => void;
   onOpenShortcutsModal?: () => void;
@@ -47,6 +50,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pendingCheckerCount,
   isCollapsed,
   onToggleCollapse,
+  isMobileDrawerOpen = false,
+  onCloseMobileDrawer,
   onLogout,
   onOpenCommandPalette,
   onOpenShortcutsModal,
@@ -65,6 +70,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onToggleCollapse]);
+
+  // Handle Escape key to close mobile drawer
+  useEffect(() => {
+    if (!isMobileDrawerOpen || !onCloseMobileDrawer) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCloseMobileDrawer();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isMobileDrawerOpen, onCloseMobileDrawer]);
+
+  // Prevent background scrolling when mobile drawer is open
+  useEffect(() => {
+    if (isMobileDrawerOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMobileDrawerOpen]);
 
   // Complete nav items catalog with associated global keyboard shortcuts
   const allNavItems = [
@@ -146,11 +175,131 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
-    <aside
-      className={`bg-[#121428] text-slate-300 flex flex-col justify-between shrink-0 h-full transition-all duration-300 ease-in-out border-r border-[#22284D] z-20 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
-    >
+    <>
+      {/* Mobile Slide-Out Drawer (Touch-Optimized for Phones & Small Tablets) */}
+      {isMobileDrawerOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation Drawer"
+          className="fixed inset-0 z-50 md:hidden flex animate-in fade-in duration-200"
+        >
+          {/* Backdrop Blur Overlay */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={onCloseMobileDrawer}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Content */}
+          <div className="relative w-72 max-w-[85vw] bg-[#121428] text-slate-300 flex flex-col justify-between h-full z-10 shadow-2xl border-r border-[#22284D] animate-in slide-in-from-left duration-200">
+            {/* Drawer Header */}
+            <div className="p-4 border-b border-[#22284D] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-white p-1 rounded-lg shrink-0">
+                  <img
+                    src="/brand/oromia-logo-mark-transparent.png"
+                    alt="Oromia Bank"
+                    className="w-6 h-6 object-contain"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white tracking-tight leading-tight">Oromia Bank</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Regulatory Portal</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onCloseMobileDrawer}
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Close navigation drawer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Navigation List */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1 touch-scroll-y">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-ob-indigo-300/80 px-2 py-1 block">
+                Workspaces & Services
+              </span>
+              <nav className="space-y-1">
+                {visibleNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectTab(item.id);
+                        if (onCloseMobileDrawer) onCloseMobileDrawer();
+                      }}
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all touch-manipulation touch-press ${
+                        isActive
+                          ? 'bg-ob-indigo-600 text-white font-bold shadow-md shadow-ob-indigo-950/50'
+                          : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold text-xs'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-ob-indigo-300'}`} />
+                      <div className="flex-1 truncate">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs">{item.label}</span>
+                          {item.badge && item.badge > 0 && (
+                            <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white font-mono text-[9px] font-bold">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-normal block truncate">
+                          {item.description}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Drawer Footer User Profile */}
+            <div className="p-4 border-t border-[#22284D] bg-[#0E1020] space-y-3 pb-safe">
+              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-black/30 border border-[#262D55]">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
+                  <div className="text-[10px] text-ob-green-400 font-mono flex items-center gap-1">
+                    <span>{currentUser.role}</span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-slate-400 truncate">{currentUser.department || 'Oromia Bank'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onCloseMobileDrawer) onCloseMobileDrawer();
+                    onLogout();
+                  }}
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/30 hover:bg-rose-900/60 border border-rose-900/50 transition-colors touch-press"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Out</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop / Tablet Sidebar (Hidden on Mobile phones < 768px) */}
+      <aside
+        className={`hidden md:flex bg-[#121428] text-slate-300 flex-col justify-between shrink-0 h-full transition-all duration-300 ease-in-out border-r border-[#22284D] z-20 ${
+          isCollapsed ? 'w-16' : 'w-64'
+        }`}
+      >
       {/* Top Header & Navigation */}
       <div className={`flex-1 min-h-0 overflow-y-auto space-y-3 ${isCollapsed ? 'p-2' : 'p-3'}`}>
         {/* Sidebar Header & Collapse Toggle */}
@@ -351,5 +500,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
     </aside>
+    </>
   );
 };

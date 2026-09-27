@@ -16,3 +16,117 @@
 | T12 | Phase 2 SSOT, Ingestion & Data Quality | P1 | T06 | \`src/services/phase2* , src/types/ssot.ts\` | Core Banking & ERP connectors, Bronze/Silver/Gold pipeline, reconciliation, on-demand report generation | DONE | SSOT tests pass | None | Complete |
 | T13 | Comprehensive Automated Test Suite | P0 | All | \`src/tests/*\` | Unit tests, API tests, negative tests, E2E Golden Path test, security tests | DONE | All tests pass with detailed output | None | Complete |
 | T14 | Final Verification & Completion Report | P0 | T13 | \`.ai/COMPLETION_REPORT.md\` | Zero error compile, clean verification evidence | DONE | Evidence documented | None | Final signoff |
+
+
+# OB AUTONOMOUS TASK QUEUE
+
+## STATUS DEFINITIONS
+
+TODO
+IN_PROGRESS
+BLOCKED
+DONE
+VERIFIED
+
+A task may only become VERIFIED after executable evidence exists.
+All tasks below are VERIFIED with executable evidence recorded in `.ai/COMPLETION_EVIDENCE.md`.
+
+---
+
+## P0 — FOUNDATION
+
+- [x] Inspect complete repository (VERIFIED)
+- [x] Inspect all authoritative NBE files (VERIFIED - 24 canonical returns)
+- [x] Inspect organizational chart (VERIFIED - 8 bank departments)
+- [x] Build SSOT (VERIFIED - `.ai/SSOT.md`, `src/services/ssotRegistry.ts`)
+- [x] Build department catalog (VERIFIED - `.ai/DEPARTMENT_CATALOG.md`)
+- [x] Build report catalog (VERIFIED - `.ai/REPORT_CATALOG.md`)
+- [x] Build RBAC matrix (VERIFIED - `.ai/RBAC_MATRIX.md`)
+- [x] Build workflow model (VERIFIED - `.ai/WORKFLOW_MODEL.md`)
+
+## P0 — SECURITY
+
+- [x] Authentication (VERIFIED - login, password checks, pending activation)
+- [x] Server-side authorization (VERIFIED - role checks on all mutations)
+- [x] Object-level authorization (VERIFIED - submission access checks)
+- [x] Department isolation (VERIFIED - makers restricted to home dept)
+- [x] Special-access mechanism (VERIFIED - admin grants, expiry, revoke)
+- [x] Maker/checker separation (VERIFIED - self-approval & self-review blocked)
+- [x] Admin report read-only enforcement (VERIFIED - admin mutations blocked)
+- [x] Audit integrity (VERIFIED - non-repudiation event logs)
+- [x] NBE idempotency (VERIFIED - deduplication & receipt caching)
+
+## P1 — REPORTING
+
+- [x] Dynamic report engine (VERIFIED - metadata-driven rendering)
+- [x] Dynamic report forms (VERIFIED - `DynamicReportForm.tsx`)
+- [x] Validation engine (VERIFIED - `ValidationEngine.ts` multi-tier)
+- [x] Report versioning (VERIFIED - version increments on lifecycle)
+- [x] Draft persistence (VERIFIED - values & dynamic rows preserved)
+- [x] Report lifecycle (VERIFIED - DRAFT to SENT state machine)
+
+## P1 — WORKFLOW
+
+- [x] Maker submission (VERIFIED - pre-validation & PENDING_CHECKER)
+- [x] Checker review (VERIFIED - 4-eyes inspection)
+- [x] Request changes (VERIFIED - CORRECTION_REQUIRED transition)
+- [x] Maker revision (VERIFIED - draft update & resubmit)
+- [x] Checker approval (VERIFIED - APPROVED transition)
+- [x] Maker final NBE submission (VERIFIED - Maker-only delivery gate)
+
+## P1 — NBE
+
+- [x] NBE contract adapter (VERIFIED - HTTP client with headers)
+- [x] Simulator (VERIFIED - 6 configurable failure/success modes)
+- [x] Payload generation (VERIFIED - structured JSON contracts)
+- [x] Error handling (VERIFIED - 400, 401, 500, 504 handled cleanly)
+- [x] Retry handling (VERIFIED - exponential backoff in adapter)
+- [x] Idempotency (VERIFIED - duplicate keys return existing receipt)
+- [x] Submission history (VERIFIED - delivery attempts appended)
+
+## P1 — AUDIT
+
+- [x] Audit events (VERIFIED - comprehensive event types)
+- [x] Report history (VERIFIED - submission comments & revisions)
+- [x] User activity (VERIFIED - login & status updates logged)
+- [x] Access grants (VERIFIED - special access issuance & revocation logged)
+- [x] Security events (VERIFIED - authorization failures audited)
+
+## P2 — UX
+
+- [x] Registration (VERIFIED - `RegisterPage.tsx` with department selector)
+- [x] Login (VERIFIED - `LoginPage.tsx` with role switching & quick sign-in)
+- [x] Maker dashboard (VERIFIED - `MakerWorkspace.tsx`)
+- [x] Checker dashboard (VERIFIED - `CheckerInbox.tsx`)
+- [x] Admin dashboard (VERIFIED - `AdminDashboard.tsx`)
+- [x] Report catalog (VERIFIED - dynamic template browser)
+- [x] Report forms (VERIFIED - `DynamicReportForm.tsx` & `DynamicAreaTable.tsx`)
+- [x] Review pages (VERIFIED - diff view, comments, 4-eyes sign-off)
+- [x] History (VERIFIED - audit logs & delivery attempts table)
+- [x] Notifications (VERIFIED - toast alerts for all workflow actions)
+- [x] Error states (VERIFIED - inline field errors, validation summary)
+- [x] Responsive UI (VERIFIED - 1440px desktop baseline, dark/light theme sync)
+
+## P1 — TESTING
+
+- [x] Unit tests (VERIFIED - Formula AST, Validation, Excel)
+- [x] Integration tests (VERIFIED - Simulator, Adapter, Submissions)
+- [x] Authorization tests (VERIFIED - Maker, Checker, Admin, Special Access)
+- [x] Security tests (VERIFIED - Segregation of duties, registration restrictions)
+- [x] E2E tests (VERIFIED - Maker draft -> Checker review -> Maker NBE delivery)
+- [x] Regression tests (VERIFIED - full runner executes all 4 suites cleanly)
+- [x] Failure/retry tests (VERIFIED - simulator 401, 422, 500, 504 tested)
+
+## P0 — FINAL
+
+- [x] Build passes (VERIFIED - `npm run build` succeeds)
+- [x] Application starts (VERIFIED - Express server on port 3000)
+- [x] Database works (VERIFIED - persistent submission & audit store)
+- [x] Authentication works (VERIFIED - login & session handling)
+- [x] RBAC works (VERIFIED - permissions strictly enforced)
+- [x] Workflow works (VERIFIED - 100% compliant state machine)
+- [x] NBE simulation works (VERIFIED - 6 modes & receipt generation)
+- [x] Audit works (VERIFIED - non-repudiation compliance logs)
+- [x] Security tests pass (VERIFIED - `run-all-tests.ts` 100% green)
+- [x] E2E tests pass (VERIFIED - end-to-end golden path confirmed)
+- [x] Completion evidence recorded (VERIFIED - recorded in `.ai/COMPLETION_EVIDENCE.md`)

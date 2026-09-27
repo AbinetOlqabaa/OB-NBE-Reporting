@@ -9,7 +9,8 @@ import type {
   UserSession,
   DynamicRowRecord,
 } from '../types/regulatory.ts';
-import { getReportByKey, getAllReports } from '../data/report-registry.ts';
+import { getReportByKey } from '../data/report-registry.ts';
+import { getDepartmentForReport } from '../data/organizationHierarchy.ts';
 import { WorkflowEngine } from './workflowEngine.ts';
 import { FormulaEngine } from '../utils/formulaEngine.ts';
 import { ValidationEngine } from '../utils/validationEngine.ts';
@@ -17,8 +18,9 @@ import type { ValidationSummary } from '../utils/validationEngine.ts';
 import { nbeAdapter } from './nbeAdapter.ts';
 import type { DeliveryResult } from './nbeAdapter.ts';
 import { auditService } from './auditService.ts';
+import { userService } from './userService.ts';
 
-// Default Demo User Accounts
+// Default Demo User Accounts with verified Oromia Bank departments
 export const DEMO_USERS: UserSession[] = [
   {
     id: 'usr_maker_1',
@@ -26,13 +28,9 @@ export const DEMO_USERS: UserSession[] = [
     email: 'abebe.kebede@oromiabank.com',
     role: 'MAKER',
     institutionCode: '0000013',
-  },
-  {
-    id: 'usr_maker_2',
-    name: 'Tigist Alemu',
-    email: 'tigist.alemu@oromiabank.com',
-    role: 'MAKER',
-    institutionCode: '0000013',
+    department: 'Credit Operations & Portfolio Management',
+    employeeId: 'OB-MKR-104',
+    specialAccessGrants: [],
   },
   {
     id: 'usr_checker_1',
@@ -40,21 +38,47 @@ export const DEMO_USERS: UserSession[] = [
     email: 'chala.desta@oromiabank.com',
     role: 'CHECKER',
     institutionCode: '0000013',
+    department: 'Credit Operations & Portfolio Management',
+    employeeId: 'OB-CHK-055',
+    specialAccessGrants: [],
+  },
+  {
+    id: 'usr_maker_2',
+    name: 'Tigist Alemu',
+    email: 'tigist.alemu@oromiabank.com',
+    role: 'MAKER',
+    institutionCode: '0000013',
+    department: 'Trade Services & International Banking',
+    employeeId: 'OB-MKR-219',
+    specialAccessGrants: [
+      {
+        id: 'grant_demo_1',
+        reportKey: 'DigitalLendingDL001',
+        department: 'Digital Banking & Fintech Operations',
+        grantedBy: 'Dawit Bekele (ADMIN)',
+        grantedAt: '2026-03-01T10:00:00Z',
+        reason: 'Temporary delegation for Fintech & Digital Trade micro-lending returns (Approved by VP Operations).',
+      },
+    ],
+  },
+  {
+    id: 'usr_checker_2',
+    name: 'Meron Worku',
+    email: 'meron.worku@oromiabank.com',
+    role: 'CHECKER',
+    institutionCode: '0000013',
+    department: 'Trade Services & International Banking',
+    employeeId: 'OB-CHK-112',
+    specialAccessGrants: [],
   },
   {
     id: 'usr_admin_1',
-    name: 'System Administrator',
-    email: 'admin.compliance@oromiabank.com',
+    name: 'Dawit Bekele',
+    email: 'admin@oromiabank.com',
     role: 'ADMIN',
     institutionCode: '0000013',
-  },
-  {
-    id: 'usr_nbe_1',
-    name: 'Dr. Solomon Tadesse',
-    email: 'solomon.tadesse@nbe.gov.et',
-    role: 'NBE_OFFICER',
-    institutionCode: '0000013',
-    department: 'Banking Supervision Directorate (NBE)',
+    department: 'Compliance & Legal Governance',
+    employeeId: 'OB-ADM-001',
   },
 ];
 
@@ -66,11 +90,13 @@ class SubmissionServiceClass {
   }
 
   private seedInitialSubmissions(): void {
+    // 1. POBEPE001 - In Review by Checker (Trade Services Department)
     const pobepe = getReportByKey('POBEPE001');
     if (pobepe) {
       const sub1: ReportSubmission = {
         id: 'sub_pobepe_001',
         reportKey: 'POBEPE001',
+        department: 'Trade Services & International Banking',
         periodYear: 2026,
         periodStart: '2026-04-01T00:00:00',
         periodEnd: '2026-06-30T00:00:00',
@@ -105,14 +131,15 @@ class SubmissionServiceClass {
           '153_00064': 8800000,
         },
         dynamicRows: {},
-        makerId: 'usr_maker_1',
-        makerName: 'Abebe Kebede',
-        makerEmail: 'abebe.kebede@oromiabank.com',
+        makerId: 'usr_maker_2',
+        makerName: 'Tigist Alemu',
+        makerEmail: 'tigist.alemu@oromiabank.com',
+        makerDepartment: 'Trade Services & International Banking',
         comments: [
           {
             id: 'comm_init_1',
-            userId: 'usr_maker_1',
-            userName: 'Abebe Kebede',
+            userId: 'usr_maker_2',
+            userName: 'Tigist Alemu',
             userRole: 'MAKER',
             comment: 'Off-balance sheet guarantees provision calculated based on Q2 loan ledger.',
             action: 'SUBMIT',
@@ -127,69 +154,74 @@ class SubmissionServiceClass {
       this.submissions.set(sub1.id, sub1);
     }
 
-    const lc001 = getReportByKey('M_LCPLC001');
-    if (lc001) {
+    // 2. LOA_ADV_OUT_LA001 - APPROVED by Checker (Credit Operations & Portfolio Management)
+    // Ready for the Maker to perform the final submission to NBE!
+    const la001 = getReportByKey('LOA_ADV_OUT_LA001');
+    if (la001) {
       const sub2: ReportSubmission = {
-        id: 'sub_lc001_002',
-        reportKey: 'M_LCPLC001',
+        id: 'sub_la001_approved',
+        reportKey: 'LOA_ADV_OUT_LA001',
+        department: 'Credit Operations & Portfolio Management',
         periodYear: 2026,
         periodStart: '2026-07-01T00:00:00',
         periodEnd: '2026-07-31T00:00:00',
         institutionCode: '0000013',
-        status: 'DRAFT',
+        status: 'APPROVED',
         version: 1,
         values: {
-          '122_00001': 32450000000,
-          '122_00002': 4800000000,
-          '122_00003': 12500000000,
-          '122_00004': 17300000000,
-          '122_00005': 15150000000,
-          '122_00007': 151500000,
-          '122_00008': 160000000,
-          '122_00009': 8500000,
-          '122_00046': 2400000000,
-          '122_00050': 1800000000,
-          '122_00052': 54000000,
-          '122_00091': 680000000,
-          '122_00095': 520000000,
-          '122_00097': 104000000,
-          '122_00190': 340000000,
-          '122_00194': 250000000,
-          '122_00196': 125000000,
-          '122_00235': 180000000,
-          '122_00239': 150000000,
-          '122_00241': 150000000,
-          '122_00280': 36050000000,
-          '122_00289': 1200000000,
-          '122_00298': 3.33,
+          '001_00001': 14500000000,
+          '001_00002': 2100000000,
+          '001_00003': 1850000000,
+          '001_00004': 14750000000,
+          '001_00005': 1200000000,
+          '001_00006': 13550000000,
         },
         dynamicRows: {},
-        makerId: 'usr_maker_2',
-        makerName: 'Tigist Alemu',
-        makerEmail: 'tigist.alemu@oromiabank.com',
+        makerId: 'usr_maker_1',
+        makerName: 'Abebe Kebede',
+        makerEmail: 'abebe.kebede@oromiabank.com',
+        makerDepartment: 'Credit Operations & Portfolio Management',
+        checkerId: 'usr_checker_1',
+        checkerName: 'Chala Desta',
+        checkerEmail: 'chala.desta@oromiabank.com',
+        checkerDepartment: 'Credit Operations & Portfolio Management',
         comments: [
           {
-            id: 'comm_init_2',
-            userId: 'usr_maker_2',
-            userName: 'Tigist Alemu',
+            id: 'comm_la_1',
+            userId: 'usr_maker_1',
+            userName: 'Abebe Kebede',
             userRole: 'MAKER',
-            comment: 'Draft initiated for July 2026 Monthly Loan Classification.',
-            action: 'SAVE_DRAFT',
+            comment: 'July 2026 disbursement and collection reconciliation finalized.',
+            action: 'SUBMIT',
+            timestamp: new Date(Date.now() - 3600000 * 8).toISOString(),
+          },
+          {
+            id: 'comm_la_2',
+            userId: 'usr_checker_1',
+            userName: 'Chala Desta',
+            userRole: 'CHECKER',
+            comment: '4-Eyes verification complete. Reconciled with core banking ledger. Approved for final Maker NBE delivery.',
+            action: 'APPROVE',
             timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
           },
         ],
         deliveryAttempts: [],
-        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+        createdAt: new Date(Date.now() - 3600000 * 10).toISOString(),
         updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+        submittedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+        reviewedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+        approvedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
       };
       this.submissions.set(sub2.id, sub2);
     }
 
-    const tb001 = getReportByKey('TOP_20_BOR_TB001');
-    if (tb001) {
+    // 3. DigitalLendingDL001 - Draft by Tigist Alemu under Admin Special Access Grant
+    const dl001 = getReportByKey('DigitalLendingDL001');
+    if (dl001) {
       const sub3: ReportSubmission = {
-        id: 'sub_tb001_003',
-        reportKey: 'TOP_20_BOR_TB001',
+        id: 'sub_dl001_special',
+        reportKey: 'DigitalLendingDL001',
+        department: 'Digital Banking & Fintech Operations',
         periodYear: 2026,
         periodStart: '2026-04-01T00:00:00',
         periodEnd: '2026-06-30T00:00:00',
@@ -197,57 +229,31 @@ class SubmissionServiceClass {
         status: 'DRAFT',
         version: 1,
         values: {
-          '14_00001': 'Ethio Cement SC',
-          '14_00002': 'Oromia Coffee Farmers Union',
-          '14_00003': 'Muger Energy PLC',
-          '14_00020': 5400000000,
-          '14_00021': 4800000000,
-          '14_00022': 850000000,
-          '14_00023': 5650000000,
+          'DL001_01': 45000,
+          'DL001_02': 185000000,
+          'DL001_03': 165000000,
+          'DL001_04': 20000000,
+          'DL001_05': 1.8,
         },
-        dynamicRows: {
-          188: [
-            {
-              id: 'row_tb_1',
-              areaId: 188,
-              values: {
-                '1.1': '1',
-                '1.2': 'Ethio Cement SC',
-                '1.3': 1200000000,
-                '1.4': 14000000000,
-                '1.5': 900000000,
-                '1.6': 850000000,
-                '1.7': 150000000,
-                '1.8': 1000000000,
-                '1.9': 7.14,
-                '1.10': 'Pass',
-              },
-            },
-            {
-              id: 'row_tb_2',
-              areaId: 188,
-              values: {
-                '1.1': '2',
-                '1.2': 'Oromia Coffee Farmers Union',
-                '1.3': 950000000,
-                '1.4': 14000000000,
-                '1.5': 800000000,
-                '1.6': 750000000,
-                '1.7': 200000000,
-                '1.8': 950000000,
-                '1.9': 6.78,
-                '1.10': 'Pass',
-              },
-            },
-          ],
-        },
-        makerId: 'usr_maker_1',
-        makerName: 'Abebe Kebede',
-        makerEmail: 'abebe.kebede@oromiabank.com',
-        comments: [],
+        dynamicRows: {},
+        makerId: 'usr_maker_2',
+        makerName: 'Tigist Alemu',
+        makerEmail: 'tigist.alemu@oromiabank.com',
+        makerDepartment: 'Trade Services & International Banking', // Home dept
+        comments: [
+          {
+            id: 'comm_dl_1',
+            userId: 'usr_maker_2',
+            userName: 'Tigist Alemu',
+            userRole: 'MAKER',
+            comment: 'Draft created under Special Access authorization granted by Compliance Admin.',
+            action: 'SAVE_DRAFT',
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+          },
+        ],
         deliveryAttempts: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        updatedAt: new Date(Date.now() - 3600000).toISOString(),
       };
       this.submissions.set(sub3.id, sub3);
     }
@@ -263,22 +269,54 @@ class SubmissionServiceClass {
     return this.submissions.get(id);
   }
 
-  public getByFilter(filter: { status?: SubmissionStatus; reportKey?: string; makerId?: string }): ReportSubmission[] {
+  public getByFilter(filter: {
+    status?: SubmissionStatus;
+    reportKey?: string;
+    makerId?: string;
+    department?: string;
+  }): ReportSubmission[] {
     return this.getAll().filter((s) => {
       if (filter.status && s.status !== filter.status) return false;
       if (filter.reportKey && s.reportKey !== filter.reportKey) return false;
       if (filter.makerId && s.makerId !== filter.makerId) return false;
+      if (
+        filter.department &&
+        s.department &&
+        s.department.toLowerCase() !== filter.department.toLowerCase()
+      ) {
+        return false;
+      }
       return true;
     });
   }
 
   /**
    * Creates a new submission draft for a specific report key.
+   * Enforces:
+   * 1. Only MAKERS can create submission drafts. (Checkers and Admins cannot create!).
+   * 2. Maker must be assigned to the department that owns this report,
+   *    OR have been granted special access by the Administrator.
    */
   public createSubmission(reportKey: string, user: UserSession): ReportSubmission {
+    if (user.role !== 'MAKER') {
+      throw new Error(
+        `Role violation: Only registered Makers can create report drafts. Current role: ${user.role}`
+      );
+    }
+
     const report = getReportByKey(reportKey);
     if (!report) {
       throw new Error(`Report template not found for key: ${reportKey}`);
+    }
+
+    const reportDept = report.department || getDepartmentForReport(report.ReturnKey);
+
+    // Verify Maker department / special access authorization
+    const isAuthorized = userService.canMakerAccessReport(user, report.ReturnKey);
+    if (!isAuthorized) {
+      throw new Error(
+        `Department restriction: Your department (${user.department || 'Unassigned'}) is not authorized to prepare return "${report.Title}" (${report.ReturnKey}). This return belongs to "${reportDept}". Contact Administrator for Special Cross-Department Access.`
+      );
     }
 
     const id = 'sub_' + reportKey.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
@@ -297,6 +335,7 @@ class SubmissionServiceClass {
     const submission: ReportSubmission = {
       id,
       reportKey: report.ReturnKey,
+      department: reportDept,
       periodYear: report.FinYear,
       periodStart: report.StartDate,
       periodEnd: report.EndDate,
@@ -308,13 +347,14 @@ class SubmissionServiceClass {
       makerId: user.id,
       makerName: user.name,
       makerEmail: user.email,
+      makerDepartment: user.department,
       comments: [
         {
           id: 'comm_' + Math.random().toString(36).substring(2, 9),
           userId: user.id,
           userName: user.name,
           userRole: user.role as any,
-          comment: `Report draft created for ${report.Title}`,
+          comment: `Report draft initiated for ${report.Title} [${reportDept}]`,
           action: 'SAVE_DRAFT',
           timestamp: now,
         },
@@ -335,7 +375,7 @@ class SubmissionServiceClass {
       entityType: 'REPORT_SUBMISSION',
       entityId: id,
       correlationId: 'corr_' + id,
-      details: `Created new draft for report ${report.ReturnKey}`,
+      details: `Created new draft for report ${report.ReturnKey} in department ${reportDept}`,
     });
 
     return submission;
@@ -343,6 +383,7 @@ class SubmissionServiceClass {
 
   /**
    * Updates an existing draft's field values and dynamic rows.
+   * Enforces: Checkers and Admins CANNOT modify report draft data!
    */
   public updateDraft(
     id: string,
@@ -350,6 +391,12 @@ class SubmissionServiceClass {
     dynamicRows: Record<number, DynamicRowRecord[]>,
     user: UserSession
   ): ReportSubmission {
+    if (user.role !== 'MAKER') {
+      throw new Error(
+        `Role violation: Only authorized Makers can edit report draft data. User role "${user.role}" is restricted from data modifications.`
+      );
+    }
+
     const sub = this.submissions.get(id);
     if (!sub) throw new Error(`Submission not found: ${id}`);
 
@@ -394,13 +441,19 @@ class SubmissionServiceClass {
    * Maker submits report to Checker.
    */
   public submitToChecker(id: string, user: UserSession, commentText?: string): ReportSubmission {
+    if (user.role !== 'MAKER') {
+      throw new Error('Only the Maker who prepared the report can submit it to the Checker.');
+    }
+
     const sub = this.submissions.get(id);
     if (!sub) throw new Error(`Submission not found: ${id}`);
 
     // Pre-submission validation gate
     const valSummary = this.validateSubmission(id);
     if (!valSummary.isValid) {
-      throw new Error(`Validation failed with ${valSummary.errorsCount} errors. Fix all errors before submitting.`);
+      throw new Error(
+        `Validation failed with ${valSummary.errorsCount} errors. Please correct all validation issues before submitting to Checker.`
+      );
     }
 
     const { updatedSubmission } = WorkflowEngine.applyTransition(sub, 'PENDING_CHECKER', user, commentText);
@@ -414,7 +467,7 @@ class SubmissionServiceClass {
       entityType: 'REPORT_SUBMISSION',
       entityId: id,
       correlationId: 'corr_' + id,
-      details: `Submission submitted to Checker review by ${user.name}`,
+      details: `Submission submitted for 4-eyes review by Maker ${user.name} (${user.department})`,
     });
 
     return updatedSubmission;
@@ -422,6 +475,9 @@ class SubmissionServiceClass {
 
   /**
    * Checker reviews submission (Approve, Reject, Request Correction).
+   * Enforces:
+   * 1. Only CHECKERS can review. (Makers cannot approve; Admins are read-only).
+   * 2. Checker must be from the same department, OR have Admin-granted special access.
    */
   public reviewSubmission(
     id: string,
@@ -431,6 +487,12 @@ class SubmissionServiceClass {
   ): ReportSubmission {
     const sub = this.submissions.get(id);
     if (!sub) throw new Error(`Submission not found: ${id}`);
+
+    // Department & Segregation Verification
+    const checkAuth = userService.canCheckerReviewSubmission(user, sub);
+    if (!checkAuth.allowed) {
+      throw new Error(`Review denied: ${checkAuth.reason}`);
+    }
 
     const targetStatus: SubmissionStatus =
       action === 'APPROVE'
@@ -450,16 +512,23 @@ class SubmissionServiceClass {
       entityType: 'REPORT_SUBMISSION',
       entityId: id,
       correlationId: 'corr_' + id,
-      details: `Checker ${user.name} set status to ${targetStatus}: ${commentText || 'No comment provided'}`,
+      details: `Checker ${user.name} (${user.department}) reviewed submission with decision: ${targetStatus}. Notes: ${commentText || 'N/A'}`,
     });
 
     return updatedSubmission;
   }
 
   /**
-   * Delivers an approved submission to NBE via the NBEAdapter.
+   * Maker delivers an approved submission to NBE via the NBEAdapter.
+   * Requirement: "It's the Maker who makes the final submission of the report to the NBE."
    */
   public async deliverToNBE(id: string, user: UserSession): Promise<DeliveryResult> {
+    if (user.role !== 'MAKER') {
+      throw new Error(
+        `Segregation of duties rule: It is the Maker who makes the final submission of the report to the NBE. Current user role: ${user.role}`
+      );
+    }
+
     const sub = this.submissions.get(id);
     if (!sub) throw new Error(`Submission not found: ${id}`);
 
@@ -468,8 +537,24 @@ class SubmissionServiceClass {
     }
 
     // Set status to SENDING
-    const { updatedSubmission: sendingSub } = WorkflowEngine.applyTransition(sub, 'SENDING', user, 'Initiating NBE Delivery');
+    const { updatedSubmission: sendingSub } = WorkflowEngine.applyTransition(
+      sub,
+      'SENDING',
+      user,
+      'Maker initiated final transmission to National Bank of Ethiopia'
+    );
     this.submissions.set(id, sendingSub);
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'DELIVER_TO_NBE_START',
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_' + id,
+      details: `Maker ${user.name} initiated transmission to NBE Portal`,
+    });
 
     // Call adapter
     const result = await nbeAdapter.deliverReport(sendingSub);
@@ -478,6 +563,7 @@ class SubmissionServiceClass {
     const updatedSub: ReportSubmission = {
       ...sendingSub,
       status: finalStatus,
+      nbeReferenceNumber: result.response?.receiptNumber || sendingSub.nbeReferenceNumber,
       updatedAt: new Date().toISOString(),
       deliveryAttempts: [...sendingSub.deliveryAttempts, result.attempt],
       comments: [
@@ -488,8 +574,8 @@ class SubmissionServiceClass {
           userName: user.name,
           userRole: user.role as any,
           comment: result.success
-            ? `Successfully delivered to NBE. Receipt: ${result.response?.receiptNumber}`
-            : `NBE delivery attempt failed: ${result.error}`,
+            ? `Transmission to NBE confirmed. Submission Receipt Number: ${result.response?.receiptNumber || result.response?.submissionReceiptNumber}`
+            : `NBE Gateway rejected delivery: ${result.error}`,
           action: result.success ? 'APPROVE' : 'NOTE',
           timestamp: new Date().toISOString(),
         },
@@ -497,6 +583,20 @@ class SubmissionServiceClass {
     };
 
     this.submissions.set(id, updatedSub);
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: result.success ? 'DELIVER_TO_NBE_SUCCESS' : 'DELIVER_TO_NBE_FAILURE',
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_' + id,
+      details: result.success
+        ? `NBE delivery confirmed with receipt ${result.response?.receiptNumber}`
+        : `NBE delivery failed: ${result.error}`,
+    });
+
     return result;
   }
 }

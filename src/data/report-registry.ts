@@ -4,6 +4,7 @@
  */
 
 import type { ReportMetadata } from '../types/regulatory.ts';
+import { getDepartmentForReport } from './organizationHierarchy.ts';
 
 export const NBE_REPORTS: ReportMetadata[] = [
   {
@@ -1275,6 +1276,13 @@ export const NBE_REPORTS: ReportMetadata[] = [
   }
 ];
 
+// Ensure all 24 reports have their canonical department assigned
+NBE_REPORTS.forEach((r) => {
+  if (!r.department) {
+    r.department = getDepartmentForReport(r.ReturnKey);
+  }
+});
+
 export function getAllReports(): ReportMetadata[] {
   return NBE_REPORTS;
 }
@@ -1285,6 +1293,11 @@ export function getReportByKey(key: string): ReportMetadata | undefined {
 
 export function getReportsByCategory(category: string): ReportMetadata[] {
   return NBE_REPORTS.filter((r) => r.Category === category);
+}
+
+export function getReportsByDepartment(department: string): ReportMetadata[] {
+  const norm = department.trim().toLowerCase();
+  return NBE_REPORTS.filter((r) => r.department && r.department.toLowerCase() === norm);
 }
 
 export function getReportsByFrequency(frequency: "MONTHLY" | "QUARTERLY" | "ANNUAL"): ReportMetadata[] {

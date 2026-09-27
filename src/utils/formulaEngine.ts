@@ -83,25 +83,14 @@ export class FormulaEngine {
         continue;
       }
 
-      // Numbers (integers or decimals)
-      if (/[0-9]/.test(char) || (char === '.' && /[0-9]/.test(expr[i + 1] || ''))) {
-        let numStr = '';
-        while (i < expr.length && /[0-9.]/.test(expr[i])) {
-          numStr += expr[i];
+      // Identifiers or Numbers (e.g. 153_00001, 0.20, 100, RL002_48782)
+      if (/[a-zA-Z0-9_]/.test(char) || (char === '.' && /[0-9]/.test(expr[i + 1] || ''))) {
+        let word = '';
+        while (i < expr.length && /[a-zA-Z0-9_.]/.test(expr[i])) {
+          word += expr[i];
           i++;
         }
-        tokens.push(numStr);
-        continue;
-      }
-
-      // Identifiers / Field Codes (e.g. 153_00001, RL002_48782, A, B, C, D)
-      if (/[a-zA-Z0-9_]/.test(char)) {
-        let idStr = '';
-        while (i < expr.length && /[a-zA-Z0-9_.]/.test(expr[i]) && expr[i] !== '+' && expr[i] !== '-' && expr[i] !== '*' && expr[i] !== '/' && expr[i] !== ')') {
-          idStr += expr[i];
-          i++;
-        }
-        tokens.push(idStr);
+        tokens.push(word);
         continue;
       }
 
@@ -194,8 +183,8 @@ export class FormulaEngine {
       return result;
     }
 
-    // Number literal
-    if (!isNaN(Number(token))) {
+    // Number literal (e.g. 100, 0.20, 5 - must not contain underscore or letters)
+    if (/^[0-9]+(\.[0-9]+)?$/.test(token)) {
       return Number(token);
     }
 

@@ -331,3 +331,24 @@ assert(mockDoc.documentElement.classList.contains('light'), 'useEffect mount: fo
 assert(mountSystemLight.finalStorage === null, 'useEffect mount: clears localStorage override for system mode');
 
 console.log('\n--- All Automated Theme Synchronization & Mount Flow Tests Passed Successfully! ---');
+
+import { runRegulatoryCoreTests } from './regulatory-core.test.ts';
+import { runSecurityRbacWorkflowTests } from './security-rbac-workflow.test.ts';
+import { runNbeSimulatorTests } from './nbe-simulator-integration.test.ts';
+import { runPhase2SsotTests } from './phase2-ssot.test.ts';
+
+async function runFullApplicationTestSuite() {
+  runRegulatoryCoreTests();
+  await runSecurityRbacWorkflowTests();
+  await runNbeSimulatorTests();
+  await runPhase2SsotTests();
+
+  console.log('\n========================================================================');
+  console.log('✅ ALL COMPREHENSIVE AUTOMATED TEST SUITES PASSED CLEANLY (100% SUCCESS)');
+  console.log('========================================================================\n');
+}
+
+runFullApplicationTestSuite().catch((err) => {
+  console.error('Test execution failed:', err);
+  process.exit(1);
+});

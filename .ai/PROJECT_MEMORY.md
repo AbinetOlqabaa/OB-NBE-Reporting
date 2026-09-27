@@ -34,6 +34,8 @@
 - \`POST /api/nbe-simulator/scenario\`: Configure simulator failure scenario mode.
 - \`GET /api/audit-logs\`: Query regulatory compliance audit trail.
 
-## Test Commands
-- \`npm run lint\` (\`tsc --noEmit\`): Static type checking.
-- \`npx tsx src/tests/run-all-tests.ts\`: Complete automated unit, API, integration, and E2E test suite.
+## Test Commands & Verification
+- `npm run lint` (`tsc --noEmit`): Static type checking (0 errors).
+- `npm run build`: Production Vite build compilation (Passes).
+- `npx tsx src/tests/run-all-tests.ts`: Complete automated test suite covering Theme Mount Sync, Regulatory Core, Formula AST, Validation Engine, Security/RBAC, Department Isolation, Special Access, Maker/Checker Segregation, Workflow, NBE Simulator & Adapter, Phase 2 SSOT Ingestion, and GL Reconciliation.
+- See `.ai/COMPLETION_EVIDENCE.md` for executable gate-by-gate verification logs.

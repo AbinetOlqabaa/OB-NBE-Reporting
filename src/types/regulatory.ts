@@ -57,11 +57,22 @@ export interface ValidationRule {
   check: (values: Record<string, string | number>, dynamicRows?: Record<number, Record<string, any>[]>) => boolean;
 }
 
+export interface SpecialAccessGrant {
+  id: string;
+  reportKey?: string;
+  department?: string;
+  grantedBy: string;
+  grantedAt: string;
+  reason: string;
+  expiresAt?: string;
+}
+
 export interface ReportMetadata {
   ReturnKey: string;
   Code: string; // short code e.g. POBEPE001, M_LCPLC001
   Title: string;
   Category: "Credit & Lending" | "Classification & Provisioning" | "Exposures & Concentration" | "Assets & Collateral" | "Restructuring" | "Sector Breakdown";
+  department?: string;
   Frequency: ReportingFrequency;
   InstCode: string;
   FinYear: number;
@@ -91,6 +102,7 @@ export interface DynamicRowRecord {
 export interface ReportSubmission {
   id: string;
   reportKey: string;
+  department?: string;
   periodYear: number;
   periodStart: string;
   periodEnd: string;
@@ -102,9 +114,11 @@ export interface ReportSubmission {
   makerId: string;
   makerName: string;
   makerEmail: string;
+  makerDepartment?: string;
   checkerId?: string;
   checkerName?: string;
   checkerEmail?: string;
+  checkerDepartment?: string;
   comments: SubmissionComment[];
   deliveryAttempts: DeliveryAttempt[];
   createdAt: string;
@@ -112,6 +126,9 @@ export interface ReportSubmission {
   submittedAt?: string;
   reviewedAt?: string;
   approvedAt?: string;
+  finalSubmittedAt?: string;
+  finalSubmittedBy?: string;
+  nbeReferenceNumber?: string;
   idempotencyKey?: string;
 }
 
@@ -163,6 +180,7 @@ export interface UserSession {
   status?: "ACTIVE" | "PENDING_APPROVAL" | "DISABLED";
   department?: string;
   employeeId?: string;
+  specialAccessGrants?: SpecialAccessGrant[];
 }
 
 export interface SimulationScenarioConfig {

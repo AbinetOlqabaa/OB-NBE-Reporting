@@ -27,8 +27,8 @@ import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
-import { ThemeStateInspector } from './components/ThemeStateInspector';
 import { ThemeSyncMonitor } from './components/ThemeSyncMonitor';
+import { BottomNavigation } from './components/BottomNavigation';
 
 export default function App() {
   // First visitor starts on the Login Page
@@ -181,14 +181,21 @@ export default function App() {
     }
   });
 
+  // Mobile Slide-Out Drawer State (< 768px)
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
   const toggleSidebar = () => {
-    setIsSidebarCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('ob_sidebar_collapsed', String(next));
-      } catch {}
-      return next;
-    });
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsMobileDrawerOpen((prev) => !prev);
+    } else {
+      setIsSidebarCollapsed((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem('ob_sidebar_collapsed', String(next));
+        } catch {}
+        return next;
+      });
+    }
   };
 
   // Sync templates & submissions with backend if available
@@ -399,7 +406,6 @@ export default function App() {
           />
         )}
         <ThemeSyncMonitor />
-        <ThemeStateInspector />
       </>
     );
   }
@@ -410,7 +416,7 @@ export default function App() {
     : null;
 
   return (
-    <div className="h-screen max-h-screen w-screen overflow-hidden flex flex-col font-sans bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-ob-indigo-600 selection:text-white transition-colors">
+    <div className="h-[100dvh] max-h-[100dvh] w-screen overflow-hidden flex flex-col font-sans bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-ob-indigo-600 selection:text-white transition-colors">
       {/* 1. Top Navigation Bar (Strictly Fixed Height h-14 / h-16) */}
       <Navbar
         currentUser={currentUser}
@@ -434,18 +440,21 @@ export default function App() {
           onSelectTab={(tab) => {
             setActiveTab(tab);
             setEditingSubmission(null);
+            setIsMobileDrawerOpen(false);
           }}
           currentUser={currentUser}
           pendingCheckerCount={pendingCheckerCount}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
+          isMobileDrawerOpen={isMobileDrawerOpen}
+          onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
           onLogout={handleLogout}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
         />
 
-        {/* Dynamic Main Viewport (Fixed Window, No Outer Scrolling) */}
-        <main className="flex-1 h-full min-h-0 overflow-hidden flex flex-col p-3 sm:p-4">
+        {/* Dynamic Main Viewport (Scrollable Workspace Area, No Outer Page Overflow) */}
+        <main className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 touch-scroll-y">
           {editingSubmission && currentEditingTemplate ? (
             <DynamicReportForm
               metadata={currentEditingTemplate}
@@ -512,6 +521,21 @@ export default function App() {
         </main>
       </div>
 
+      {/* 3. Mobile Bottom Tab Navigation Bar (Strictly on Phones & Small Tablets < 768px when not editing) */}
+      {!editingSubmission && (
+        <BottomNavigation
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            setEditingSubmission(null);
+            setIsMobileDrawerOpen(false);
+          }}
+          currentUser={currentUser}
+          pendingCheckerCount={pendingCheckerCount}
+          onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)}
+        />
+      )}
+
       {/* Global Command Palette Modal (Ctrl+K) */}
       <CommandPaletteModal
         isOpen={isCommandPaletteOpen}
@@ -534,9 +558,6 @@ export default function App() {
 
       {/* Centralized Theme Synchronization & Mismatch Monitor */}
       <ThemeSyncMonitor />
-
-      {/* Global Theme State & MutationObserver Inspector */}
-      <ThemeStateInspector />
 
       {/* Global Toast Notification */}
       {toastMessage && (

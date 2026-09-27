@@ -14,7 +14,12 @@ export interface TransitionResult {
 
 export class WorkflowEngine {
   /**
-   * Evaluates if a state transition is legal according to strict Maker-Checker rules.
+   * Evaluates if a state transition is legal according to strict Maker-Checker rules:
+   * 1. Segregation of Duties: Maker cannot approve their own report.
+   * 2. Administrator role is strictly read-only oversight; Admins cannot alter, submit, or approve reports.
+   * 3. Makers prepare returns and submit to Checker.
+   * 4. Checkers from the authorized department review and sign off (Approve, Reject, Request Correction).
+   * 5. Once Approved, it is the Maker who executes the final submission of the report to the NBE.
    */
   public static canTransition(
     currentStatus: SubmissionStatus,
@@ -22,11 +27,20 @@ export class WorkflowEngine {
     user: UserSession,
     submission: ReportSubmission
   ): TransitionResult {
-    // Rule: Segregation of Duties - Maker cannot approve their own report
-    if (targetStatus === 'APPROVED' && user.id === submission.makerId) {
+    // Rule: Administrator is strictly oversight - cannot apply changes or submissions on reports
+    if (user.role === 'ADMIN') {
       return {
         success: false,
-        error: 'Segregation of duties violation: Maker cannot approve their own submission.',
+        error:
+          'Administrator role is restricted to informative compliance oversight per NBE directives. Operational transitions must be performed by authorized Makers and Checkers.',
+      };
+    }
+
+    // Rule: Segregation of Duties - Maker cannot review or approve their own report
+    if (['APPROVED', 'REJECTED', 'CORRECTION_REQUIRED'].includes(targetStatus) && user.id === submission.makerId) {
+      return {
+        success: false,
+        error: 'Segregation of duties violation: Maker cannot review, approve, or reject their own submission.',
       };
     }
 
@@ -35,19 +49,22 @@ export class WorkflowEngine {
       case 'DRAFT':
       case 'CORRECTION_REQUIRED':
         if (targetStatus === 'PENDING_CHECKER') {
-          if (user.role !== 'MAKER' && user.role !== 'ADMIN') {
+          if (user.role !== 'MAKER') {
             return { success: false, error: 'Only a Maker can submit reports for Checker review.' };
           }
           return { success: true, newStatus: 'PENDING_CHECKER', auditAction: 'MAKER_SUBMIT' };
         }
         if (targetStatus === 'DRAFT') {
+          if (user.role !== 'MAKER') {
+            return { success: false, error: 'Only a Maker can save draft reports.' };
+          }
           return { success: true, newStatus: 'DRAFT', auditAction: 'SAVE_DRAFT' };
         }
         return { success: false, error: `Illegal transition from ${currentStatus} to ${targetStatus}` };
 
       case 'PENDING_CHECKER':
-        if (user.role !== 'CHECKER' && user.role !== 'ADMIN') {
-          return { success: false, error: 'Only an authorized Checker or Admin can review submissions.' };
+        if (user.role !== 'CHECKER') {
+          return { success: false, error: 'Only an authorized Checker from the report department can review submissions.' };
         }
         if (targetStatus === 'APPROVED') {
           return { success: true, newStatus: 'APPROVED', auditAction: 'CHECKER_APPROVE' };
@@ -61,8 +78,15 @@ export class WorkflowEngine {
         return { success: false, error: `Illegal transition from ${currentStatus} to ${targetStatus}` };
 
       case 'APPROVED':
+        // Per NBE requirements: "It's the Maker who makes the final submission of the report to the NBE"
         if (targetStatus === 'SENDING') {
-          return { success: true, newStatus: 'SENDING', auditAction: 'BEGIN_NBE_DELIVERY' };
+          if (user.role !== 'MAKER') {
+            return {
+              success: false,
+              error: 'Segregation rule: It is the Maker who makes the final submission of the approved report to the NBE.',
+            };
+          }
+          return { success: true, newStatus: 'SENDING', auditAction: 'MAKER_FINAL_NBE_SUBMISSION' };
         }
         return { success: false, error: `Approved reports can only transition to SENDING for NBE delivery.` };
 
@@ -77,6 +101,9 @@ export class WorkflowEngine {
 
       case 'FAILED':
         if (targetStatus === 'SENDING') {
+          if (user.role !== 'MAKER') {
+            return { success: false, error: 'Only the Maker can retry NBE delivery for failed submissions.' };
+          }
           return { success: true, newStatus: 'SENDING', auditAction: 'RETRY_NBE_DELIVERY' };
         }
         if (targetStatus === 'CORRECTION_REQUIRED') {
@@ -86,6 +113,9 @@ export class WorkflowEngine {
 
       case 'REJECTED':
         if (targetStatus === 'DRAFT' || targetStatus === 'CORRECTION_REQUIRED') {
+          if (user.role !== 'MAKER') {
+            return { success: false, error: 'Only a Maker can reopen a rejected submission for revisions.' };
+          }
           return { success: true, newStatus: 'CORRECTION_REQUIRED', auditAction: 'REOPEN_REJECTED' };
         }
         return { success: false, error: `Rejected submissions cannot directly transition to ${targetStatus}.` };
@@ -139,14 +169,29 @@ export class WorkflowEngine {
       status: targetStatus,
       version: isNewVersion ? submission.version + 1 : submission.version,
       updatedAt: now,
-      submittedAt: targetStatus === 'PENDING_CHECKER' ? now : submission.submittedAt,
-      reviewedAt: ['APPROVED', 'REJECTED', 'CORRECTION_REQUIRED'].includes(targetStatus) ? now : submission.reviewedAt,
-      approvedAt: targetStatus === 'APPROVED' ? now : submission.approvedAt,
-      checkerId: ['APPROVED', 'REJECTED', 'CORRECTION_REQUIRED'].includes(targetStatus) ? user.id : submission.checkerId,
-      checkerName: ['APPROVED', 'REJECTED', 'CORRECTION_REQUIRED'].includes(targetStatus) ? user.name : submission.checkerName,
-      checkerEmail: ['APPROVED', 'REJECTED', 'CORRECTION_REQUIRED'].includes(targetStatus) ? user.email : submission.checkerEmail,
       comments: [...submission.comments, comment],
     };
+
+    if (targetStatus === 'PENDING_CHECKER') {
+      updated.submittedAt = now;
+    }
+
+    if (targetStatus === 'APPROVED' || targetStatus === 'REJECTED' || targetStatus === 'CORRECTION_REQUIRED') {
+      updated.reviewedAt = now;
+      updated.checkerId = user.id;
+      updated.checkerName = user.name;
+      updated.checkerEmail = user.email;
+      updated.checkerDepartment = user.department;
+    }
+
+    if (targetStatus === 'APPROVED') {
+      updated.approvedAt = now;
+    }
+
+    if (targetStatus === 'SENDING') {
+      updated.finalSubmittedAt = now;
+      updated.finalSubmittedBy = `${user.name} (${user.role})`;
+    }
 
     return { updatedSubmission: updated, comment };
   }

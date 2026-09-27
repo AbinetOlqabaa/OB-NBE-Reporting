@@ -86,7 +86,8 @@ export class ExcelService {
     dynamicRows: Record<number, DynamicRowRecord[]> = {}
   ): Uint8Array {
     const wb = this.exportToWorkbook(metadata, values, dynamicRows);
-    return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+    const out = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return out instanceof Uint8Array ? out : new Uint8Array(out);
   }
 
   /**

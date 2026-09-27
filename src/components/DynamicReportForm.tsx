@@ -73,6 +73,12 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   const [itemsPage, setItemsPage] = useState(1);
   const [itemsPageSize, setItemsPageSize] = useState(10);
 
+  // Segregation of Duties: Checkers and Admins are strictly read-only
+  const isEffectiveReadOnly =
+    readOnly ||
+    currentUser.role !== 'MAKER' ||
+    (submission.status !== 'DRAFT' && submission.status !== 'CORRECTION_REQUIRED');
+
   useEffect(() => {
     setItemsPage(1);
   }, [filterQuery, itemTypeFilter]);
@@ -125,17 +131,17 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        if (!readOnly) {
+        if (!isEffectiveReadOnly) {
           handleManualSave();
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [values, dynamicRows, readOnly]);
+  }, [values, dynamicRows, isEffectiveReadOnly]);
 
   const handleFieldChange = (code: string, value: string | number) => {
-    if (readOnly) return;
+    if (isEffectiveReadOnly) return;
     const nextValues = { ...values, [code]: value };
     const calculated = recalculateAndValidate(nextValues, dynamicRows);
     setValues(calculated);
@@ -319,7 +325,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
             <span>XLSX</span>
           </button>
 
-          {!readOnly && (
+          {!isEffectiveReadOnly && (
             <>
               <button
                 type="button"
@@ -510,10 +516,10 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
             <table className="w-full text-xs text-left border-collapse">
               <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
                 <tr>
-                  <th className="py-2 px-3 w-28 font-mono">Code</th>
+                  <th className="py-2 px-3 w-20 sm:w-28 font-mono">Code</th>
                   <th className="py-2 px-3">Line Item Description</th>
-                  <th className="py-2 px-3 w-20">Type</th>
-                  <th className="py-2 px-3 w-44 text-right">Value (ETB / Count)</th>
+                  <th className="py-2 px-3 w-20 hidden sm:table-cell">Type</th>
+                  <th className="py-2 px-3 w-36 sm:w-44 text-right">Value (ETB / Count)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -529,30 +535,32 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                         item.isTotal ? 'bg-slate-50/70 dark:bg-slate-800/40 font-semibold' : ''
                       }`}
                     >
-                      <td className="py-2 px-3 font-mono text-slate-600 dark:text-slate-400 select-all font-medium">
+                      <td className="py-2 px-3 font-mono text-slate-600 dark:text-slate-400 select-all font-medium text-[11px] sm:text-xs">
                         {item.Code}
                       </td>
                       <td className="py-2 px-3 text-slate-900 dark:text-slate-100">
-                        <div className="flex items-center gap-1.5">
-                          <span>{item._description}</span>
-                          {item._required && <span className="text-rose-500 font-bold">*</span>}
-                          {isFormula && (
-                            <span
-                              className="inline-flex items-center gap-0.5 text-[10px] text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950 px-1 py-0.2 rounded border border-ob-indigo-200 dark:border-ob-indigo-800"
-                              title={`Calculated: ${formulaDef?.description || formulaDef?.expression}`}
-                            >
-                              <Calculator className="w-2.5 h-2.5" />
-                              Auto
-                            </span>
-                          )}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5">
+                          <span className="leading-snug">{item._description}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {item._required && <span className="text-rose-500 font-bold text-xs">*</span>}
+                            {isFormula && (
+                              <span
+                                className="inline-flex items-center gap-0.5 text-[10px] text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950 px-1 py-0.2 rounded border border-ob-indigo-200 dark:border-ob-indigo-800"
+                                title={`Calculated: ${formulaDef?.description || formulaDef?.expression}`}
+                              >
+                                <Calculator className="w-2.5 h-2.5" />
+                                Auto
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
-                      <td className="py-2 px-3 text-slate-400 dark:text-slate-500 font-mono text-[10px]">
+                      <td className="py-2 px-3 text-slate-400 dark:text-slate-500 font-mono text-[10px] hidden sm:table-cell">
                         {item._dataType}
                       </td>
                       <td className="py-1.5 px-3 text-right">
-                        {readOnly ? (
-                          <div className="font-mono tabular-nums text-slate-900 dark:text-slate-100 py-1">
+                        {isEffectiveReadOnly ? (
+                          <div className="font-mono tabular-nums text-slate-900 dark:text-slate-100 py-1 text-xs">
                             {currentVal !== '' && currentVal !== undefined ? (
                               item._dataType === 'NUMERIC' && typeof currentVal === 'number'
                                 ? currentVal.toLocaleString('en-US')
@@ -570,6 +578,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                                 ? 'date'
                                 : 'text'
                             }
+                            inputMode={item._dataType === 'NUMERIC' ? 'decimal' : undefined}
                             value={currentVal}
                             readOnly={isFormula}
                             placeholder={isFormula ? 'Auto' : '0.00'}
@@ -582,7 +591,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                                   : e.target.value;
                               handleFieldChange(item.Code, val);
                             }}
-                            className={`w-full px-2 py-1 text-xs border rounded-lg transition-colors ${
+                            className={`w-full min-h-[42px] sm:min-h-[32px] px-2.5 py-1.5 text-xs border rounded-lg transition-colors touch-manipulation ${
                               isFormula
                                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-not-allowed text-right font-mono tabular-nums font-semibold'
                                 : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:border-ob-indigo-500 focus:outline-none text-right font-mono tabular-nums font-medium'
@@ -626,6 +635,38 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               onDeleteRow={(rowId) => handleDeleteDynamicRow(area.Area, rowId)}
             />
           ))}
+        </div>
+      )}
+
+      {/* 5.5 Mobile Sticky Thumb-Zone Action Bar (< 640px) */}
+      {!isEffectiveReadOnly && (
+        <div className="sm:hidden shrink-0 bg-white/95 dark:bg-[#121428]/95 border-t border-slate-200 dark:border-[#22284D] backdrop-blur-md px-3 py-2 flex items-center justify-between gap-2 shadow-lg z-20 pb-safe">
+          <button
+            type="button"
+            onClick={handleManualSave}
+            className={`min-h-[44px] flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation touch-press cursor-pointer ${
+              hasUnsavedChanges
+                ? 'bg-slate-900 dark:bg-ob-indigo-600 text-white shadow-md'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <Save className="w-4 h-4" />
+            <span>{hasUnsavedChanges ? 'Save Draft' : 'Saved'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSubmitModalOpen(true)}
+            disabled={!validation?.isValid}
+            className={`min-h-[44px] flex-[1.4] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation touch-press ${
+              validation?.isValid
+                ? 'bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white shadow-md cursor-pointer'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+            }`}
+          >
+            <Send className="w-4 h-4" />
+            <span>Submit to Checker</span>
+          </button>
         </div>
       )}
 

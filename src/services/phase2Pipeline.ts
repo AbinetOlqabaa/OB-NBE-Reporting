@@ -8,6 +8,8 @@ import type { IngestionJob } from '../types/ssot.ts';
 import { auditService } from './auditService.ts';
 import { submissionService } from './submissionService.ts';
 import { DEMO_USERS } from './submissionService.ts';
+import { userService } from './userService.ts';
+import { getDepartmentForReport } from '../data/organizationHierarchy.ts';
 
 export interface DataQualityReport {
   overallScore: number;
@@ -236,8 +238,24 @@ export class Phase2Pipeline {
    * Generates a fully populated regulatory report instance directly from SSOT Gold data tier.
    */
   public static generateReportFromSSOT(reportKey: string): any {
-    const adminUser = DEMO_USERS[3]; // System Admin / ETL service user
-    const submission = submissionService.createSubmission(reportKey, adminUser);
+    const targetDept = getDepartmentForReport(reportKey);
+    const allUsers = userService.getAll();
+    let makerUser: any = allUsers.find(
+      (u) => u.role === 'MAKER' && u.department.toLowerCase() === targetDept.toLowerCase()
+    );
+
+    if (!makerUser) {
+      makerUser = allUsers.find((u) => u.role === 'MAKER') || DEMO_USERS[0];
+      if (!userService.canMakerAccessReport(makerUser, reportKey)) {
+        userService.grantSpecialAccess(
+          makerUser.id,
+          { reportKey, reason: 'Automated SSOT gold tier pipeline ingestion' },
+          'ETL Automation'
+        );
+      }
+    }
+
+    const submission = submissionService.createSubmission(reportKey, makerUser);
 
     const accounts = ssotRegistry.getAccounts();
     const customers = ssotRegistry.getCustomers();
@@ -293,10 +311,10 @@ export class Phase2Pipeline {
       populatedValues['153_00064'] = 9100000;
     }
 
-    const updated = submissionService.updateDraft(submission.id, populatedValues, submission.dynamicRows, adminUser);
+    const updated = submissionService.updateDraft(submission.id, populatedValues, submission.dynamicRows, makerUser);
 
     auditService.log({
-      actorId: adminUser.id,
+      actorId: makerUser.id,
       actorName: 'Automated SSOT Engine',
       actorRole: 'SYSTEM',
       action: 'GENERATE_REPORT_FROM_SSOT',

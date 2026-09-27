@@ -14,6 +14,11 @@ import { auditService } from './src/services/auditService.ts';
 import { ExcelService } from './src/utils/excelService.ts';
 import { Phase2Pipeline } from './src/services/phase2Pipeline.ts';
 import { userService } from './src/services/userService.ts';
+import {
+  OROMIA_BANK_DEPARTMENTS,
+  getReportsForDepartment,
+  getDepartmentForReport,
+} from './src/data/organizationHierarchy.ts';
 
 dotenv.config();
 
@@ -49,6 +54,7 @@ app.get('/api/regulatory/templates', (req, res) => {
     Code: r.Code,
     Title: r.Title,
     Category: r.Category,
+    department: r.department || getDepartmentForReport(r.ReturnKey),
     Frequency: r.Frequency,
     InstCode: r.InstCode,
     FinYear: r.FinYear,
@@ -159,7 +165,7 @@ app.post('/api/regulatory/submissions/:id/review', (req, res) => {
 // Deliver approved submission to NBE
 app.post('/api/regulatory/submissions/:id/deliver', async (req, res) => {
   const { user } = req.body;
-  const activeUser = user || DEMO_USERS[2];
+  const activeUser = user || DEMO_USERS[0];
   try {
     const result = await submissionService.deliverToNBE(req.params.id, activeUser);
     res.json(result);
@@ -270,6 +276,61 @@ app.put('/api/users/:id', (req, res) => {
 app.delete('/api/users/:id', (req, res) => {
   const result = userService.deleteUser(req.params.id);
   if (result.success) {
+    res.json(result);
+  } else {
+    res.status(400).json(result);
+  }
+});
+
+// -------------------------------------------------------------
+// OROMIA BANK ORGANIZATIONAL STRUCTURE & SPECIAL ACCESS ROUTES
+// -------------------------------------------------------------
+
+// Get official Oromia Bank departments & report classifications
+app.get('/api/departments', (req, res) => {
+  res.json(OROMIA_BANK_DEPARTMENTS);
+});
+
+// Grant special cross-department access to a Maker or Checker
+app.post('/api/users/:id/special-access', (req, res) => {
+  const { reportKey, department, reason, expiresAt, adminName } = req.body;
+  const result = userService.grantSpecialAccess(
+    req.params.id,
+    { reportKey, department, reason, expiresAt },
+    adminName || 'System Administrator'
+  );
+  if (result.success && result.user) {
+    auditService.log({
+      actorId: 'usr_admin',
+      actorName: adminName || 'Compliance Administrator',
+      actorRole: 'ADMIN',
+      action: 'SPECIAL_ACCESS_GRANTED',
+      entityType: 'USER_PERMISSION',
+      entityId: req.params.id,
+      correlationId: `corr_spec_${Date.now()}`,
+      details: `Granted special access to ${result.user.name} (${result.user.role}) for ${reportKey || department}. Justification: ${reason}`,
+    });
+    res.json(result);
+  } else {
+    res.status(400).json(result);
+  }
+});
+
+// Revoke special cross-department access
+app.delete('/api/users/:id/special-access/:grantId', (req, res) => {
+  const adminName = (req.query.adminName as string) || 'System Administrator';
+  const result = userService.revokeSpecialAccess(req.params.id, req.params.grantId, adminName);
+  if (result.success && result.user) {
+    auditService.log({
+      actorId: 'usr_admin',
+      actorName: adminName,
+      actorRole: 'ADMIN',
+      action: 'SPECIAL_ACCESS_REVOKED',
+      entityType: 'USER_PERMISSION',
+      entityId: req.params.id,
+      correlationId: `corr_rev_${Date.now()}`,
+      details: `Revoked special access grant ${req.params.grantId} for ${result.user.name}`,
+    });
     res.json(result);
   } else {
     res.status(400).json(result);
