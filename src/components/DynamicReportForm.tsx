@@ -16,6 +16,8 @@ import { ValidationEngine, ValidationSummary } from '../utils/validationEngine.t
 import { ExcelService } from '../utils/excelService.ts';
 import { Pagination } from './Pagination.tsx';
 import { PdfReportGenerator } from '../utils/pdfReportGenerator.ts';
+import { InputAccessoryView } from './InputAccessoryView.tsx';
+import { vibrate, haptics } from '../utils/haptics.ts';
 import {
   Save,
   Send,
@@ -63,6 +65,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   const [itemTypeFilter, setItemTypeFilter] = useState<string>('ALL');
   const [importNotification, setImportNotification] = useState<string | null>(null);
   const [activeFormTab, setActiveFormTab] = useState<'ITEMS' | 'DYNAMIC_SCHEDULES'>('ITEMS');
+  const [focusedFieldCode, setFocusedFieldCode] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +112,64 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     (itemsPage - 1) * itemsPageSize,
     itemsPage * itemsPageSize
   );
+
+  // Direct editable items across the current return for InputAccessoryView navigation
+  const editableItems = filteredItems.filter(
+    (item) => !metadata.Formulas.some((f) => f.targetCode === item.Code)
+  );
+
+  const currentFocusedIndex = editableItems.findIndex((i) => i.Code === focusedFieldCode);
+  const currentFocusedItem = currentFocusedIndex >= 0 ? editableItems[currentFocusedIndex] : null;
+
+  const handlePreviousInput = () => {
+    if (currentFocusedIndex > 0) {
+      const targetItem = editableItems[currentFocusedIndex - 1];
+      const targetIdxInFiltered = filteredItems.findIndex((i) => i.Code === targetItem.Code);
+      if (targetIdxInFiltered >= 0) {
+        const targetPage = Math.floor(targetIdxInFiltered / itemsPageSize) + 1;
+        if (targetPage !== itemsPage) {
+          setItemsPage(targetPage);
+        }
+      }
+      setFocusedFieldCode(targetItem.Code);
+      setTimeout(() => {
+        const el = document.getElementById(`field-input-${targetItem.Code}`) as HTMLInputElement | null;
+        if (el) {
+          el.focus();
+          el.select();
+        }
+      }, 50);
+    }
+  };
+
+  const handleNextInput = () => {
+    if (currentFocusedIndex < editableItems.length - 1) {
+      const targetItem = editableItems[currentFocusedIndex + 1];
+      const targetIdxInFiltered = filteredItems.findIndex((i) => i.Code === targetItem.Code);
+      if (targetIdxInFiltered >= 0) {
+        const targetPage = Math.floor(targetIdxInFiltered / itemsPageSize) + 1;
+        if (targetPage !== itemsPage) {
+          setItemsPage(targetPage);
+        }
+      }
+      setFocusedFieldCode(targetItem.Code);
+      setTimeout(() => {
+        const el = document.getElementById(`field-input-${targetItem.Code}`) as HTMLInputElement | null;
+        if (el) {
+          el.focus();
+          el.select();
+        }
+      }, 50);
+    }
+  };
+
+  const handleDoneInput = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setFocusedFieldCode(null);
+    vibrate(20);
+  };
 
   // Recalculate formulas and validations
   const recalculateAndValidate = (
@@ -208,6 +269,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   };
 
   const handleManualSave = () => {
+    vibrate(30);
     const calculated = recalculateAndValidate(values, dynamicRows);
     setValues(calculated);
     onSave(calculated, dynamicRows);
@@ -571,6 +633,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                           </div>
                         ) : (
                           <input
+                            id={`field-input-${item.Code}`}
                             type={
                               item._dataType === 'NUMERIC'
                                 ? 'number'
@@ -582,6 +645,11 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                             value={currentVal}
                             readOnly={isFormula}
                             placeholder={isFormula ? 'Auto' : '0.00'}
+                            onFocus={() => {
+                              if (!isFormula) {
+                                setFocusedFieldCode(item.Code);
+                              }
+                            }}
                             onChange={(e) => {
                               const val =
                                 item._dataType === 'NUMERIC'
@@ -707,6 +775,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <button
                 type="button"
                 onClick={() => {
+                  vibrate([30, 45, 40]);
                   handleManualSave();
                   onSubmitToChecker(submitComment);
                   setSubmitModalOpen(false);
@@ -718,6 +787,22 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 7. Mobile Input Accessory View (Docked above soft keyboard when editing) */}
+      {!isEffectiveReadOnly && focusedFieldCode && (
+        <InputAccessoryView
+          isVisible={Boolean(focusedFieldCode)}
+          currentIndex={currentFocusedIndex >= 0 ? currentFocusedIndex : 0}
+          totalFields={editableItems.length}
+          currentCode={currentFocusedItem?.Code}
+          currentLabel={currentFocusedItem?._description}
+          hasPrevious={currentFocusedIndex > 0}
+          hasNext={currentFocusedIndex < editableItems.length - 1}
+          onPrevious={handlePreviousInput}
+          onNext={handleNextInput}
+          onDone={handleDoneInput}
+        />
       )}
     </div>
   );

@@ -599,6 +599,28 @@ class SubmissionServiceClass {
 
     return result;
   }
+
+  public deleteSubmission(id: string, user: UserSession): boolean {
+    const sub = this.submissions.get(id);
+    if (!sub) return false;
+
+    if (sub.status !== 'DRAFT' && sub.status !== 'CORRECTION_REQUIRED' && sub.status !== 'FAILED' && user.role !== 'ADMIN') {
+      throw new Error(`Cannot delete submission in ${sub.status} state. Only drafts can be deleted.`);
+    }
+
+    this.submissions.delete(id);
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'DELETE_DRAFT',
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_' + id,
+      details: `${user.role} ${user.name} deleted draft ${sub.reportKey}`,
+    });
+    return true;
+  }
 }
 
 export const submissionService = new SubmissionServiceClass();

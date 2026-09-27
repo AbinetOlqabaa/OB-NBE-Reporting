@@ -30,12 +30,15 @@ import {
   Key,
   HelpCircle,
   FileCheck,
+  Archive,
 } from 'lucide-react';
 import { ValidationEngine } from '../utils/validationEngine.ts';
 import { Pagination } from './Pagination.tsx';
 import { PdfReportGenerator } from '../utils/pdfReportGenerator.ts';
 import { userService } from '../services/userService.ts';
 import { getDepartmentForReport } from '../data/organizationHierarchy.ts';
+import { SwipeableCard } from './SwipeableCard.tsx';
+import { haptics, vibrate } from '../utils/haptics.ts';
 
 interface CheckerInboxProps {
   submissions: ReportSubmission[];
@@ -48,6 +51,7 @@ interface CheckerInboxProps {
   ) => void;
   onDeliverToNBE?: (submissionId: string) => Promise<any>;
   onSwitchUser?: (user: UserSession) => void;
+  onArchiveSubmission?: (submissionId: string) => void;
   checkerUser?: UserSession;
 }
 
@@ -56,6 +60,7 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
   templates,
   currentUser,
   onReviewSubmission,
+  onArchiveSubmission,
 }) => {
   const [selectedSubForReview, setSelectedSubForReview] = useState<ReportSubmission | null>(null);
   const [reviewAction, setReviewAction] = useState<'APPROVE' | 'REJECT' | 'REQUEST_CORRECTION' | null>(null);
@@ -63,6 +68,7 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
   const [filterStatus, setFilterStatus] = useState<string>('PENDING_CHECKER');
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [archivedSubmissionIds, setArchivedSubmissionIds] = useState<string[]>([]);
 
   // Pagination state - 6 items per page
   const [page, setPage] = useState(1);
@@ -72,6 +78,10 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
 
   // Filter submissions based on Checker's Department and Special Access Grants
   const filteredSubmissions = submissions.filter((sub) => {
+    if (archivedSubmissionIds.includes(sub.id)) {
+      return false;
+    }
+
     // Check if Checker is authorized for this submission
     const authCheck = userService.canCheckerReviewSubmission(currentUser, sub);
 
@@ -136,14 +146,24 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
     if (!selectedSubForReview) return;
 
     if (selectedSubForReview.makerId === currentUser.id) {
+      haptics.error();
       alert('Segregation of Duties Violation: You cannot approve a submission that you created as Maker.');
       return;
     }
 
     const authCheck = userService.canCheckerReviewSubmission(currentUser, selectedSubForReview);
     if (!authCheck.allowed && currentUser.role !== 'ADMIN') {
+      haptics.error();
       alert(`Access denied: ${authCheck.reason}`);
       return;
+    }
+
+    if (action === 'APPROVE') {
+      haptics.success();
+    } else if (action === 'REQUEST_CORRECTION') {
+      haptics.warning();
+    } else {
+      haptics.error();
     }
 
     onReviewSubmission(
@@ -333,73 +353,146 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
               </p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
-                  <th className="py-2.5 px-3">Return Code</th>
-                  <th className="py-2.5 px-3">Report Name</th>
-                  <th className="py-2.5 px-3">Department</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Maker Details</th>
-                  <th className="py-2.5 px-3">Submitted At</th>
-                  <th className="py-2.5 px-3 text-right">4-Eyes Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <>
+              {/* Mobile View: Swipeable native cards */}
+              <div className="sm:hidden p-2.5 space-y-2.5">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium px-1 flex items-center justify-between">
+                  <span>Swipe right to review • Swipe left to archive</span>
+                  <span className="font-mono">{paginatedSubmissions.length} returns</span>
+                </div>
                 {paginatedSubmissions.map((sub) => {
                   const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
-                  const isSpecialAccess =
-                    sub.department &&
-                    currentUser.department &&
-                    sub.department.toLowerCase() !== currentUser.department.toLowerCase();
-
                   return (
-                    <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="py-2.5 px-3 font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-300">
-                        {sub.reportKey}
-                      </td>
-                      <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white max-w-xs truncate">
-                        {tpl?.Title || sub.reportKey}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[11px] text-slate-700 dark:text-slate-300">
-                            {sub.department || getDepartmentForReport(sub.reportKey)}
+                    <SwipeableCard
+                      key={sub.id}
+                      onSwipeRight={() => handleOpenReview(sub)}
+                      rightActionLabel="Review"
+                      rightActionIcon={<Shield className="w-5 h-5" />}
+                      rightActionColor="bg-amber-600"
+                      onSwipeLeft={() => {
+                        vibrate(25);
+                        setArchivedSubmissionIds((prev) => [...prev, sub.id]);
+                        if (onArchiveSubmission) {
+                          onArchiveSubmission(sub.id);
+                        }
+                      }}
+                      leftActionLabel="Archive"
+                      leftActionIcon={<Archive className="w-5 h-5" />}
+                      leftActionColor="bg-slate-700 dark:bg-slate-800"
+                    >
+                      <div
+                        onClick={() => handleOpenReview(sub)}
+                        className="p-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-2 shadow-xs cursor-pointer touch-press"
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-mono text-xs font-bold text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950 px-2 py-0.5 rounded border border-ob-indigo-200 dark:border-ob-indigo-800">
+                            {sub.reportKey}
                           </span>
-                          {isSpecialAccess && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                              Delegated
-                            </span>
-                          )}
+                          {getStatusBadge(sub.status)}
                         </div>
-                      </td>
-                      <td className="py-2.5 px-3">{getStatusBadge(sub.status)}</td>
-                      <td className="py-2.5 px-3">
-                        <div className="text-slate-800 dark:text-slate-200 font-medium">{sub.makerName}</div>
-                        <div className="text-[10px] text-slate-400">{sub.makerEmail}</div>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">
-                        {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td className="py-2.5 px-3 text-right space-x-1.5 whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenReview(sub)}
-                          className={`px-3 py-1 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer ${
-                            sub.status === 'PENDING_CHECKER'
-                              ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-2xs'
-                              : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
-                          }`}
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>{sub.status === 'PENDING_CHECKER' ? 'Conduct 4-Eyes Review' : 'View Audit Details'}</span>
-                        </button>
-                      </td>
-                    </tr>
+
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {tpl?.Title || sub.reportKey}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                            Maker: {sub.makerName} ({sub.department || 'Credit Operations'})
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400">
+                          <span className="font-mono">{sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : 'N/A'}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReview(sub);
+                            }}
+                            className={`min-h-[38px] px-3 py-1 font-bold rounded-lg text-xs flex items-center gap-1 touch-press ${
+                              sub.status === 'PENDING_CHECKER'
+                                ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-2xs'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                            }`}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{sub.status === 'PENDING_CHECKER' ? '4-Eyes Review' : 'Audit Details'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </SwipeableCard>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Tablet / Desktop Table View */}
+              <table className="hidden sm:table w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
+                    <th className="py-2.5 px-3">Return Code</th>
+                    <th className="py-2.5 px-3">Report Name</th>
+                    <th className="py-2.5 px-3">Department</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Maker Details</th>
+                    <th className="py-2.5 px-3">Submitted At</th>
+                    <th className="py-2.5 px-3 text-right">4-Eyes Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {paginatedSubmissions.map((sub) => {
+                    const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
+                    const isSpecialAccess =
+                      sub.department &&
+                      currentUser.department &&
+                      sub.department.toLowerCase() !== currentUser.department.toLowerCase();
+
+                    return (
+                      <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="py-2.5 px-3 font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-300">
+                          {sub.reportKey}
+                        </td>
+                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white max-w-xs truncate">
+                          {tpl?.Title || sub.reportKey}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px] text-slate-700 dark:text-slate-300">
+                              {sub.department || getDepartmentForReport(sub.reportKey)}
+                            </span>
+                            {isSpecialAccess && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                                Delegated
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3">{getStatusBadge(sub.status)}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="text-slate-800 dark:text-slate-200 font-medium">{sub.makerName}</div>
+                          <div className="text-[10px] text-slate-400">{sub.makerEmail}</div>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">
+                          {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right space-x-1.5 whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenReview(sub)}
+                            className={`px-3 py-1 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer ${
+                              sub.status === 'PENDING_CHECKER'
+                                ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-2xs'
+                                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+                            }`}
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>{sub.status === 'PENDING_CHECKER' ? 'Conduct 4-Eyes Review' : 'View Audit Details'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
 

@@ -29,6 +29,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
 import { ThemeSyncMonitor } from './components/ThemeSyncMonitor';
 import { BottomNavigation } from './components/BottomNavigation';
+import { vibrate, haptics } from './utils/haptics';
 
 export default function App() {
   // First visitor starts on the Login Page
@@ -282,6 +283,26 @@ export default function App() {
     }
   };
 
+  const handleDeleteSubmission = (subId: string) => {
+    if (!currentUser) return;
+    try {
+      vibrate([40, 60]);
+      submissionService.deleteSubmission(subId, currentUser);
+      setSubmissions(submissionService.getAll());
+      if (editingSubmission?.id === subId) {
+        setEditingSubmission(null);
+      }
+      showToast('Draft submission deleted.');
+    } catch (err: any) {
+      alert(`Delete error: ${err.message}`);
+    }
+  };
+
+  const handleArchiveSubmission = (subId: string) => {
+    vibrate(25);
+    showToast('Submission archived from Checker queue.');
+  };
+
   // Save changes to current submission
   const handleSaveDraft = (
     values: Record<string, string | number>,
@@ -289,6 +310,7 @@ export default function App() {
   ) => {
     if (!editingSubmission || !currentUser) return;
     try {
+      vibrate(25);
       const updated = submissionService.updateDraft(
         editingSubmission.id,
         values,
@@ -307,6 +329,7 @@ export default function App() {
   const handleSubmitToChecker = (subId: string, comment?: string) => {
     if (!currentUser) return;
     try {
+      vibrate([25, 40, 35]);
       const updated = submissionService.submitToChecker(
         subId,
         currentUser,
@@ -330,6 +353,14 @@ export default function App() {
   ) => {
     if (!currentUser) return;
     try {
+      if (action === 'APPROVE') {
+        vibrate([30, 45, 35]);
+      } else if (action === 'REQUEST_CORRECTION') {
+        vibrate([40, 50, 40]);
+      } else {
+        vibrate([60, 70]);
+      }
+
       const updated = submissionService.reviewSubmission(submissionId, action, currentUser, comment);
       setSubmissions(submissionService.getAll());
       if (editingSubmission?.id === submissionId) {
@@ -351,6 +382,7 @@ export default function App() {
   const handleDeliverToNBE = async (submissionId: string) => {
     if (!currentUser) return { success: false, error: 'Unauthenticated' };
     try {
+      vibrate([30, 40, 30, 50]);
       const result = await submissionService.deliverToNBE(submissionId, currentUser);
       setSubmissions(submissionService.getAll());
       if (result.success) {
@@ -489,6 +521,7 @@ export default function App() {
                   onSelectSubmission={handleSelectSubmission}
                   onCreateDraft={handleCreateDraft}
                   onSubmitToChecker={handleSubmitToChecker}
+                  onDeleteSubmission={handleDeleteSubmission}
                 />
               )}
 
@@ -500,6 +533,7 @@ export default function App() {
                   onReviewSubmission={handleReviewSubmission}
                   onDeliverToNBE={handleDeliverToNBE}
                   onSwitchUser={handleSwitchUserSession}
+                  onArchiveSubmission={handleArchiveSubmission}
                   checkerUser={DEMO_USERS[2]}
                 />
               )}

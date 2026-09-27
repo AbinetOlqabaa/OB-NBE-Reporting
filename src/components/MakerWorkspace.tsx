@@ -35,11 +35,14 @@ import {
   BadgeAlert,
   HelpCircle,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import { ExcelService } from '../utils/excelService.ts';
 import { Pagination } from './Pagination.tsx';
 import { userService } from '../services/userService.ts';
 import { getDepartmentForReport, OROMIA_BANK_DEPARTMENTS } from '../data/organizationHierarchy.ts';
+import { SwipeableCard } from './SwipeableCard.tsx';
+import { haptics } from '../utils/haptics.ts';
 
 interface MakerWorkspaceProps {
   templates: ReportMetadata[];
@@ -49,6 +52,7 @@ interface MakerWorkspaceProps {
   onCreateDraft: (reportKey: string) => void;
   onSubmitToChecker: (submissionId: string, comment?: string) => void;
   onDeliverToNBE?: (submissionId: string) => Promise<any>;
+  onDeleteSubmission?: (submissionId: string) => void;
 }
 
 export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
@@ -59,6 +63,7 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
   onCreateDraft,
   onSubmitToChecker,
   onDeliverToNBE,
+  onDeleteSubmission,
 }) => {
   const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'SUBMISSIONS'>('TEMPLATES');
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
@@ -668,92 +673,180 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Initiate a return draft from the Authorized Department Returns tab above.</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
-                    <th className="py-2 px-3">Return Code</th>
-                    <th className="py-2 px-3">Report Name</th>
-                    <th className="py-2 px-3">Department</th>
-                    <th className="py-2 px-3">Status</th>
-                    <th className="py-2 px-3">Period</th>
-                    <th className="py-2 px-3">Maker</th>
-                    <th className="py-2 px-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <>
+                {/* Mobile View: Swipeable native cards with swipe-to-delete */}
+                <div className="sm:hidden p-2.5 space-y-2.5">
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium px-1 flex items-center justify-between">
+                    <span>Swipe left on draft to delete • Tap to edit</span>
+                    <span className="font-mono">{paginatedSubmissions.length} items</span>
+                  </div>
                   {paginatedSubmissions.map((sub) => {
                     const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
+                    const canDelete = sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED' || sub.status === 'FAILED';
+
                     return (
-                      <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="py-2.5 px-3 font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-300">
-                          {sub.reportKey}
-                        </td>
-                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-slate-100 max-w-xs truncate">
-                          {tpl?.Title || sub.reportKey}
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 text-[11px]">
-                          {sub.department || getDepartmentForReport(sub.reportKey)}
-                        </td>
-                        <td className="py-2.5 px-3">{getStatusBadge(sub.status)}</td>
-                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 font-mono">
-                          {sub.periodYear} (v{sub.version})
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">
-                          {sub.makerName}
-                        </td>
-                        <td className="py-2.5 px-3 text-right space-x-1.5 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => onSelectSubmission(sub)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            <span>{sub.status === 'DRAFT' ? 'Edit Draft' : 'View Return'}</span>
-                          </button>
+                      <SwipeableCard
+                        key={sub.id}
+                        onSwipeLeft={canDelete && onDeleteSubmission ? () => onDeleteSubmission(sub.id) : undefined}
+                        leftActionLabel="Delete"
+                        leftActionIcon={<Trash2 className="w-5 h-5" />}
+                        leftActionColor="bg-rose-600"
+                        onSwipeRight={() => onSelectSubmission(sub)}
+                        rightActionLabel="Open"
+                        rightActionIcon={<Edit3 className="w-5 h-5" />}
+                        rightActionColor="bg-ob-indigo-600"
+                      >
+                        <div
+                          onClick={() => onSelectSubmission(sub)}
+                          className="p-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-2 shadow-xs cursor-pointer touch-press"
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-mono text-xs font-bold text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950 px-2 py-0.5 rounded border border-ob-indigo-200 dark:border-ob-indigo-800">
+                              {sub.reportKey}
+                            </span>
+                            {getStatusBadge(sub.status)}
+                          </div>
 
-                          {/* Submit to Checker */}
-                          {(sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED') && (
-                            <button
-                              type="button"
-                              onClick={() => onSubmitToChecker(sub.id)}
-                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
-                              title="Submit prepared return for Checker 4-eyes review"
-                            >
-                              <Clock className="w-3 h-3" />
-                              <span>Submit to Checker</span>
-                            </button>
-                          )}
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              {tpl?.Title || sub.reportKey}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                              {sub.department || getDepartmentForReport(sub.reportKey)}
+                            </p>
+                          </div>
 
-                          {/* Final Submission to NBE by Maker */}
-                          {sub.status === 'APPROVED' && (
-                            <button
-                              type="button"
-                              onClick={() => setDeliveringSub(sub)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer animate-pulse"
-                              title="Approved by Checker. You can now execute the final official submission to the NBE."
-                            >
-                              <Send className="w-3 h-3" />
-                              <span>Final Submit to NBE</span>
-                            </button>
-                          )}
-
-                          {/* Retry Delivery if Failed */}
-                          {sub.status === 'FAILED' && (
-                            <button
-                              type="button"
-                              onClick={() => setDeliveringSub(sub)}
-                              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <Send className="w-3 h-3" />
-                              <span>Retry NBE Delivery</span>
-                            </button>
-                          )}
-                        </td>
-                      </tr>
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400">
+                            <span className="font-mono">{sub.periodYear} (v{sub.version})</span>
+                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              {(sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED') && (
+                                <button
+                                  type="button"
+                                  onClick={() => onSubmitToChecker(sub.id)}
+                                  className="min-h-[40px] px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs flex items-center gap-1 touch-press"
+                                >
+                                  <Clock className="w-3 h-3" />
+                                  <span>Submit</span>
+                                </button>
+                              )}
+                              {sub.status === 'APPROVED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeliveringSub(sub)}
+                                  className="min-h-[40px] px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-1 touch-press animate-pulse"
+                                >
+                                  <Send className="w-3 h-3" />
+                                  <span>NBE Send</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </SwipeableCard>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+
+                {/* Tablet / Desktop Table View */}
+                <table className="hidden sm:table w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
+                      <th className="py-2 px-3">Return Code</th>
+                      <th className="py-2 px-3">Report Name</th>
+                      <th className="py-2 px-3">Department</th>
+                      <th className="py-2 px-3">Status</th>
+                      <th className="py-2 px-3">Period</th>
+                      <th className="py-2 px-3">Maker</th>
+                      <th className="py-2 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {paginatedSubmissions.map((sub) => {
+                      const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
+                      return (
+                        <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="py-2.5 px-3 font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-300">
+                            {sub.reportKey}
+                          </td>
+                          <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-slate-100 max-w-xs truncate">
+                            {tpl?.Title || sub.reportKey}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 text-[11px]">
+                            {sub.department || getDepartmentForReport(sub.reportKey)}
+                          </td>
+                          <td className="py-2.5 px-3">{getStatusBadge(sub.status)}</td>
+                          <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 font-mono">
+                            {sub.periodYear} (v{sub.version})
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">
+                            {sub.makerName}
+                          </td>
+                          <td className="py-2.5 px-3 text-right space-x-1.5 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => onSelectSubmission(sub)}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>{sub.status === 'DRAFT' ? 'Edit Draft' : 'View Return'}</span>
+                            </button>
+
+                            {/* Submit to Checker */}
+                            {(sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED') && (
+                              <button
+                                type="button"
+                                onClick={() => onSubmitToChecker(sub.id)}
+                                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                title="Submit prepared return for Checker 4-eyes review"
+                              >
+                                <Clock className="w-3 h-3" />
+                                <span>Submit to Checker</span>
+                              </button>
+                            )}
+
+                            {/* Final Submission to NBE by Maker */}
+                            {sub.status === 'APPROVED' && (
+                              <button
+                                type="button"
+                                onClick={() => setDeliveringSub(sub)}
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer animate-pulse"
+                                title="Approved by Checker. You can now execute the final official submission to the NBE."
+                              >
+                                <Send className="w-3 h-3" />
+                                <span>Final Submit to NBE</span>
+                              </button>
+                            )}
+
+                            {/* Retry Delivery if Failed */}
+                            {sub.status === 'FAILED' && (
+                              <button
+                                type="button"
+                                onClick={() => setDeliveringSub(sub)}
+                                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Send className="w-3 h-3" />
+                                <span>Retry NBE Delivery</span>
+                              </button>
+                            )}
+
+                            {/* Delete Draft */}
+                            {(sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED' || sub.status === 'FAILED') && onDeleteSubmission && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteSubmission(sub.id)}
+                                className="p-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg transition-colors inline-flex items-center cursor-pointer"
+                                title="Delete Draft"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </>
             )}
           </div>
 
