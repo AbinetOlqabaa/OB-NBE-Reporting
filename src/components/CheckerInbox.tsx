@@ -408,13 +408,13 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
                               e.stopPropagation();
                               handleOpenReview(sub);
                             }}
-                            className={`min-h-[38px] px-3 py-1 font-bold rounded-lg text-xs flex items-center gap-1 touch-press ${
+                            className={`min-h-[44px] px-3.5 py-2 font-bold rounded-xl text-xs flex items-center gap-1.5 touch-manipulation touch-press cursor-pointer ${
                               sub.status === 'PENDING_CHECKER'
                                 ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-2xs'
                                 : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
                             }`}
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-4 h-4" />
                             <span>{sub.status === 'PENDING_CHECKER' ? '4-Eyes Review' : 'Audit Details'}</span>
                           </button>
                         </div>

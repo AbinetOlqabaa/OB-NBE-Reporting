@@ -88,6 +88,25 @@ textarea {
   min-width: 44px;
 }
 
+/* Responsive Accessibility: Enforce Minimum 44px Touch Targets on Mobile (< 768px) */
+@media (max-width: 768px) {
+  button:not(.compact-desktop),
+  select,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  [role="button"],
+  [role="tab"] {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+}
+
 /* Touch Reactive Active Press Affordance */
 .touch-press {
   transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.12s ease, opacity 0.12s ease;

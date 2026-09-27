@@ -48,37 +48,39 @@ export const DynamicAreaTable: React.FC<DynamicAreaTableProps> = ({
           <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
             Schedule: {area._areaName || `Area ${area.Area}`}
           </h4>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
             ({rows.length} {rows.length === 1 ? 'row' : 'rows'})
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Mobile Table/Card View Toggle */}
-          <div className="flex sm:hidden items-center border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 bg-slate-100 dark:bg-slate-800">
+          <div className="flex sm:hidden items-center border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 bg-slate-100 dark:bg-slate-800">
             <button
               type="button"
               onClick={() => setMobileViewMode('CARDS')}
-              className={`p-1 rounded text-xs transition-colors ${
+              className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-xs transition-colors cursor-pointer touch-manipulation touch-press ${
                 mobileViewMode === 'CARDS'
-                  ? 'bg-white dark:bg-slate-700 text-ob-indigo-700 dark:text-white shadow-2xs'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-ob-indigo-700 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
               }`}
               title="Card view (Mobile)"
+              aria-label="Mobile Card View"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={() => setMobileViewMode('TABLE')}
-              className={`p-1 rounded text-xs transition-colors ${
+              className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-xs transition-colors cursor-pointer touch-manipulation touch-press ${
                 mobileViewMode === 'TABLE'
-                  ? 'bg-white dark:bg-slate-700 text-ob-indigo-700 dark:text-white shadow-2xs'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-ob-indigo-700 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
               }`}
               title="Table view"
+              aria-label="Table View"
             >
-              <List className="w-3.5 h-3.5" />
+              <List className="w-4 h-4" />
             </button>
           </div>
 
@@ -86,7 +88,7 @@ export const DynamicAreaTable: React.FC<DynamicAreaTableProps> = ({
             <button
               type="button"
               onClick={onAddRow}
-              className="min-h-[40px] sm:min-h-[34px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950/60 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900/60 rounded-lg border border-ob-indigo-200 dark:border-ob-indigo-800 transition-colors cursor-pointer touch-manipulation touch-press"
+              className="min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950/60 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900/60 rounded-xl border border-ob-indigo-200 dark:border-ob-indigo-800 transition-colors cursor-pointer touch-manipulation touch-press shadow-2xs"
             >
               <Plus className="w-4 h-4" />
               <span>Add Row</span>
@@ -108,25 +110,26 @@ export const DynamicAreaTable: React.FC<DynamicAreaTableProps> = ({
               return (
                 <div
                   key={row.id}
-                  className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2.5 shadow-2xs"
+                  className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 space-y-3 shadow-2xs"
                 >
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <span className="text-xs font-bold font-mono text-ob-indigo-700 dark:text-ob-indigo-400 bg-ob-indigo-50 dark:bg-ob-indigo-950 px-2 py-0.5 rounded">
+                    <span className="text-xs font-bold font-mono text-ob-indigo-700 dark:text-ob-indigo-400 bg-ob-indigo-50 dark:bg-ob-indigo-950 px-2 py-1 rounded-lg">
                       Row #{rowIndex}
                     </span>
                     {!readOnly && (
                       <button
                         type="button"
                         onClick={() => onDeleteRow(row.id)}
-                        className="min-h-[36px] min-w-[36px] flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer touch-manipulation touch-press"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl transition-colors cursor-pointer touch-manipulation touch-press"
                         title="Delete Row"
+                        aria-label={`Delete row ${rowIndex}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {area.DynamicItems.map((col) => {
                       const val =
                         row.values && row.values[col.Code] !== undefined
@@ -143,7 +146,7 @@ export const DynamicAreaTable: React.FC<DynamicAreaTableProps> = ({
                           </div>
 
                           {readOnly ? (
-                            <div className="font-mono text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800">
+                            <div className="font-mono text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 min-h-[44px] flex items-center">
                               {val !== '' ? String(val) : '-'}
                             </div>
                           ) : (
@@ -167,7 +170,7 @@ export const DynamicAreaTable: React.FC<DynamicAreaTableProps> = ({
                                     : e.target.value;
                                 onUpdateCell(row.id, col.Code, newVal);
                               }}
-                              className="w-full min-h-[42px] px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-ob-indigo-500 focus:outline-none touch-manipulation font-mono tabular-nums"
+                              className="w-full min-h-[44px] px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:border-ob-indigo-500 focus:outline-none touch-manipulation font-mono tabular-nums shadow-xs"
                             />
                           )}
                         </div>
@@ -241,7 +244,7 @@ export const DynamicAreaTable: React.FC<DynamicAreaTableProps> = ({
                                     : e.target.value;
                                 onUpdateCell(row.id, col.Code, newVal);
                               }}
-                              className="w-full min-h-[38px] sm:min-h-[32px] px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-ob-indigo-500 focus:outline-none touch-manipulation font-mono tabular-nums"
+                              className="w-full min-h-[44px] sm:min-h-[32px] px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-ob-indigo-500 focus:outline-none touch-manipulation font-mono tabular-nums"
                             />
                           )}
                         </td>
@@ -253,11 +256,11 @@ export const DynamicAreaTable: React.FC<DynamicAreaTableProps> = ({
                         <button
                           type="button"
                           onClick={() => onDeleteRow(row.id)}
-                          className="min-h-[36px] min-w-[36px] inline-flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer touch-manipulation touch-press"
+                          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer touch-manipulation touch-press"
                           title="Delete Row"
-                          aria-label="Delete schedule row"
+                          aria-label={`Delete schedule row ${rowIndex}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     )}

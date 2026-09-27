@@ -19,10 +19,13 @@ import {
   Sparkles,
   ArrowRight,
   ShieldAlert,
+  Fingerprint,
+  ScanFace,
 } from 'lucide-react';
 import { UserRole, userService } from '../services/userService.ts';
 import { ThemeToggle } from './ThemeToggle.tsx';
 import { OROMIA_BANK_DEPARTMENTS } from '../data/organizationHierarchy.ts';
+import { useBiometricAuth } from '../hooks/useBiometricAuth.ts';
 
 interface RegisterPageProps {
   onRegisterSuccess: () => void;
@@ -43,16 +46,20 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [role, setRole] = useState<UserRole>('MAKER');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [enrollBiometricsOnRegister, setEnrollBiometricsOnRegister] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successSubmitted, setSuccessSubmitted] = useState<boolean>(false);
   const [createdUserSummary, setCreatedUserSummary] = useState<{
+    id?: string;
     name: string;
     email: string;
     role: UserRole;
     employeeId: string;
   } | null>(null);
+
+  const { isSupported: isBiometricsSupported, registerBiometric } = useBiometricAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,11 +101,24 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       const data = await res.json();
       if (res.ok && data.success) {
         setCreatedUserSummary({
+          id: data.user?.id,
           name: payload.name,
           email: payload.email,
           role: payload.role,
           employeeId: payload.employeeId,
         });
+
+        if (enrollBiometricsOnRegister && isBiometricsSupported) {
+          await registerBiometric({
+            id: data.user?.id || `usr_${Date.now()}`,
+            email: payload.email,
+            name: payload.name,
+            role: payload.role,
+            department: payload.department,
+            employeeId: payload.employeeId,
+          });
+        }
+
         setSuccessSubmitted(true);
         return;
       } else if (data.message) {
@@ -117,13 +137,26 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         phoneNumber: payload.phoneNumber,
       });
 
-      if (localResult.success) {
+      if (localResult.success && localResult.user) {
         setCreatedUserSummary({
+          id: localResult.user.id,
           name: payload.name,
           email: payload.email,
           role: payload.role,
           employeeId: payload.employeeId,
         });
+
+        if (enrollBiometricsOnRegister && isBiometricsSupported) {
+          await registerBiometric({
+            id: localResult.user.id,
+            email: payload.email,
+            name: payload.name,
+            role: payload.role,
+            department: payload.department,
+            employeeId: payload.employeeId,
+          });
+        }
+
         setSuccessSubmitted(true);
         return;
       } else {
@@ -405,6 +438,22 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                   </div>
                 </div>
 
+                {/* Biometric Passkey Enrollment Option */}
+                {isBiometricsSupported && (
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 text-xs font-semibold text-slate-800 dark:text-emerald-200 cursor-pointer min-h-[44px] touch-press">
+                    <input
+                      type="checkbox"
+                      checked={enrollBiometricsOnRegister}
+                      onChange={(e) => setEnrollBiometricsOnRegister(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <Fingerprint className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Register Biometric Passkey (Face ID / Fingerprint) for 1-touch sign in</span>
+                    </div>
+                  </label>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -419,9 +468,9 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateLogin}
-                  className="min-h-[40px] text-xs text-slate-500 dark:text-slate-400 hover:text-ob-indigo-600 dark:hover:text-ob-green-300 font-medium transition-colors cursor-pointer touch-press px-2 py-1"
+                  className="min-h-[44px] inline-flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 hover:text-ob-indigo-600 dark:hover:text-ob-green-300 font-medium transition-colors cursor-pointer touch-press px-3 py-2"
                 >
-                  Already registered? <span className="font-bold underline">Sign In instead</span>
+                  Already registered? <span className="font-bold underline ml-1">Sign In instead</span>
                 </button>
               </div>
             </>

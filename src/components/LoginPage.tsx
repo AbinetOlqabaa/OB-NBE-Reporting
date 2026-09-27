@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Lock,
@@ -17,10 +17,14 @@ import {
   KeyRound,
   ShieldCheck,
   Sparkles,
+  Fingerprint,
+  ScanFace,
+  Trash2,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory.ts';
 import { userService } from '../services/userService.ts';
 import { ThemeToggle } from './ThemeToggle.tsx';
+import { useBiometricAuth } from '../hooks/useBiometricAuth.ts';
 
 interface LoginPageProps {
   onLoginSuccess: (user: UserSession, redirectTab?: string) => void;
@@ -35,12 +39,66 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [password, setPassword] = useState('password');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [biometricNotice, setBiometricNotice] = useState<string | null>(null);
+
+  const {
+    isSupported: isWebAuthnSupported,
+    isPlatformAvailable,
+    isRegistered: hasBiometricRegistered,
+    registeredEmail,
+    registeredUsers,
+    isAuthenticating: isBiometricScanning,
+    isRegistering: isBiometricRegistering,
+    error: biometricError,
+    authenticateBiometric,
+    registerBiometric,
+    removeBiometric,
+    resetError,
+  } = useBiometricAuth();
 
   // Quick Preset Selector for 1-Click Testing
   const handleQuickPreset = (presetEmail: string) => {
     setEmail(presetEmail);
     setPassword('password');
     setErrorMessage(null);
+    setBiometricNotice(null);
+    resetError();
+  };
+
+  const handleBiometricSignIn = async (targetEmail?: string) => {
+    setErrorMessage(null);
+    setBiometricNotice(null);
+    const result = await authenticateBiometric(targetEmail || email);
+    if (result.success && result.user) {
+      onLoginSuccess(result.user, result.redirectTab);
+    } else if (result.error) {
+      setErrorMessage(result.error);
+    }
+  };
+
+  const handleEnrollCurrentAccount = async () => {
+    setErrorMessage(null);
+    setBiometricNotice(null);
+    const targetUser = userService.getByEmail(email);
+    if (!targetUser) {
+      setErrorMessage('Please select a valid user account first.');
+      return;
+    }
+
+    const res = await registerBiometric({
+      id: targetUser.id,
+      email: targetUser.email,
+      name: targetUser.name,
+      role: targetUser.role,
+      department: targetUser.department,
+      employeeId: targetUser.employeeId,
+    });
+
+    if (res.success) {
+      setBiometricNotice(`Biometric passkey registered for ${targetUser.name} (${targetUser.role})! You can now sign in with one touch.`);
+    } else if (res.error) {
+      setErrorMessage(res.error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,6 +250,88 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
           </div>
 
+          {/* Biometric WebAuthn Quick Sign-in Section */}
+          <div className="bg-gradient-to-r from-emerald-950/20 via-teal-950/20 to-slate-900/20 border border-emerald-600/30 dark:border-emerald-500/30 rounded-xl p-3 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                  <Fingerprint className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                    <span>Biometric Passkey Sign-In</span>
+                    {hasBiometricRegistered && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        Enrolled
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                    Web Authentication API (Face ID / Touch ID / Fingerprint)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* If registered on device */}
+            {hasBiometricRegistered ? (
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleBiometricSignIn()}
+                  disabled={isBiometricScanning}
+                  className="w-full min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-press disabled:opacity-50"
+                >
+                  <ScanFace className="w-4 h-4" />
+                  <span>
+                    {isBiometricScanning
+                      ? 'Scanning Biometrics...'
+                      : `Fast Sign-In as ${registeredEmail || 'Enrolled User'}`}
+                  </span>
+                </button>
+
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 px-1">
+                  <span>Passkey active on this device</span>
+                  <button
+                    type="button"
+                    onClick={() => removeBiometric()}
+                    className="text-rose-600 dark:text-rose-400 hover:underline cursor-pointer flex items-center gap-0.5"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Clear passkey</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={handleEnrollCurrentAccount}
+                  disabled={isBiometricRegistering}
+                  className="w-full min-h-[44px] py-2 px-3 bg-slate-800 hover:bg-slate-700 dark:bg-slate-800/90 dark:hover:bg-slate-700 text-emerald-300 font-bold text-xs rounded-xl border border-emerald-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer touch-press disabled:opacity-50"
+                >
+                  <Fingerprint className="w-4 h-4 text-emerald-400" />
+                  <span>
+                    {isBiometricRegistering
+                      ? 'Registering Device...'
+                      : `Register Fingerprint/Face for Selected Account`}
+                  </span>
+                </button>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
+                  Enables 1-touch biometric verification on mobile & desktop
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Biometric Success / Info Notice */}
+          {biometricNotice && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-200 text-xs flex items-start gap-2.5 shadow-sm">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div className="leading-snug">{biometricNotice}</div>
+            </div>
+          )}
+
           {/* Error Banner */}
           {errorMessage && (
             <div className="p-3 bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-200 text-xs flex items-start gap-2.5 shadow-sm">
@@ -199,6 +339,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <div className="leading-snug">{errorMessage}</div>
             </div>
           )}
+
+          {/* Divider */}
+          <div className="relative flex py-0.5 items-center">
+            <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+            <span className="shrink-0 mx-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Or Sign In with Password
+            </span>
+            <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5">

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Check } from 'lucide-react';
 import { vibrate } from '../utils/haptics.ts';
 
@@ -21,8 +21,8 @@ interface InputAccessoryViewProps {
 }
 
 /**
- * Mobile Input Accessory View that docks above the soft keyboard
- * Provides 'Previous', 'Next', and 'Done' navigation for numeric financial inputs
+ * Mobile Input Accessory View that docks dynamically above the virtual keyboard.
+ * Provides 'Previous', 'Next', and 'Done' navigation for rapid form data entry on mobile.
  */
 export const InputAccessoryView: React.FC<InputAccessoryViewProps> = ({
   isVisible,
@@ -36,13 +36,41 @@ export const InputAccessoryView: React.FC<InputAccessoryViewProps> = ({
   onNext,
   onDone,
 }) => {
+  const [keyboardBottomOffset, setKeyboardBottomOffset] = useState<number>(0);
+
+  // Dynamically position above virtual keyboard on mobile devices using VisualViewport API
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const updatePosition = () => {
+      if (!window.visualViewport) return;
+      const offsetFromBottom = Math.max(
+        0,
+        window.innerHeight - (window.visualViewport.height + window.visualViewport.offsetTop)
+      );
+      setKeyboardBottomOffset(offsetFromBottom);
+    };
+
+    window.visualViewport.addEventListener('resize', updatePosition);
+    window.visualViewport.addEventListener('scroll', updatePosition);
+    updatePosition();
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updatePosition);
+        window.visualViewport.removeEventListener('scroll', updatePosition);
+      }
+    };
+  }, []);
+
   if (!isVisible) return null;
 
   return (
-    <div
+    <aside
       role="toolbar"
-      aria-label="Input Navigation Toolbar"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-slate-700/80 text-white shadow-2xl px-3 py-2 flex items-center justify-between gap-2 pb-safe animate-in slide-in-from-bottom-2 duration-150"
+      aria-label="Mobile Financial Form Input Navigation"
+      style={{ bottom: `${keyboardBottomOffset}px` }}
+      className="fixed left-0 right-0 z-50 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-slate-700/80 text-white shadow-2xl px-3 py-2 flex items-center justify-between gap-2 pb-safe transition-all duration-100 ease-out animate-in slide-in-from-bottom-2"
     >
       {/* Navigation Buttons (Previous / Next) */}
       <div className="flex items-center gap-1.5">
@@ -122,6 +150,6 @@ export const InputAccessoryView: React.FC<InputAccessoryViewProps> = ({
           <span>Done</span>
         </button>
       </div>
-    </div>
+    </aside>
   );
 };

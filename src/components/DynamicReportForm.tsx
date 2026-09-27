@@ -340,16 +340,18 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     <div className="h-full flex flex-col overflow-hidden space-y-2 font-sans">
       {/* 1. Top Header & Action Controls (Strictly Fixed Height) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 rounded-xl shadow-2xs shrink-0 transition-colors">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <button
+            type="button"
             onClick={onBack}
-            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer touch-manipulation touch-press shrink-0"
             title="Back to Catalog"
+            aria-label="Back to Catalog"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
           </button>
-          <div>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 truncate">
               <span>Returns</span>
               <span>/</span>
               <span className="font-semibold text-slate-700 dark:text-slate-300">{metadata.Category}</span>
@@ -363,16 +365,16 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto flex-wrap">
           {/* Download as PDF button for APPROVED or SENT returns */}
           {(submission.status === 'APPROVED' || submission.status === 'SENT') && (
             <button
               type="button"
               onClick={() => PdfReportGenerator.generateReturnPdf(metadata, submission)}
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 border border-ob-indigo-500 rounded-lg transition-colors shadow-2xs cursor-pointer"
+              className="min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 border border-ob-indigo-500 rounded-xl sm:rounded-lg transition-colors shadow-2xs cursor-pointer touch-manipulation touch-press"
               title="Download official printable PDF regulatory return"
             >
-              <FileText className="w-3.5 h-3.5 text-ob-green-300" />
+              <FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-ob-green-300" />
               <span>Download PDF</span>
             </button>
           )}
@@ -380,10 +382,10 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
           <button
             type="button"
             onClick={handleExportExcel}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
+            className="min-h-[44px] sm:min-h-[34px] flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-lg transition-colors shadow-2xs cursor-pointer touch-manipulation touch-press"
             title="Export return to Excel XLSX"
           >
-            <Download className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+            <Download className="w-4 h-4 sm:w-3 sm:h-3 text-slate-500 dark:text-slate-400" />
             <span>XLSX</span>
           </button>
 
@@ -392,10 +394,10 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                className="min-h-[44px] sm:min-h-[34px] flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-lg transition-colors shadow-2xs cursor-pointer touch-manipulation touch-press"
                 title="Import data from Excel XLSX"
               >
-                <Upload className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                <Upload className="w-4 h-4 sm:w-3 sm:h-3 text-slate-500 dark:text-slate-400" />
                 <span>Import</span>
               </button>
               <input
@@ -409,16 +411,16 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <button
                 type="button"
                 onClick={handleManualSave}
-                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                className={`min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl sm:rounded-lg transition-colors cursor-pointer touch-manipulation touch-press ${
                   hasUnsavedChanges
                     ? 'bg-slate-900 dark:bg-ob-indigo-600 text-white hover:bg-slate-800 dark:hover:bg-ob-indigo-700 shadow-2xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
                 title={`Save Changes (${modKey}+S)`}
               >
-                <Save className="w-3 h-3" />
+                <Save className="w-4 h-4 sm:w-3 sm:h-3" />
                 <span>{hasUnsavedChanges ? 'Save Changes' : 'Saved'}</span>
-                <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded border ${
+                <kbd className={`hidden sm:inline px-1 py-0.2 text-[9px] font-mono rounded border ${
                   hasUnsavedChanges ? 'bg-slate-800 dark:bg-ob-indigo-800 border-slate-700 dark:border-ob-indigo-700 text-slate-300 dark:text-ob-indigo-200' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'
                 }`}>
                   {modKey}+S
@@ -429,13 +431,13 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 type="button"
                 onClick={() => setSubmitModalOpen(true)}
                 disabled={!validation?.isValid}
-                className={`flex items-center gap-1 px-3.5 py-1 text-xs font-bold rounded-lg transition-colors shadow-2xs ${
+                className={`min-h-[44px] sm:min-h-[34px] flex items-center gap-1 px-3.5 py-1.5 text-xs font-bold rounded-xl sm:rounded-lg transition-colors shadow-2xs touch-manipulation touch-press ${
                   validation?.isValid
                     ? 'bg-ob-indigo-600 text-white hover:bg-ob-indigo-700 cursor-pointer'
                     : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                 }`}
               >
-                <Send className="w-3 h-3" />
+                <Send className="w-4 h-4 sm:w-3 sm:h-3" />
                 <span>Submit to Checker</span>
               </button>
             </>
@@ -515,7 +517,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
           <button
             type="button"
             onClick={() => setActiveFormTab('ITEMS')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`min-h-[44px] sm:min-h-[32px] px-3.5 py-1.5 rounded-xl sm:rounded-lg text-xs font-bold transition-colors cursor-pointer touch-manipulation touch-press flex items-center justify-center ${
               activeFormTab === 'ITEMS'
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -527,7 +529,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
           <button
             type="button"
             onClick={() => setActiveFormTab('DYNAMIC_SCHEDULES')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`min-h-[44px] sm:min-h-[32px] px-3.5 py-1.5 rounded-xl sm:rounded-lg text-xs font-bold transition-colors cursor-pointer touch-manipulation touch-press flex items-center justify-center ${
               activeFormTab === 'DYNAMIC_SCHEDULES'
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -547,11 +549,11 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               Line Items: {filledCount} of {metadata.ReturnItemsList.length} populated ({Math.round((filledCount / metadata.ReturnItemsList.length) * 100)}%)
             </span>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
               <select
                 value={itemTypeFilter}
                 onChange={(e) => setItemTypeFilter(e.target.value)}
-                className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer shadow-2xs"
+                className="min-h-[44px] sm:min-h-[32px] text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-200 font-semibold focus:outline-none focus:ring-2 focus:ring-ob-indigo-500 cursor-pointer shadow-2xs touch-manipulation touch-press"
               >
                 <option value="ALL" className="dark:bg-slate-900">All Items ({metadata.ReturnItemsList.length})</option>
                 <option value="REQUIRED" className="dark:bg-slate-900">Mandatory Fields Only</option>
@@ -561,13 +563,13 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 <option value="EMPTY" className="dark:bg-slate-900">Unpopulated Items ({metadata.ReturnItemsList.length - filledCount})</option>
               </select>
 
-              <div className="relative w-48 sm:w-56">
+              <div className="relative flex-1 sm:w-56 min-w-[160px]">
                 <input
                   type="text"
                   placeholder="Search line item or code..."
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
-                  className="w-full px-2.5 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 shadow-2xs font-medium"
+                  className="w-full min-h-[44px] sm:min-h-[32px] px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-ob-indigo-500 shadow-2xs font-medium"
                 />
               </div>
             </div>
@@ -659,7 +661,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                                   : e.target.value;
                               handleFieldChange(item.Code, val);
                             }}
-                            className={`w-full min-h-[42px] sm:min-h-[32px] px-2.5 py-1.5 text-xs border rounded-lg transition-colors touch-manipulation ${
+                            className={`w-full min-h-[44px] sm:min-h-[32px] px-2.5 py-1.5 text-xs border rounded-lg transition-colors touch-manipulation ${
                               isFormula
                                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-not-allowed text-right font-mono tabular-nums font-semibold'
                                 : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:border-ob-indigo-500 focus:outline-none text-right font-mono tabular-nums font-medium'
