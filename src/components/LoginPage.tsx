@@ -25,6 +25,7 @@ import { UserSession } from '../types/regulatory.ts';
 import { userService } from '../services/userService.ts';
 import { ThemeToggle } from './ThemeToggle.tsx';
 import { useBiometricAuth } from '../hooks/useBiometricAuth.ts';
+import { BiometricPromptModal } from './BiometricPromptModal.tsx';
 
 interface LoginPageProps {
   onLoginSuccess: (user: UserSession, redirectTab?: string) => void;
@@ -40,6 +41,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [biometricNotice, setBiometricNotice] = useState<string | null>(null);
+  const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false);
+  const [biometricModalMode, setBiometricModalMode] = useState<'REGISTER' | 'AUTHENTICATE'>('AUTHENTICATE');
 
   const {
     isSupported: isWebAuthnSupported,
@@ -52,9 +55,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     error: biometricError,
     authenticateBiometric,
     registerBiometric,
+    saveLocalCredential,
     removeBiometric,
     resetError,
   } = useBiometricAuth();
+
+  // Active target user
+  const currentTargetUser = userService.getByEmail(email) || userService.getAll()[0];
 
   // Quick Preset Selector for 1-Click Testing
   const handleQuickPreset = (presetEmail: string) => {
@@ -65,40 +72,53 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     resetError();
   };
 
-  const handleBiometricSignIn = async (targetEmail?: string) => {
+  const handleOpenBiometricModal = (mode: 'REGISTER' | 'AUTHENTICATE') => {
+    setBiometricModalMode(mode);
+    setIsBiometricModalOpen(true);
     setErrorMessage(null);
     setBiometricNotice(null);
-    const result = await authenticateBiometric(targetEmail || email);
+  };
+
+  const handleBiometricModalSuccess = async () => {
+    setIsBiometricModalOpen(false);
+
+    if (biometricModalMode === 'REGISTER') {
+      const targetUser = userService.getByEmail(email) || userService.getAll()[0];
+      if (targetUser) {
+        saveLocalCredential({
+          id: targetUser.id,
+          email: targetUser.email,
+          name: targetUser.name,
+          role: targetUser.role,
+          department: targetUser.department,
+          employeeId: targetUser.employeeId,
+        });
+        setBiometricNotice(`Biometric hardware passkey registered for ${targetUser.name} (${targetUser.role})! You can now sign in with one touch.`);
+      }
+    } else {
+      // Authenticate
+      const result = await authenticateBiometric(email);
+      if (result.success && result.user) {
+        onLoginSuccess(result.user, result.redirectTab);
+      }
+    }
+  };
+
+  const handleDirectBiometricSignIn = async () => {
+    setErrorMessage(null);
+    setBiometricNotice(null);
+    const result = await authenticateBiometric(email);
     if (result.success && result.user) {
       onLoginSuccess(result.user, result.redirectTab);
-    } else if (result.error) {
-      setErrorMessage(result.error);
+    } else {
+      handleOpenBiometricModal('AUTHENTICATE');
     }
   };
 
   const handleEnrollCurrentAccount = async () => {
     setErrorMessage(null);
     setBiometricNotice(null);
-    const targetUser = userService.getByEmail(email);
-    if (!targetUser) {
-      setErrorMessage('Please select a valid user account first.');
-      return;
-    }
-
-    const res = await registerBiometric({
-      id: targetUser.id,
-      email: targetUser.email,
-      name: targetUser.name,
-      role: targetUser.role,
-      department: targetUser.department,
-      employeeId: targetUser.employeeId,
-    });
-
-    if (res.success) {
-      setBiometricNotice(`Biometric passkey registered for ${targetUser.name} (${targetUser.role})! You can now sign in with one touch.`);
-    } else if (res.error) {
-      setErrorMessage(res.error);
-    }
+    handleOpenBiometricModal('REGISTER');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -273,56 +293,60 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
             </div>
 
-            {/* If registered on device */}
-            {hasBiometricRegistered ? (
-              <div className="space-y-1.5">
+            {/* If registered on device or for quick enrollment */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleOpenBiometricModal('AUTHENTICATE')}
+                className="w-full min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-press"
+              >
+                <ScanFace className="w-4 h-4" />
+                <span>
+                  {hasBiometricRegistered
+                    ? `Sign In with Biometrics (${registeredEmail || 'Enrolled Account'})`
+                    : '1-Touch Biometric Sign-In'}
+                </span>
+              </button>
+
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleBiometricSignIn()}
-                  disabled={isBiometricScanning}
-                  className="w-full min-h-[44px] py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer touch-press disabled:opacity-50"
+                  onClick={() => handleOpenBiometricModal('REGISTER')}
+                  className="flex-1 min-h-[42px] py-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-xs rounded-xl border border-emerald-500/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-press"
                 >
-                  <ScanFace className="w-4 h-4" />
-                  <span>
-                    {isBiometricScanning
-                      ? 'Scanning Biometrics...'
-                      : `Fast Sign-In as ${registeredEmail || 'Enrolled User'}`}
-                  </span>
+                  <Fingerprint className="w-4 h-4 text-emerald-400" />
+                  <span>Register Fingerprint/Face</span>
                 </button>
 
-                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 px-1">
-                  <span>Passkey active on this device</span>
+                {hasBiometricRegistered && (
                   <button
                     type="button"
                     onClick={() => removeBiometric()}
-                    className="text-rose-600 dark:text-rose-400 hover:underline cursor-pointer flex items-center gap-0.5"
+                    className="min-h-[42px] px-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-950/30 rounded-xl border border-rose-800/40 text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 shrink-0 touch-press"
+                    title="Clear passkey from device"
                   >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Clear passkey</span>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Reset</span>
                   </button>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="space-y-1.5">
-                <button
-                  type="button"
-                  onClick={handleEnrollCurrentAccount}
-                  disabled={isBiometricRegistering}
-                  className="w-full min-h-[44px] py-2 px-3 bg-slate-800 hover:bg-slate-700 dark:bg-slate-800/90 dark:hover:bg-slate-700 text-emerald-300 font-bold text-xs rounded-xl border border-emerald-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer touch-press disabled:opacity-50"
-                >
-                  <Fingerprint className="w-4 h-4 text-emerald-400" />
-                  <span>
-                    {isBiometricRegistering
-                      ? 'Registering Device...'
-                      : `Register Fingerprint/Face for Selected Account`}
-                  </span>
-                </button>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
-                  Enables 1-touch biometric verification on mobile & desktop
-                </p>
-              </div>
-            )}
+
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
+                Touch fingerprint sensor or use face recognition to sign in
+              </p>
+            </div>
           </div>
+
+          {/* Biometric Prompt Interactive Modal */}
+          <BiometricPromptModal
+            isOpen={isBiometricModalOpen}
+            mode={biometricModalMode}
+            userName={currentTargetUser?.name || 'Bank Officer'}
+            userEmail={currentTargetUser?.email || email}
+            userRole={currentTargetUser?.role || 'MAKER'}
+            onSuccess={handleBiometricModalSuccess}
+            onCancel={() => setIsBiometricModalOpen(false)}
+          />
 
           {/* Biometric Success / Info Notice */}
           {biometricNotice && (
