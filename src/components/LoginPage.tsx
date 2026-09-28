@@ -23,7 +23,6 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
-  Sliders,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory.ts';
 import { userService } from '../services/userService.ts';
@@ -31,8 +30,11 @@ import { ThemeToggle } from './ThemeToggle.tsx';
 import { useBiometricAuth } from '../hooks/useBiometricAuth.ts';
 import { BiometricPromptModal } from './BiometricPromptModal.tsx';
 import { ResetPasswordModal } from './ResetPasswordModal.tsx';
-import { HardwareDiagnosticsModal } from './HardwareDiagnosticsModal.tsx';
-import { BiometricStatusIndicator } from './BiometricStatusIndicator.tsx';
+import { triggerHaptic, vibrate } from '../utils/haptics.ts';
+import {
+  isBiometricLoginEnabled,
+  subscribeToBiometricPreferenceChanges,
+} from '../utils/deviceCapabilities.ts';
 
 interface LoginPageProps {
   onLoginSuccess: (user: UserSession, redirectTab?: string) => void;
@@ -52,7 +54,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [biometricNotice, setBiometricNotice] = useState<string | null>(null);
   const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false);
   const [biometricModalMode, setBiometricModalMode] = useState<'REGISTER' | 'AUTHENTICATE'>('AUTHENTICATE');
-  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+  const [selectedBiometricMethod, setSelectedBiometricMethod] = useState<'FINGERPRINT' | 'FACE'>('FINGERPRINT');
+
+  // User Biometric Login Preference (individual setting per user)
+  const [isBioPrefEnabled, setIsBioPrefEnabled] = useState<boolean>(() => isBiometricLoginEnabled(email));
+
+  useEffect(() => {
+    setIsBioPrefEnabled(isBiometricLoginEnabled(email));
+  }, [email]);
+
+  useEffect(() => {
+    return subscribeToBiometricPreferenceChanges((detail) => {
+      if (!detail.userEmail || detail.userEmail.toLowerCase() === email.toLowerCase()) {
+        setIsBioPrefEnabled(detail.enabled);
+      }
+    });
+  }, [email]);
 
   const {
     isSupported: isWebAuthnSupported,
@@ -79,11 +96,42 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     resetError,
   } = useBiometricAuth();
 
+  // Internal diagnostic process: silently evaluates availability of fingerprint scanner and camera on this device
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+        const detectedMethods: string[] = [];
+        if (isFingerprintSupported) detectedMethods.push('Fingerprint Scanner');
+        if (isCameraSupported) detectedMethods.push('Device Camera (Face ID)');
+
+        const diagnosticSummary = hasBothBiometrics
+          ? 'Both fingerprint scanner and device camera availability verified on this device'
+          : detectedMethods.length === 1
+          ? `Single biometric sensor verified on this device (${detectedMethods[0]})`
+          : 'Internal diagnostic complete: No physical biometric hardware detected';
+
+        sessionStorage.setItem(
+          'ob_internal_hw_diagnostic',
+          JSON.stringify({
+            isFingerprintSupported,
+            isCameraSupported,
+            hasBothBiometrics,
+            hasAnyBiometric,
+            summary: diagnosticSummary,
+            timestamp: new Date().toISOString(),
+          })
+        );
+      }
+    } catch {}
+  }, [isFingerprintSupported, isCameraSupported, hasBothBiometrics, hasAnyBiometric]);
+
   // Active target user
   const currentTargetUser = userService.getByEmail(email) || userService.getAll()[0];
 
-  // Auto-prompt on first attempt or after password reset if device supports biometrics
+  // Auto-prompt on first attempt or after password reset if device supports biometrics and user has not disabled
   useEffect(() => {
+    if (!isBioPrefEnabled) return;
+
     // 1. Check if user just completed password reset
     const resetEmail = localStorage.getItem('ob_prompt_biometric_after_reset');
     if (resetEmail) {
@@ -92,6 +140,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setBiometricNotice('Password reset successfully! Set up or verify your biometric passkey for rapid login.');
       if (hasAnyBiometric) {
         setBiometricModalMode('AUTHENTICATE');
+        setSelectedBiometricMethod(isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT');
         setIsBiometricModalOpen(true);
       }
       return;
@@ -102,9 +151,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     if (!firstVisitPrompted && hasAnyBiometric) {
       localStorage.setItem('ob_biometric_first_visit_prompted', 'true');
       setBiometricModalMode(hasBiometricRegistered ? 'AUTHENTICATE' : 'REGISTER');
+      setSelectedBiometricMethod(isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT');
       setIsBiometricModalOpen(true);
     }
-  }, [hasAnyBiometric, hasBiometricRegistered]);
+  }, [hasAnyBiometric, hasBiometricRegistered, isCameraSupported, isFingerprintSupported, isBioPrefEnabled]);
 
   // Quick Preset Selector for 1-Click Testing
   const handleQuickPreset = (presetEmail: string) => {
@@ -115,66 +165,79 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     resetError();
   };
 
-  const handleOpenBiometricModal = (mode: 'REGISTER' | 'AUTHENTICATE') => {
+  const handleOpenBiometricModal = (mode: 'REGISTER' | 'AUTHENTICATE', method?: 'FINGERPRINT' | 'FACE') => {
+    if (!isBioPrefEnabled && mode === 'AUTHENTICATE') {
+      setBiometricNotice(
+        'Biometric hardware authentication is currently turned OFF for this user account in Sidebar settings. Please sign in with your password, or re-enable it in the Sidebar settings.'
+      );
+      vibrate(25);
+      return;
+    }
+
     setBiometricModalMode(mode);
+    if (method) {
+      setSelectedBiometricMethod(method);
+    } else {
+      setSelectedBiometricMethod(isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT');
+    }
     setIsBiometricModalOpen(true);
     setErrorMessage(null);
     setBiometricNotice(null);
   };
 
-  const handleBiometricModalSuccess = async () => {
+  const handleBiometricModalSuccess = async (
+    method: 'FINGERPRINT' | 'FACE',
+    faceData?: { imageBase64?: string; faceHash?: string }
+  ) => {
     setIsBiometricModalOpen(false);
 
-    if (biometricModalMode === 'REGISTER') {
-      const targetUser = userService.getByEmail(email) || userService.getAll()[0];
-      if (targetUser) {
-        saveLocalCredential({
+    const targetUser = userService.getByEmail(email) || userService.getAll()[0];
+    if (biometricModalMode === 'REGISTER' && targetUser) {
+      saveLocalCredential(
+        {
           id: targetUser.id,
           email: targetUser.email,
           name: targetUser.name,
           role: targetUser.role,
           department: targetUser.department,
           employeeId: targetUser.employeeId,
-        });
-        setBiometricNotice(`Biometric hardware passkey registered for ${targetUser.name} (${targetUser.role})! You can now sign in with one touch.`);
-      }
-    } else {
-      // Authenticate
-      const result = await login(email);
-      if (result.success && result.user) {
-        onLoginSuccess(result.user, result.redirectTab);
-      }
+        },
+        undefined,
+        method,
+        faceData?.faceHash
+      );
+      triggerHaptic('success');
+      setBiometricNotice(
+        `${method === 'FACE' ? 'Face ID (Camera)' : 'Biometric fingerprint'} passkey registered for ${targetUser.name} (${targetUser.role})!`
+      );
+    }
+
+    // Authenticate user session
+    const result = await login(email, method, faceData);
+    if (result.success && result.user) {
+      triggerHaptic('success');
+      onLoginSuccess(result.user, result.redirectTab);
+    } else if (result.error) {
+      setErrorMessage(result.error);
     }
   };
 
-  const handleLoginWithBiometrics = async () => {
+  const handleLoginWithBiometrics = async (preferredType: 'FINGERPRINT' | 'FACE' = 'FINGERPRINT') => {
     setErrorMessage(null);
     setBiometricNotice(null);
-    setLoading(true);
-    try {
-      const result = await login(email);
-      if (result.success && result.user) {
-        onLoginSuccess(result.user, result.redirectTab);
-      } else if (result.error) {
-        setErrorMessage(result.error);
-      } else {
-        handleOpenBiometricModal('AUTHENTICATE');
-      }
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Biometric authentication challenge failed.');
-    } finally {
-      setLoading(false);
-    }
+    setSelectedBiometricMethod(preferredType);
+    setBiometricModalMode('AUTHENTICATE');
+    setIsBiometricModalOpen(true);
   };
 
   const handleDirectBiometricSignIn = async () => {
-    await handleLoginWithBiometrics();
+    await handleLoginWithBiometrics(isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT');
   };
 
   const handleEnrollCurrentAccount = async () => {
     setErrorMessage(null);
     setBiometricNotice(null);
-    handleOpenBiometricModal('REGISTER');
+    handleOpenBiometricModal('REGISTER', isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,6 +259,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       const data = await res.json();
       if (res.ok && data.success && data.user) {
+        triggerHaptic('success');
         onLoginSuccess(data.user, data.redirectTab);
         return;
       } else if (data.message) {
@@ -206,6 +270,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       // Standalone / client-side fallback
       const localResult = userService.login(email.trim(), password);
       if (localResult.success && localResult.user) {
+        triggerHaptic('success');
         onLoginSuccess(localResult.user, localResult.redirectTab);
         return;
       } else {
@@ -326,142 +391,145 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
           </div>
 
-          {/* Biometric WebAuthn Quick Sign-in Section */}
-          <div className="bg-gradient-to-r from-emerald-950/20 via-teal-950/20 to-slate-900/20 border border-emerald-600/30 dark:border-emerald-500/30 rounded-xl p-3 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-                  <Fingerprint className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                    <span>Biometric Passkey Sign-In</span>
-                    {hasBiometricRegistered && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                        Enrolled
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                    Web Authentication API (Face ID / Touch ID / Fingerprint)
-                  </span>
-                </div>
+          {/* Biometric Sign-in Section: Fingerprint & Face ID Buttons with Hardware Radar Ping */}
+          <div className="bg-gradient-to-r from-emerald-950/20 via-teal-950/20 to-slate-900/20 border border-emerald-600/30 dark:border-emerald-500/30 rounded-xl p-3.5 space-y-3 relative overflow-hidden">
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500/20 border border-emerald-400/40 text-emerald-700 dark:text-emerald-400">
+                {hasAnyBiometric && (
+                  <span className="absolute -inset-1 rounded-lg bg-emerald-500/20 animate-bio-radar pointer-events-none" />
+                )}
+                <Fingerprint className="w-4 h-4 text-emerald-600 dark:text-emerald-400 relative z-10" />
               </div>
-
-              {/* Hardware Diagnostic Trigger */}
-              <button
-                type="button"
-                onClick={() => setIsDiagnosticsOpen(true)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-white/90 hover:bg-white dark:bg-[#1B2042] dark:hover:bg-[#252C5C] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2B3369] transition-all shadow-2xs cursor-pointer touch-press shrink-0"
-                title="Test & calibrate device biometric sensors"
-              >
-                <Sliders className="w-3 h-3 text-ob-indigo-500 dark:text-ob-indigo-400" />
-                <span>Sensors</span>
-              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    Biometric Sign-In & Passkeys
+                  </span>
+                  {!isBioPrefEnabled ? (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                      Disabled in Settings
+                    </span>
+                  ) : hasAnyBiometric ? (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      Hardware Ready
+                    </span>
+                  ) : null}
+                  {hasBiometricRegistered && (
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                      Enrolled
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                  {!isBioPrefEnabled
+                    ? 'Hardware authentication is disabled for this user in Sidebar settings'
+                    : 'One-touch Sign-In with Fingerprint sensor or Face ID webcam'}
+                </span>
+              </div>
             </div>
 
-            {/* Dynamic Biometric Status Indicator based on device capabilities */}
-            <BiometricStatusIndicator
-              isFingerprintSupported={isFingerprintSupported}
-              fingerprintLabel={fingerprintStatus.label}
-              fingerprintReason={fingerprintStatus.reason}
-              isCameraSupported={isCameraSupported}
-              cameraLabel={cameraStatus.label}
-              cameraReason={cameraStatus.reason}
-              isAuthenticating={isBiometricScanning}
-              activeMethod={isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT'}
-              onOpenDiagnostics={() => setIsDiagnosticsOpen(true)}
-              showDiagnosticsButton={true}
-            />
-
-            {/* If registered on device or for quick enrollment */}
-            <div className="space-y-2">
-              {!hasAnyBiometric ? (
+            {/* Dedicated 2-Button Grid: Fingerprint & Face ID with Hardware-Detected Radar Ping */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Fingerprint Button */}
+              <div className="relative group">
+                {isFingerprintSupported && (
+                  <span className="absolute -inset-0.5 rounded-xl bg-emerald-500/30 animate-button-radar pointer-events-none" />
+                )}
                 <button
                   type="button"
-                  onClick={() => {
-                    const pwdInput = document.querySelector('input[type="password"]');
-                    (pwdInput as HTMLInputElement)?.focus();
-                    setBiometricNotice('No biometric hardware detected on this device. Sign in using your corporate password.');
-                  }}
-                  className="w-full min-h-[44px] py-2.5 px-3 font-semibold text-xs sm:text-sm rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 cursor-pointer transition-colors hover:bg-slate-200 dark:hover:bg-slate-700/80"
-                >
-                  <Lock className="w-4 h-4 text-slate-400" />
-                  <span>Biometrics Inactive (Use Password Below)</span>
-                </button>
-              ) : isCameraSupported && !isFingerprintSupported ? (
-                <button
-                  type="button"
-                  onClick={() => handleOpenBiometricModal('AUTHENTICATE')}
+                  onClick={() => handleOpenBiometricModal('AUTHENTICATE', 'FINGERPRINT')}
                   disabled={isBiometricScanning || loading}
-                  className="w-full min-h-[44px] py-2.5 px-3 font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white cursor-pointer touch-press"
-                >
-                  <ScanFace className="w-4 h-4 text-teal-200" />
-                  <span>{isBiometricScanning ? 'Verifying Face Profile...' : 'Sign In with Face ID (Camera)'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleLoginWithBiometrics}
-                  disabled={isBiometricScanning || loading}
-                  className="w-full min-h-[44px] py-2.5 px-3 font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white cursor-pointer touch-press"
-                >
-                  <Fingerprint className="w-4 h-4 text-emerald-200" />
-                  <span>
-                    {isBiometricScanning
-                      ? 'Verifying Biometrics...'
-                      : isCameraSupported
-                      ? 'Login with Biometrics'
-                      : 'Sign In with Fingerprint'}
-                  </span>
-                </button>
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenBiometricModal('REGISTER')}
-                  disabled={!hasAnyBiometric}
-                  className={`flex-1 min-h-[42px] py-1.5 px-2.5 font-bold text-xs rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
-                    hasAnyBiometric
-                      ? 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-emerald-500/40 cursor-pointer touch-press'
-                      : 'bg-slate-200 dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-300 dark:border-slate-800 cursor-not-allowed'
+                  className={`relative z-10 w-full min-h-[44px] py-2.5 px-2 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white cursor-pointer touch-press overflow-hidden ${
+                    isFingerprintSupported ? 'ring-1 ring-emerald-300/60 animate-hardware-glow-emerald' : ''
                   }`}
                 >
-                  {isCameraSupported && !isFingerprintSupported ? (
-                    <>
-                      <ScanFace className="w-4 h-4 text-emerald-400" />
-                      <span>Register Face ID (Camera)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Fingerprint className="w-4 h-4 text-emerald-400" />
-                      <span>{isCameraSupported ? 'Register Biometrics' : 'Register Fingerprint'}</span>
-                    </>
+                  {isFingerprintSupported && (
+                    <div className="absolute inset-0 pointer-events-none opacity-25 bg-gradient-to-r from-transparent via-white to-transparent animate-bio-shimmer" />
+                  )}
+                  <div className="relative flex items-center">
+                    <Fingerprint className="w-4 h-4 text-emerald-100 shrink-0" />
+                    {isFingerprintSupported && (
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-200 opacity-80"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-300"></span>
+                      </span>
+                    )}
+                  </div>
+                  <span>Fingerprint</span>
+                  {isFingerprintSupported && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-700/90 text-emerald-100 font-semibold uppercase tracking-wider">
+                      Ready
+                    </span>
                   )}
                 </button>
-
-                {hasBiometricRegistered && (
-                  <button
-                    type="button"
-                    onClick={() => removeBiometric()}
-                    className="min-h-[42px] px-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-950/30 rounded-xl border border-rose-800/40 text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 shrink-0 touch-press"
-                    title="Clear passkey from device"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Reset</span>
-                  </button>
-                )}
               </div>
 
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
-                {hasAnyBiometric
-                  ? isCameraSupported && !isFingerprintSupported
-                    ? 'Look into webcam camera to sign in or register'
-                    : 'Touch fingerprint sensor or look at device camera to sign in'
-                  : 'No biometric sensors detected on this device. Sign in using corporate password below.'}
-              </p>
+              {/* Face ID Button */}
+              <div className="relative group">
+                {isCameraSupported && (
+                  <span className="absolute -inset-0.5 rounded-xl bg-teal-500/30 animate-button-radar pointer-events-none" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleOpenBiometricModal('AUTHENTICATE', 'FACE')}
+                  disabled={isBiometricScanning || loading}
+                  className={`relative z-10 w-full min-h-[44px] py-2.5 px-2 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white cursor-pointer touch-press overflow-hidden ${
+                    isCameraSupported ? 'ring-1 ring-teal-300/60 animate-hardware-glow-teal' : ''
+                  }`}
+                >
+                  {isCameraSupported && (
+                    <div className="absolute inset-0 pointer-events-none opacity-25 bg-gradient-to-r from-transparent via-white to-transparent animate-bio-shimmer" />
+                  )}
+                  <div className="relative flex items-center">
+                    <ScanFace className="w-4 h-4 text-teal-100 shrink-0" />
+                    {isCameraSupported && (
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-200 opacity-80"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-300"></span>
+                      </span>
+                    )}
+                  </div>
+                  <span>Face ID</span>
+                  {isCameraSupported && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-teal-700/90 text-teal-100 font-semibold uppercase tracking-wider">
+                      Ready
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Enrollment & Reset Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleOpenBiometricModal('REGISTER')}
+                className="flex-1 min-h-[38px] py-1.5 px-3 font-bold text-xs rounded-xl border bg-slate-100 hover:bg-slate-200 dark:bg-[#181C3B] dark:hover:bg-[#20254D] text-emerald-700 dark:text-emerald-400 border-emerald-500/40 cursor-pointer touch-press transition-all flex items-center justify-center gap-1.5"
+              >
+                <Fingerprint className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Register Biometric Passkey</span>
+              </button>
+
+              {hasBiometricRegistered && (
+                <button
+                  type="button"
+                  onClick={() => removeBiometric()}
+                  className="min-h-[38px] px-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-950/30 rounded-xl border border-rose-800/40 text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 shrink-0 touch-press"
+                  title="Clear passkey from device"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
+              Touch your fingerprint sensor or scan with your device webcam to sign in
+            </p>
           </div>
 
           {/* Biometric Prompt Interactive Modal */}
@@ -471,14 +539,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             userName={currentTargetUser?.name || 'Bank Officer'}
             userEmail={currentTargetUser?.email || email}
             userRole={currentTargetUser?.role || 'MAKER'}
+            initialMethod={selectedBiometricMethod}
             onSuccess={handleBiometricModalSuccess}
             onCancel={() => setIsBiometricModalOpen(false)}
-          />
-
-          {/* Hardware Sensor Diagnostics & Calibration Modal */}
-          <HardwareDiagnosticsModal
-            isOpen={isDiagnosticsOpen}
-            onClose={() => setIsDiagnosticsOpen(false)}
           />
 
           {/* Reset Password Interactive Modal */}
