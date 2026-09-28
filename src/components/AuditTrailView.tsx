@@ -17,9 +17,96 @@ import {
   X,
   UserCheck,
   Layers,
+  FileCheck,
+  Fingerprint,
+  ScanFace,
+  Clock,
+  AlertTriangle,
+  Radio,
 } from 'lucide-react';
 import { AuditLogEntry } from '../types/regulatory';
 import { Pagination } from './Pagination';
+import { exportGeneralAuditTrailPDF } from '../utils/regulatoryReportPdfExport';
+
+export interface BiometricLogPayload {
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
+  action:
+    | 'BIOMETRIC_AUTH_SUCCESS'
+    | 'BIOMETRIC_AUTH_FAILURE'
+    | 'BIOMETRIC_AUTH_TIMEOUT'
+    | 'BIOMETRIC_LOGIN'
+    | 'BIOMETRIC_ENROLLED'
+    | 'BIOMETRIC_PROBE';
+  type?: 'FINGERPRINT' | 'FACE' | 'WEBAUTHN_PLATFORM';
+  entityId?: string;
+  details?: string;
+  errorMessage?: string;
+  correlationId?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * NBE Regulatory Log Utility for Biometric Authentication Events
+ * Implements NBE Directive BSD/03/2020 Compliance standards for biometric authentication tracking.
+ */
+export async function recordBiometricAuditLog(payload: BiometricLogPayload): Promise<AuditLogEntry> {
+  const typeLabel = payload.type || 'FINGERPRINT';
+  const statusLabel =
+    payload.action === 'BIOMETRIC_AUTH_SUCCESS' ||
+    payload.action === 'BIOMETRIC_LOGIN' ||
+    payload.action === 'BIOMETRIC_ENROLLED'
+      ? 'SUCCESS'
+      : payload.action === 'BIOMETRIC_AUTH_TIMEOUT'
+      ? 'TIMEOUT (30s Inactivity Auto-Cancelled)'
+      : 'FAILURE';
+
+  const defaultDetails = `[NBE Directive BSD/03/2020 Security Compliance] Biometric ${typeLabel} authentication attempt: ${statusLabel}.${
+    payload.errorMessage ? ` Reason: ${payload.errorMessage}` : ''
+  }`;
+
+  const entry: AuditLogEntry = {
+    id: 'bio_aud_' + Math.random().toString(36).substring(2, 10),
+    timestamp: new Date().toISOString(),
+    actorId: payload.actorId || 'bio_actor',
+    actorName: payload.actorName || 'Bank Officer',
+    actorRole: payload.actorRole || 'MAKER',
+    action: payload.action,
+    entityType: 'BIOMETRIC_AUTH',
+    entityId: payload.entityId || 'OB_BIOMETRIC_SENSOR',
+    correlationId:
+      payload.correlationId ||
+      `corr_bio_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    details: payload.details || defaultDetails,
+    newState: payload.metadata,
+  };
+
+  try {
+    const res = await fetch('/api/audit-logs/biometric', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const serverEntry = await res.json();
+      return serverEntry;
+    }
+  } catch (err) {
+    // Graceful offline fallback
+  }
+
+  // Cache locally in browser storage for persistence across reloads
+  try {
+    const existing = JSON.parse(localStorage.getItem('ob_biometric_audit_cache') || '[]');
+    existing.unshift(entry);
+    localStorage.setItem('ob_biometric_audit_cache', JSON.stringify(existing.slice(0, 100)));
+  } catch {}
+
+  return entry;
+}
+
+export const logBiometricEvent = recordBiometricAuditLog;
 
 export const AuditTrailView: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -39,9 +126,27 @@ export const AuditTrailView: React.FC = () => {
       setLoading(true);
       const res = await fetch('/api/audit-logs?limit=300');
       const data = await res.json();
-      setLogs(data || []);
+      
+      // Merge with any client-side cached biometric logs if available
+      let mergedLogs: AuditLogEntry[] = data || [];
+      try {
+        const localBio = JSON.parse(localStorage.getItem('ob_biometric_audit_cache') || '[]');
+        if (Array.isArray(localBio) && localBio.length > 0) {
+          const ids = new Set(mergedLogs.map((l) => l.id));
+          const uniqueLocal = localBio.filter((l: AuditLogEntry) => !ids.has(l.id));
+          mergedLogs = [...uniqueLocal, ...mergedLogs];
+        }
+      } catch {}
+
+      setLogs(mergedLogs);
     } catch (e) {
       console.warn('Failed to load audit logs from API', e);
+      try {
+        const localBio = JSON.parse(localStorage.getItem('ob_biometric_audit_cache') || '[]');
+        if (Array.isArray(localBio)) {
+          setLogs(localBio);
+        }
+      } catch {}
     } finally {
       setLoading(false);
     }
@@ -58,6 +163,12 @@ export const AuditTrailView: React.FC = () => {
 
   // Aggregate distinct actions from loaded logs + core regulatory actions catalog
   const standardActions = [
+    'BIOMETRIC_AUTH_SUCCESS',
+    'BIOMETRIC_AUTH_FAILURE',
+    'BIOMETRIC_AUTH_TIMEOUT',
+    'BIOMETRIC_LOGIN',
+    'BIOMETRIC_ENROLLED',
+    'BIOMETRIC_PROBE',
     'CREATE_DRAFT',
     'SAVE_DRAFT',
     'UPDATE_VALUES',
@@ -181,7 +292,30 @@ export const AuditTrailView: React.FC = () => {
     setTimeout(() => setExportNotice(null), 4000);
   };
 
+  const exportPDF = () => {
+    if (filteredLogs.length === 0) return;
+    exportGeneralAuditTrailPDF(filteredLogs, {
+      filtersSummary: `Action=${actionFilter} | Role=${roleFilter} | Entity=${entityFilter} | Search="${searchQuery || 'None'}"`,
+      officerName: 'Authorized Regulatory Compliance Auditor',
+      officerRole: 'Senior NBE Governance Officer',
+    });
+    setExportNotice(`Exported ${filteredLogs.length} audit records as signed NBE PDF document.`);
+    setTimeout(() => setExportNotice(null), 4000);
+  };
+
   const getActionBadgeColor = (action: string) => {
+    if (action === 'BIOMETRIC_AUTH_SUCCESS' || action === 'BIOMETRIC_LOGIN' || action === 'BIOMETRIC_ENROLLED') {
+      return 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800';
+    }
+    if (action === 'BIOMETRIC_AUTH_FAILURE') {
+      return 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800';
+    }
+    if (action === 'BIOMETRIC_AUTH_TIMEOUT') {
+      return 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800';
+    }
+    if (action === 'BIOMETRIC_PROBE') {
+      return 'bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800';
+    }
     if (action.includes('APPROVE')) return 'bg-emerald-50 text-emerald-800 border-emerald-300';
     if (action.includes('REJECT')) return 'bg-rose-50 text-rose-800 border-rose-300';
     if (action.includes('SUBMIT')) return 'bg-amber-50 text-amber-800 border-amber-300';
@@ -189,6 +323,19 @@ export const AuditTrailView: React.FC = () => {
     if (action.includes('CREATE')) return 'bg-ob-indigo-50 text-ob-indigo-800 border-ob-indigo-200';
     if (action.includes('USER_STATUS')) return 'bg-purple-50 text-purple-800 border-purple-200';
     return 'bg-slate-50 text-slate-800 border-slate-200';
+  };
+
+  const renderActionIcon = (action: string) => {
+    if (action === 'BIOMETRIC_AUTH_TIMEOUT') {
+      return <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />;
+    }
+    if (action === 'BIOMETRIC_AUTH_FAILURE') {
+      return <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />;
+    }
+    if (action.startsWith('BIOMETRIC')) {
+      return <Fingerprint className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />;
+    }
+    return null;
   };
 
   return (
@@ -213,6 +360,20 @@ export const AuditTrailView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* Export Signed PDF Button */}
+          <button
+            type="button"
+            onClick={exportPDF}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-ob-green-600 hover:bg-ob-green-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs cursor-pointer"
+            title={`Export ${filteredLogs.length} audit logs as signed NBE PDF document`}
+          >
+            <FileCheck className="w-3.5 h-3.5" />
+            <span>Signed PDF</span>
+            <span className="px-1 py-0.2 rounded bg-ob-green-800 text-[10px] font-mono text-white">
+              {filteredLogs.length}
+            </span>
+          </button>
+
           {/* Enhanced Export CSV Button */}
           <button
             type="button"
@@ -405,11 +566,12 @@ export const AuditTrailView: React.FC = () => {
 
                     <td className="py-2 px-3 whitespace-nowrap">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider border ${getActionBadgeColor(
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider border ${getActionBadgeColor(
                           log.action
                         )}`}
                       >
-                        {log.action}
+                        {renderActionIcon(log.action)}
+                        <span>{log.action}</span>
                       </span>
                     </td>
 

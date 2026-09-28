@@ -36,13 +36,16 @@ import {
   HelpCircle,
   ExternalLink,
   Trash2,
+  FileCheck,
 } from 'lucide-react';
 import { ExcelService } from '../utils/excelService.ts';
 import { Pagination } from './Pagination.tsx';
 import { userService } from '../services/userService.ts';
-import { getDepartmentForReport, OROMIA_BANK_DEPARTMENTS } from '../data/organizationHierarchy.ts';
+import { getDepartmentForReport } from '../data/organizationHierarchy.ts';
+import { departmentService } from '../services/departmentService.ts';
 import { SwipeableCard } from './SwipeableCard.tsx';
 import { haptics } from '../utils/haptics.ts';
+import { exportRegulatoryReportPDF } from '../utils/regulatoryReportPdfExport.ts';
 
 interface MakerWorkspaceProps {
   templates: ReportMetadata[];
@@ -88,6 +91,14 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
   const [submissionsPageSize, setSubmissionsPageSize] = useState(6);
 
   const [selectedSubmissionStatus, setSelectedSubmissionStatus] = useState<string>('ALL');
+  const [, setDeptVersion] = useState(0);
+
+  // Re-render when departments or report linkages change dynamically
+  useEffect(() => {
+    return departmentService.subscribe(() => {
+      setDeptVersion((v) => v + 1);
+    });
+  }, []);
 
   // Allowed report keys based on user department + special access grants
   const allowedReportKeys = userService.getAllowedReportKeysForUser(currentUser);
@@ -95,9 +106,17 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
   // Filter templates: Makers ONLY see reports they are authorized to access and fill
   const authorizedTemplates = templates.filter((tpl) => allowedReportKeys.includes(tpl.ReturnKey));
 
-  // Determine special access keys (reports not from home department)
+  // Determine special access keys (reports not from home department or M:N linked departments)
   const homeDeptReportKeys = currentUser.department
-    ? templates.filter((t) => (t.department || getDepartmentForReport(t.ReturnKey)).toLowerCase() === currentUser.department?.toLowerCase()).map((t) => t.ReturnKey)
+    ? templates
+        .filter((t) => {
+          const linked = departmentService.getDepartmentsForReport(t.ReturnKey);
+          return (
+            (t.department && t.department.toLowerCase() === currentUser.department?.toLowerCase()) ||
+            linked.some((d) => d.toLowerCase() === currentUser.department?.toLowerCase())
+          );
+        })
+        .map((t) => t.ReturnKey)
     : [];
 
   const specialAccessReportKeys = allowedReportKeys.filter((k) => !homeDeptReportKeys.includes(k));
@@ -790,6 +809,17 @@ export const MakerWorkspace: React.FC<MakerWorkspaceProps> = ({
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>{sub.status === 'DRAFT' ? 'Edit Draft' : 'View Return'}</span>
+                            </button>
+
+                            {/* Download Signed PDF */}
+                            <button
+                              type="button"
+                              onClick={() => exportRegulatoryReportPDF(sub)}
+                              className="px-2 py-1 bg-ob-indigo-50 hover:bg-ob-indigo-100 dark:bg-ob-indigo-950/60 dark:hover:bg-ob-indigo-900/80 text-ob-indigo-700 dark:text-ob-indigo-300 border border-ob-indigo-200 dark:border-ob-indigo-800 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              title="Download NBE-compliant signed PDF regulatory return document"
+                            >
+                              <FileCheck className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
+                              <span>PDF</span>
                             </button>
 
                             {/* Submit to Checker */}

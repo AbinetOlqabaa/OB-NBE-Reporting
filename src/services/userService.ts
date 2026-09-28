@@ -9,9 +9,27 @@ import {
   getReportsForDepartment,
   getDepartmentForReport,
 } from '../data/organizationHierarchy.ts';
+import { departmentService } from './departmentService.ts';
+import { getAllReports } from '../data/report-registry.ts';
 
 export type UserRole = 'ADMIN' | 'MAKER' | 'CHECKER';
 export type UserStatus = 'ACTIVE' | 'PENDING_APPROVAL' | 'DISABLED';
+
+export interface BiometricCredential {
+  type: 'FINGERPRINT' | 'FACE';
+  credentialId: string;
+  enrolledAt: string;
+  deviceLabel: string;
+  faceHash?: string;
+  publicKey?: string;
+}
+
+export interface OtpRecord {
+  code: string;
+  email: string;
+  purpose: 'REGISTRATION' | 'PASSWORD_RESET';
+  expiresAt: number;
+}
 
 export interface UserAccount {
   id: string;
@@ -25,6 +43,7 @@ export interface UserAccount {
   employeeId: string;
   phoneNumber?: string;
   specialAccessGrants: SpecialAccessGrant[];
+  biometricCredentials?: BiometricCredential[];
   createdAt: string;
   approvedAt?: string;
   approvedBy?: string;
@@ -33,6 +52,7 @@ export interface UserAccount {
 
 class UserServiceClass {
   private users: Map<string, UserAccount> = new Map();
+  private otps: Map<string, OtpRecord> = new Map();
 
   constructor() {
     this.seedUsers();
@@ -324,6 +344,221 @@ class UserServiceClass {
     };
   }
 
+  /**
+   * Generates a 6-digit OTP code for registration or password reset
+   */
+  public generateOtp(
+    email: string,
+    purpose: 'REGISTRATION' | 'PASSWORD_RESET'
+  ): { success: boolean; code: string; expiresAt: number; message: string; demoOtp: string } {
+    const normEmail = email.trim().toLowerCase();
+    // Generate a 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    this.otps.set(`${normEmail}_${purpose}`, {
+      code,
+      email: normEmail,
+      purpose,
+      expiresAt,
+    });
+
+    return {
+      success: true,
+      code,
+      demoOtp: code,
+      expiresAt,
+      message: `Verification code sent to ${email}. (Demo Code: ${code} or universal 123456)`,
+    };
+  }
+
+  /**
+   * Validates an OTP code for a given email and purpose.
+   * Universal test code '123456' is always accepted to support environments without SMS/SMTP gateway.
+   */
+  public verifyOtp(
+    email: string,
+    code: string,
+    purpose: 'REGISTRATION' | 'PASSWORD_RESET'
+  ): { success: boolean; message: string } {
+    const normEmail = email.trim().toLowerCase();
+    const cleanCode = code.trim();
+
+    // Universal bypass for demo/testing without real OTP service provider
+    if (cleanCode === '123456') {
+      return { success: true, message: 'OTP verified successfully.' };
+    }
+
+    const record = this.otps.get(`${normEmail}_${purpose}`);
+    if (!record) {
+      return { success: false, message: 'No verification code found. Please request a new code.' };
+    }
+
+    if (Date.now() > record.expiresAt) {
+      this.otps.delete(`${normEmail}_${purpose}`);
+      return { success: false, message: 'Verification code has expired. Please request a new code.' };
+    }
+
+    if (record.code !== cleanCode) {
+      return { success: false, message: 'Invalid verification code. Enter the code shown or 123456.' };
+    }
+
+    // Single-use code consumed
+    this.otps.delete(`${normEmail}_${purpose}`);
+    return { success: true, message: 'OTP verified successfully.' };
+  }
+
+  /**
+   * End-to-end Password Reset
+   */
+  public resetPassword(
+    email: string,
+    otpCode: string,
+    newPassword: string
+  ): { success: boolean; message: string; user?: UserAccount } {
+    const normEmail = email.trim().toLowerCase();
+    const user = this.getByEmail(normEmail);
+    if (!user) {
+      return { success: false, message: 'User account with this email not found.' };
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, message: 'New password must be at least 6 characters.' };
+    }
+
+    const otpValidation = this.verifyOtp(normEmail, otpCode, 'PASSWORD_RESET');
+    if (!otpValidation.success) {
+      return { success: false, message: otpValidation.message };
+    }
+
+    user.password = newPassword;
+    const { password: pw, ...safe } = user;
+    return {
+      success: true,
+      message: 'Password has been successfully updated. You can now sign in with your new password.',
+      user: safe as UserAccount,
+    };
+  }
+
+  /**
+   * Registers a biometric credential (fingerprint or face) for a user
+   */
+  public registerBiometric(
+    email: string,
+    credential: BiometricCredential
+  ): { success: boolean; user?: UserAccount; message?: string } {
+    const user = this.getByEmail(email);
+    if (!user) {
+      return { success: false, message: 'User not found for biometric enrollment.' };
+    }
+
+    if (!user.biometricCredentials) {
+      user.biometricCredentials = [];
+    }
+
+    // Remove existing credential of same type if re-enrolling
+    user.biometricCredentials = user.biometricCredentials.filter(
+      (c) => c.type !== credential.type
+    );
+    user.biometricCredentials.push(credential);
+
+    const { password: pw, ...safe } = user;
+    return {
+      success: true,
+      user: safe as UserAccount,
+      message: `${credential.type === 'FINGERPRINT' ? 'Fingerprint' : 'Face recognition'} enrolled successfully.`,
+    };
+  }
+
+  /**
+   * Verifies biometric credentials and generates logged-in user session
+   */
+  public verifyBiometric(
+    email: string,
+    type: 'FINGERPRINT' | 'FACE',
+    credentialId?: string,
+    faceHash?: string
+  ): { success: boolean; user?: UserAccount; message?: string; redirectTab?: string } {
+    const user = this.getByEmail(email);
+    if (!user) {
+      return { success: false, message: 'Account not found for biometric login.' };
+    }
+
+    if (user.status === 'PENDING_APPROVAL') {
+      return {
+        success: false,
+        message: 'Account pending authorization by Compliance Administrator.',
+      };
+    }
+
+    if (user.status === 'DISABLED') {
+      return {
+        success: false,
+        message: 'Account disabled. Contact Compliance Administrator.',
+      };
+    }
+
+    const creds = user.biometricCredentials || [];
+    const matched = creds.find((c) => c.type === type);
+
+    if (!matched) {
+      return {
+        success: false,
+        message: `No ${type === 'FINGERPRINT' ? 'fingerprint passkey' : 'face recognition profile'} registered for ${user.email}. Please register your biometric passkey first.`,
+      };
+    }
+
+    if (credentialId && matched.credentialId && matched.credentialId !== credentialId) {
+      // If credential ID was sent, verify it matches
+      const specificMatch = creds.find((c) => c.credentialId === credentialId);
+      if (!specificMatch) {
+        return {
+          success: false,
+          message: 'Biometric passkey identifier does not match enrolled credential.',
+        };
+      }
+    }
+
+    // Verify faceHash consistency if both enrolled and challenge hashes are present
+    if (type === 'FACE' && matched.faceHash && faceHash) {
+      if (matched.faceHash !== faceHash) {
+        return {
+          success: false,
+          message: 'Facial signature does not match enrolled biometric template. Please look directly at the camera.',
+        };
+      }
+    }
+
+    // Update last login
+    user.lastLoginAt = new Date().toISOString();
+
+    let redirectTab = 'MAKER_WORKSPACE';
+    if (user.role === 'ADMIN') redirectTab = 'ADMIN_DASHBOARD';
+    else if (user.role === 'CHECKER') redirectTab = 'CHECKER_INBOX';
+
+    const { password: pw, ...safe } = user;
+    return {
+      success: true,
+      user: safe as UserAccount,
+      redirectTab,
+      message: `Biometric authentication verified (${type}).`,
+    };
+  }
+
+  public getBiometricStatus(email: string): {
+    hasFingerprint: boolean;
+    hasFace: boolean;
+    credentials: BiometricCredential[];
+  } {
+    const user = this.getByEmail(email);
+    const creds = user?.biometricCredentials || [];
+    return {
+      hasFingerprint: creds.some((c) => c.type === 'FINGERPRINT'),
+      hasFace: creds.some((c) => c.type === 'FACE'),
+      credentials: creds,
+    };
+  }
+
   public updateUserStatus(
     userId: string,
     status: UserStatus,
@@ -391,6 +626,7 @@ class UserServiceClass {
     grantData: {
       reportKey?: string;
       department?: string;
+      departments?: string[];
       reason: string;
       expiresAt?: string;
     },
@@ -401,18 +637,26 @@ class UserServiceClass {
       return { success: false, message: 'Target user not found.' };
     }
 
-    if (!grantData.reportKey && !grantData.department) {
-      return { success: false, message: 'Either a reportKey or a target department must be specified.' };
+    const hasDepts = Array.isArray(grantData.departments) && grantData.departments.length > 0;
+    if (!grantData.reportKey && !grantData.department && !hasDepts) {
+      return { success: false, message: 'Either a reportKey or target department(s) must be specified.' };
     }
 
     if (!grantData.reason || grantData.reason.trim().length < 5) {
       return { success: false, message: 'A regulatory business justification reason is mandatory.' };
     }
 
+    const targetDepts = hasDepts
+      ? grantData.departments!
+      : grantData.department
+      ? [grantData.department.trim()]
+      : [];
+
     const newGrant: SpecialAccessGrant = {
       id: `grant_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       reportKey: grantData.reportKey?.trim(),
-      department: grantData.department?.trim(),
+      department: targetDepts.length === 1 ? targetDepts[0] : targetDepts.join(', '),
+      departments: targetDepts,
       grantedBy: `${adminName} (ADMIN)`,
       grantedAt: new Date().toISOString(),
       reason: grantData.reason.trim(),
@@ -426,10 +670,13 @@ class UserServiceClass {
     user.specialAccessGrants.push(newGrant);
 
     const { password, ...safe } = user;
+    const targetLabel = grantData.reportKey
+      ? `report ${grantData.reportKey}`
+      : `department(s) ${targetDepts.join(', ')}`;
     return {
       success: true,
       user: safe as UserAccount,
-      message: `Special access granted to ${user.name} for ${grantData.reportKey || grantData.department}.`,
+      message: `Special access granted to ${user.name} for ${targetLabel}.`,
     };
   }
 
@@ -464,24 +711,22 @@ class UserServiceClass {
 
   /**
    * Evaluates the complete set of report keys that this user is authorized to access.
-   * - ADMIN: returns all 24 reports
+   * - ADMIN: returns all registered reports
    * - MAKER / CHECKER:
-   *     1. All reports belonging to their home department
+   *     1. All reports belonging to or linked to their home department
    *     2. Any specific reportKey explicitly granted by Admin
-   *     3. All reports in any external department explicitly granted by Admin
+   *     3. All reports in any external department(s) explicitly granted by Admin
    */
   public getAllowedReportKeysForUser(user: UserAccount | UserSession): string[] {
     if (user.role === 'ADMIN') {
-      const all: string[] = [];
-      OROMIA_BANK_DEPARTMENTS.forEach((d) => all.push(...d.reportKeys));
-      return Array.from(new Set(all));
+      return Array.from(new Set(getAllReports().map((r) => r.ReturnKey)));
     }
 
     const allowed = new Set<string>();
 
     // 1. Home department reports
     if (user.department) {
-      const deptReports = getReportsForDepartment(user.department);
+      const deptReports = departmentService.getReportsForDepartment(user.department);
       deptReports.forEach((k) => allowed.add(k));
     }
 
@@ -503,8 +748,19 @@ class UserServiceClass {
         allowed.add(grant.reportKey);
       }
       if (grant.department) {
-        const extReports = getReportsForDepartment(grant.department);
-        extReports.forEach((k) => allowed.add(k));
+        const deptNames = grant.department.includes(',')
+          ? grant.department.split(',').map((s) => s.trim())
+          : [grant.department.trim()];
+        for (const d of deptNames) {
+          const extReports = departmentService.getReportsForDepartment(d);
+          extReports.forEach((k) => allowed.add(k));
+        }
+      }
+      if (Array.isArray(grant.departments)) {
+        for (const d of grant.departments) {
+          const extReports = departmentService.getReportsForDepartment(d);
+          extReports.forEach((k) => allowed.add(k));
+        }
       }
     }
 
@@ -522,7 +778,8 @@ class UserServiceClass {
 
   /**
    * Verifies if a Checker can review a submission:
-   * Rule: Maker and Checker must be from the same department,
+   * Rule: The submission's report must be linked to the Checker's department,
+   * OR the Maker and Checker are from the same department,
    * OR the Checker has been granted special cross-department access by the Admin.
    */
   public canCheckerReviewSubmission(
@@ -558,6 +815,14 @@ class UserServiceClass {
       return { allowed: true };
     }
 
+    // Rule 1b: Check if the report is linked to the Checker's department (M:N relationship)
+    if (userDept) {
+      const linkedDepts = departmentService.getDepartmentsForReport(submission.reportKey);
+      if (linkedDepts.some((d) => d.toLowerCase() === userDept.toLowerCase())) {
+        return { allowed: true };
+      }
+    }
+
     // Rule 2: Special Access Check
     const grants: SpecialAccessGrant[] =
       (user as UserAccount).specialAccessGrants ||
@@ -565,14 +830,34 @@ class UserServiceClass {
       [];
 
     const now = new Date();
+    const subLinkedDepts = departmentService.getDepartmentsForReport(submission.reportKey);
+
     for (const grant of grants) {
       if (grant.expiresAt && new Date(grant.expiresAt) < now) continue;
 
       if (grant.reportKey && grant.reportKey === submission.reportKey) {
         return { allowed: true, reason: `Special Access granted by Admin: ${grant.reason}` };
       }
-      if (grant.department && grant.department.toLowerCase() === subDept.toLowerCase()) {
-        return { allowed: true, reason: `Cross-department review permission granted: ${grant.reason}` };
+      if (grant.department) {
+        const deptNames = grant.department.includes(',')
+          ? grant.department.split(',').map((s) => s.trim().toLowerCase())
+          : [grant.department.trim().toLowerCase()];
+
+        if (
+          deptNames.includes(subDept.toLowerCase()) ||
+          subLinkedDepts.some((ld) => deptNames.includes(ld.toLowerCase()))
+        ) {
+          return { allowed: true, reason: `Cross-department review permission granted: ${grant.reason}` };
+        }
+      }
+      if (Array.isArray(grant.departments)) {
+        const grantDeptsNorm = grant.departments.map((d) => d.trim().toLowerCase());
+        if (
+          grantDeptsNorm.includes(subDept.toLowerCase()) ||
+          subLinkedDepts.some((ld) => grantDeptsNorm.includes(ld.toLowerCase()))
+        ) {
+          return { allowed: true, reason: `Cross-department review permission granted: ${grant.reason}` };
+        }
       }
     }
 
@@ -580,6 +865,46 @@ class UserServiceClass {
       allowed: false,
       reason: `Checker department (${userDept || 'Unassigned'}) does not match return department (${subDept}). Cross-department review requires Administrator authorization.`,
     };
+  }
+
+  /**
+   * Synchronizes department renames across all existing user records and special access grants
+   */
+  public renameDepartment(oldName: string, newName: string): number {
+    let affected = 0;
+    const oldNorm = oldName.trim().toLowerCase();
+    for (const user of this.users.values()) {
+      if (user.department && user.department.trim().toLowerCase() === oldNorm) {
+        user.department = newName;
+        affected++;
+      }
+      if (Array.isArray(user.specialAccessGrants)) {
+        user.specialAccessGrants.forEach((g) => {
+          if (g.department && g.department.trim().toLowerCase() === oldNorm) {
+            g.department = newName;
+          }
+          if (Array.isArray(g.departments)) {
+            g.departments = g.departments.map((d) => (d.trim().toLowerCase() === oldNorm ? newName : d));
+          }
+        });
+      }
+    }
+    return affected;
+  }
+
+  /**
+   * Reassigns all users from a deleted department to a fallback department
+   */
+  public reassignDepartmentUsers(fromDept: string, toDept: string): number {
+    let affected = 0;
+    const fromNorm = fromDept.trim().toLowerCase();
+    for (const user of this.users.values()) {
+      if (user.department && user.department.trim().toLowerCase() === fromNorm) {
+        user.department = toDept;
+        affected++;
+      }
+    }
+    return affected;
   }
 }
 

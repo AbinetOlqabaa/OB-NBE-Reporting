@@ -11,7 +11,10 @@ export class PdfReportGenerator {
   /**
    * Generates and triggers download of an official Oromia Bank NBE Regulatory Return PDF
    */
-  public static generateReturnPdf(metadata: ReportMetadata, submission: ReportSubmission): void {
+  public static generateReturnPdf(passedMetadata: ReportMetadata, submission: ReportSubmission): void {
+    // Prefer the historical template snapshot if present for regulatory integrity
+    const metadata = submission.templateSnapshot || passedMetadata;
+
     // Create A4 portrait document
     const doc = new jsPDF({
       orientation: 'portrait',

@@ -17,11 +17,13 @@ import {
   LogOut,
   Search,
   X,
+  Network,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory';
 
 export type ViewTab =
   | 'ADMIN_DASHBOARD'
+  | 'DEPT_REPORT_MANAGEMENT'
   | 'MAKER_WORKSPACE'
   | 'CHECKER_INBOX'
   | 'NBE_SIMULATOR'
@@ -105,6 +107,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       description: 'Super user lifecycle & controls',
       badge: null,
       shortcut: `${modKey}+⇧+A`,
+      roles: ['ADMIN'],
+    },
+    {
+      id: 'DEPT_REPORT_MANAGEMENT' as ViewTab,
+      label: 'Departments & Reports',
+      shortLabel: 'Dept & Reports',
+      icon: Network,
+      description: 'Bank hierarchy, report types & linkages',
+      badge: null,
+      shortcut: `${modKey}+⇧+M`,
       roles: ['ADMIN'],
     },
     {

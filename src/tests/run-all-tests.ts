@@ -336,12 +336,16 @@ import { runRegulatoryCoreTests } from './regulatory-core.test.ts';
 import { runSecurityRbacWorkflowTests } from './security-rbac-workflow.test.ts';
 import { runNbeSimulatorTests } from './nbe-simulator-integration.test.ts';
 import { runPhase2SsotTests } from './phase2-ssot.test.ts';
+import { runBiometricAndAccessoryTests } from './biometric-and-accessory.test.ts';
+import { runPdfAndSnapshotTests } from './pdf-and-snapshot.test.ts';
 
 async function runFullApplicationTestSuite() {
   runRegulatoryCoreTests();
   await runSecurityRbacWorkflowTests();
   await runNbeSimulatorTests();
   await runPhase2SsotTests();
+  await runBiometricAndAccessoryTests();
+  await runPdfAndSnapshotTests();
 
   console.log('\n========================================================================');
   console.log('✅ ALL COMPREHENSIVE AUTOMATED TEST SUITES PASSED CLEANLY (100% SUCCESS)');

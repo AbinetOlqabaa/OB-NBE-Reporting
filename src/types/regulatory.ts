@@ -61,6 +61,7 @@ export interface SpecialAccessGrant {
   id: string;
   reportKey?: string;
   department?: string;
+  departments?: string[];
   grantedBy: string;
   grantedAt: string;
   reason: string;
@@ -73,6 +74,7 @@ export interface ReportMetadata {
   Title: string;
   Category: "Credit & Lending" | "Classification & Provisioning" | "Exposures & Concentration" | "Assets & Collateral" | "Restructuring" | "Sector Breakdown";
   department?: string;
+  departments?: string[]; // M:N department linkages
   Frequency: ReportingFrequency;
   InstCode: string;
   FinYear: number;
@@ -85,6 +87,7 @@ export interface ReportMetadata {
   ValidationRules: ValidationRule[];
   SourceFilename: string;
   SourceHash: string;
+  isCustom?: boolean;
 }
 
 export interface ReportValueRecord {
@@ -99,6 +102,24 @@ export interface DynamicRowRecord {
   values: Record<string, string | number>;
 }
 
+export interface SubmissionSnapshot {
+  snapshotId: string;
+  version: number;
+  templateVersion: number;
+  dataVersion?: number;
+  timestamp: string;
+  status: SubmissionStatus;
+  capturedBy: string;
+  capturedByRole?: string;
+  reason: string;
+  values: Record<string, string | number>;
+  dynamicRows: Record<number, DynamicRowRecord[]>;
+  templateSnapshot: ReportMetadata;
+  structuralHash?: string;
+  integrityHash?: string;
+  nbeReferenceNumber?: string;
+}
+
 export interface ReportSubmission {
   id: string;
   reportKey: string;
@@ -109,6 +130,26 @@ export interface ReportSubmission {
   institutionCode: string;
   status: SubmissionStatus;
   version: number;
+  templateVersion: number;
+  dataVersion?: number;
+  submittedVersion?: number;
+  templateSnapshot?: ReportMetadata;
+  dataSnapshot?: Record<string, string | number>;
+  dynamicRowsSnapshot?: Record<number, DynamicRowRecord[]>;
+  historicalSnapshots?: SubmissionSnapshot[];
+  structuralHash?: string;
+  integrityHash?: string;
+  revisionHistory?: Array<{
+    version: number;
+    modifiedAt: string;
+    modifiedBy: string;
+    modifiedByRole?: string;
+    values: Record<string, string | number>;
+    dynamicRows: Record<number, DynamicRowRecord[]>;
+    reason?: string;
+    templateSnapshot?: ReportMetadata;
+    integrityHash?: string;
+  }>;
   values: Record<string, string | number>;
   dynamicRows: Record<number, DynamicRowRecord[]>;
   makerId: string;

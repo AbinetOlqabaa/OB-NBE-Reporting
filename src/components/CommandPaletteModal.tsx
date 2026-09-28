@@ -21,6 +21,7 @@ import {
   Sun,
   Moon,
   Laptop,
+  Network,
 } from 'lucide-react';
 import { ViewTab } from './Sidebar.tsx';
 import { ReportMetadata, UserSession } from '../types/regulatory.ts';
@@ -90,6 +91,15 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
       subtitle: 'User management, approval queue & role assignments',
       icon: Users,
       shortcut: `${modKey}+Shift+A`,
+      category: 'Views',
+      allowedRoles: ['ADMIN'],
+    },
+    {
+      id: 'DEPT_REPORT_MANAGEMENT' as ViewTab,
+      title: 'Departments & Reports Management',
+      subtitle: 'Dynamic bank hierarchy, custom returns & Many-to-Many linkages',
+      icon: Network,
+      shortcut: `${modKey}+Shift+M`,
       category: 'Views',
       allowedRoles: ['ADMIN'],
     },

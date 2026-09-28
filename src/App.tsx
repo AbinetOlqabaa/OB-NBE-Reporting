@@ -10,12 +10,14 @@ import {
   UserSession,
   DynamicRowRecord,
 } from './types/regulatory';
-import { getAllReports, getReportByKey } from './data/report-registry';
+import { getAllReports, getReportByKey, subscribeReports } from './data/report-registry';
 import { submissionService, DEMO_USERS } from './services/submissionService';
 import { userService } from './services/userService';
+import { departmentService } from './services/departmentService';
 import { Navbar } from './components/Navbar';
 import { Sidebar, ViewTab } from './components/Sidebar';
 import { AdminDashboard } from './components/AdminDashboard';
+import { DepartmentReportManagement } from './components/DepartmentReportManagement';
 import { MakerWorkspace } from './components/MakerWorkspace';
 import { CheckerInbox } from './components/CheckerInbox';
 import { DynamicReportForm } from './components/DynamicReportForm';
@@ -29,6 +31,8 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
 import { ThemeSyncMonitor } from './components/ThemeSyncMonitor';
 import { BottomNavigation } from './components/BottomNavigation';
+import { InputAccessoryView } from './components/InputAccessoryView';
+import { useSwipeGesture } from './hooks/useSwipeGesture';
 import { vibrate, haptics } from './utils/haptics';
 
 export default function App() {
@@ -62,6 +66,26 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Horizontal swipe gesture navigation across Sidebar tabs on mobile viewport
+  const {
+    containerRef: mainViewportRef,
+    touchHandlers: swipeTouchHandlers,
+    isSwiping,
+    swipeDirection,
+    swipeOffset,
+    nextTab,
+    prevTab,
+  } = useSwipeGesture({
+    currentTab: activeTab,
+    userRole: currentUser?.role,
+    onSelectTab: (tab) => {
+      setActiveTab(tab);
+      setEditingSubmission(null);
+      setIsMobileDrawerOpen(false);
+    },
+    enabled: !editingSubmission && Boolean(currentUser),
+  });
 
   // Global Keyboard Shortcuts Listener
   useEffect(() => {
@@ -128,6 +152,17 @@ export default function App() {
           setActiveTab('ADMIN_DASHBOARD');
           setEditingSubmission(null);
           showToast('Navigated to Admin Governance (Ctrl+Shift+A)');
+        }
+        return;
+      }
+
+      // 6b. Ctrl+Shift+M / Cmd+Shift+M: Jump to Departments & Reports Management
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        if (currentUser.role === 'ADMIN') {
+          setActiveTab('DEPT_REPORT_MANAGEMENT');
+          setEditingSubmission(null);
+          showToast('Navigated to Departments & Reports Governance (Ctrl+Shift+M)');
         }
         return;
       }
@@ -222,6 +257,16 @@ export default function App() {
 
   useEffect(() => {
     refreshData();
+    const unsubReports = subscribeReports((updated) => {
+      setTemplates(updated);
+    });
+    const unsubDepts = departmentService.subscribe(() => {
+      setTemplates(getAllReports());
+    });
+    return () => {
+      unsubReports();
+      unsubDepts();
+    };
   }, []);
 
   const showToast = (msg: string) => {
@@ -438,6 +483,7 @@ export default function App() {
           />
         )}
         <ThemeSyncMonitor />
+        <InputAccessoryView />
       </>
     );
   }
@@ -485,8 +531,31 @@ export default function App() {
           onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
         />
 
-        {/* Dynamic Main Viewport (Scrollable Workspace Area, No Outer Page Overflow) */}
-        <main className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 touch-scroll-y">
+        {/* Dynamic Main Viewport (Scrollable Workspace Area with Mobile Horizontal Swipe Navigation) */}
+        <main
+          ref={mainViewportRef as any}
+          {...swipeTouchHandlers}
+          className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 touch-scroll-y relative"
+        >
+          {/* Subtle Mobile Drag/Swipe Navigation Direction Indicator */}
+          {isSwiping && Math.abs(swipeOffset) > 25 && (
+            <div
+              className={`fixed top-1/2 -translate-y-1/2 z-40 px-3.5 py-1.5 rounded-full backdrop-blur-md text-[11px] font-bold shadow-xl border flex items-center gap-1.5 pointer-events-none transition-all duration-75 animate-in fade-in select-none ${
+                swipeDirection === 'left' && nextTab
+                  ? 'right-3 bg-ob-indigo-900/95 text-white border-ob-indigo-400/60 shadow-ob-indigo-950/40'
+                  : swipeDirection === 'right' && prevTab
+                  ? 'left-3 bg-ob-indigo-900/95 text-white border-ob-indigo-400/60 shadow-ob-indigo-950/40'
+                  : 'hidden'
+              }`}
+            >
+              <span>
+                {swipeDirection === 'left' && nextTab
+                  ? `Next: ${nextTab.replace(/_/g, ' ')} →`
+                  : `← Prev: ${prevTab?.replace(/_/g, ' ')}`}
+              </span>
+            </div>
+          )}
+
           {editingSubmission && currentEditingTemplate ? (
             <DynamicReportForm
               metadata={currentEditingTemplate}
@@ -510,6 +579,13 @@ export default function App() {
                   currentUser={currentUser}
                   onNavigateTab={(tab) => setActiveTab(tab)}
                   onUserStatusChanged={() => refreshData()}
+                />
+              )}
+
+              {activeTab === 'DEPT_REPORT_MANAGEMENT' && (
+                <DepartmentReportManagement
+                  currentUser={currentUser}
+                  onBackToDashboard={() => setActiveTab('ADMIN_DASHBOARD')}
                 />
               )}
 
@@ -592,6 +668,9 @@ export default function App() {
 
       {/* Centralized Theme Synchronization & Mismatch Monitor */}
       <ThemeSyncMonitor />
+
+      {/* Global Mobile Input Accessory View that listens for document focus events */}
+      {!editingSubmission && <InputAccessoryView />}
 
       {/* Global Toast Notification */}
       {toastMessage && (

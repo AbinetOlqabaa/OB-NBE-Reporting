@@ -5,6 +5,7 @@
 
 import type { ReportMetadata } from '../types/regulatory.ts';
 import { getDepartmentForReport } from './organizationHierarchy.ts';
+import { departmentService } from '../services/departmentService.ts';
 
 export const NBE_REPORTS: ReportMetadata[] = [
   {
@@ -1276,30 +1277,351 @@ export const NBE_REPORTS: ReportMetadata[] = [
   }
 ];
 
-// Ensure all 24 reports have their canonical department assigned
+// Ensure all 24 reports have their canonical department and departments array assigned
 NBE_REPORTS.forEach((r) => {
   if (!r.department) {
     r.department = getDepartmentForReport(r.ReturnKey);
   }
+  if (!r.departments) {
+    r.departments = [r.department];
+  }
 });
 
+const REPORTS_STORAGE_KEY = 'ob_report_templates_registry';
+const REPORTS_CHANGE_EVENT = 'ob:reports:changed';
+type ReportChangeListener = (reports: ReportMetadata[]) => void;
+const reportListeners: Set<ReportChangeListener> = new Set();
+
+let dynamicReportsList: ReportMetadata[] = [];
+
+function initDynamicReports(): void {
+  if (typeof window === 'undefined') {
+    dynamicReportsList = JSON.parse(JSON.stringify(NBE_REPORTS));
+    return;
+  }
+
+  try {
+    const stored = localStorage.getItem(REPORTS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        dynamicReportsList = parsed;
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('[ReportRegistry] Failed to read stored reports:', e);
+  }
+
+  // Initial seeding: clone canonical NBE_REPORTS
+  dynamicReportsList = JSON.parse(JSON.stringify(NBE_REPORTS));
+  // Enrich with departments from departmentService
+  dynamicReportsList.forEach((r) => {
+    try {
+      const depts = departmentService.getDepartmentsForReport(r.ReturnKey);
+      if (depts && depts.length > 0) {
+        r.departments = depts;
+        r.department = depts[0];
+      }
+    } catch {}
+  });
+
+  saveDynamicReports();
+}
+
+function saveDynamicReports(): void {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(dynamicReportsList));
+      window.dispatchEvent(new CustomEvent(REPORTS_CHANGE_EVENT, { detail: dynamicReportsList }));
+    } catch (e) {
+      console.warn('[ReportRegistry] Failed to persist reports:', e);
+    }
+  }
+  reportListeners.forEach((fn) => {
+    try {
+      fn(dynamicReportsList);
+    } catch {}
+  });
+}
+
+initDynamicReports();
+
+export function subscribeReports(listener: ReportChangeListener): () => void {
+  reportListeners.add(listener);
+  return () => reportListeners.delete(listener);
+}
+
 export function getAllReports(): ReportMetadata[] {
-  return NBE_REPORTS;
+  if (dynamicReportsList.length === 0) {
+    initDynamicReports();
+  }
+  return JSON.parse(JSON.stringify(dynamicReportsList));
 }
 
 export function getReportByKey(key: string): ReportMetadata | undefined {
-  return NBE_REPORTS.find((r) => r.ReturnKey === key || r.Code === key);
+  if (dynamicReportsList.length === 0) {
+    initDynamicReports();
+  }
+  const norm = key.trim().toUpperCase();
+  return dynamicReportsList.find((r) => r.ReturnKey.toUpperCase() === norm || r.Code.toUpperCase() === norm);
 }
 
 export function getReportsByCategory(category: string): ReportMetadata[] {
-  return NBE_REPORTS.filter((r) => r.Category === category);
+  return getAllReports().filter((r) => r.Category === category);
 }
 
 export function getReportsByDepartment(department: string): ReportMetadata[] {
   const norm = department.trim().toLowerCase();
-  return NBE_REPORTS.filter((r) => r.department && r.department.toLowerCase() === norm);
+  return getAllReports().filter((r) => {
+    if (r.department && r.department.toLowerCase() === norm) return true;
+    if (Array.isArray(r.departments) && r.departments.some((d) => d.toLowerCase() === norm)) return true;
+    return false;
+  });
 }
 
 export function getReportsByFrequency(frequency: "MONTHLY" | "QUARTERLY" | "ANNUAL"): ReportMetadata[] {
-  return NBE_REPORTS.filter((r) => r.Frequency === frequency);
+  return getAllReports().filter((r) => r.Frequency === frequency);
+}
+
+/**
+ * Adds a new regulatory report type demanded by NBE or configured by the bank
+ */
+export function addReportType(
+  data: {
+    ReturnKey: string;
+    Code?: string;
+    Title: string;
+    Category: "Credit & Lending" | "Classification & Provisioning" | "Exposures & Concentration" | "Assets & Collateral" | "Restructuring" | "Sector Breakdown";
+    Frequency: "MONTHLY" | "QUARTERLY" | "ANNUAL";
+    Description: string;
+    departments?: string[];
+    department?: string;
+    initialFieldsCount?: number;
+  },
+  adminName = 'Administrator'
+): { success: boolean; report?: ReportMetadata; message?: string } {
+  const key = data.ReturnKey.trim().toUpperCase();
+  if (!key) {
+    return { success: false, message: 'Return Key is required.' };
+  }
+
+  if (getReportByKey(key)) {
+    return { success: false, message: `Report with return key "${key}" already exists.` };
+  }
+
+  const primaryDept = data.department || (data.departments && data.departments[0]) || 'Credit Operations & Portfolio Management';
+  const linkedDepts = data.departments && data.departments.length > 0 ? Array.from(new Set(data.departments)) : [primaryDept];
+
+  const initialItemsCount = data.initialFieldsCount && data.initialFieldsCount > 0 ? data.initialFieldsCount : 4;
+  const returnItems = [];
+  for (let i = 1; i <= initialItemsCount; i++) {
+    const itemCode = `${key}_${String(i).padStart(5, '0')}`;
+    returnItems.push({
+      Code: itemCode,
+      Value: "",
+      _description: `Schedule ${i}: Core Balance & Exposure Value`,
+      _dataType: "NUMERIC" as const,
+      _required: i === 1,
+      isTotal: i === initialItemsCount,
+    });
+  }
+
+  const newReport: ReportMetadata = {
+    ReturnKey: key,
+    Code: data.Code?.trim().toUpperCase() || key,
+    Title: data.Title.trim(),
+    Category: data.Category,
+    Frequency: data.Frequency,
+    InstCode: "0000013",
+    FinYear: 2026,
+    StartDate: data.Frequency === 'MONTHLY' ? "2026-07-01T00:00:00" : "2026-04-01T00:00:00",
+    EndDate: data.Frequency === 'MONTHLY' ? "2026-07-31T00:00:00" : "2026-06-30T00:00:00",
+    Description: data.Description.trim(),
+    department: primaryDept,
+    departments: linkedDepts,
+    ReturnItemsList: returnItems,
+    DynamicItemsList: [],
+    Formulas: [],
+    ValidationRules: [
+      {
+        id: `${key.toLowerCase()}-positive-balances`,
+        name: "Positive Balances Rule",
+        description: "Report amounts must be positive numbers",
+        severity: "ERROR",
+        check: (v) => Object.values(v).every((val) => typeof val !== "number" || val >= 0),
+      },
+    ],
+    SourceFilename: `${key}.json`,
+    SourceHash: `sha256-custom-${Date.now()}`,
+    isCustom: true,
+  };
+
+  dynamicReportsList.push(newReport);
+  saveDynamicReports();
+
+  // Synchronize department linkages in departmentService & log Version 1
+  try {
+    departmentService.setReportDepartments(newReport.ReturnKey, linkedDepts);
+    departmentService.recordReportVersion(
+      newReport.ReturnKey,
+      'CREATED',
+      adminName,
+      `Registered new regulatory return template "${newReport.Title}"`,
+      newReport
+    );
+  } catch {}
+
+  return { success: true, report: newReport, message: `Report "${newReport.Title}" (${newReport.ReturnKey}) created successfully.` };
+}
+
+/**
+ * Updates an existing regulatory report template
+ */
+export function updateReportType(
+  key: string,
+  updates: {
+    Title?: string;
+    Category?: "Credit & Lending" | "Classification & Provisioning" | "Exposures & Concentration" | "Assets & Collateral" | "Restructuring" | "Sector Breakdown";
+    Frequency?: "MONTHLY" | "QUARTERLY" | "ANNUAL";
+    Description?: string;
+    departments?: string[];
+    department?: string;
+  },
+  adminName = 'Administrator'
+): { success: boolean; report?: ReportMetadata; message?: string } {
+  const norm = key.trim().toUpperCase();
+  const report = dynamicReportsList.find((r) => r.ReturnKey.toUpperCase() === norm);
+  if (!report) {
+    return { success: false, message: 'Report not found.' };
+  }
+
+  const prevSnapshot = { ...report };
+
+  if (updates.Title) report.Title = updates.Title.trim();
+  if (updates.Category) report.Category = updates.Category;
+  if (updates.Frequency) report.Frequency = updates.Frequency;
+  if (updates.Description !== undefined) report.Description = updates.Description.trim();
+
+  if (updates.departments && updates.departments.length > 0) {
+    report.departments = Array.from(new Set(updates.departments));
+    report.department = report.departments[0];
+    try {
+      departmentService.setReportDepartments(report.ReturnKey, report.departments);
+    } catch {}
+  } else if (updates.department) {
+    report.department = updates.department;
+    if (!report.departments) report.departments = [];
+    if (!report.departments.includes(updates.department)) {
+      report.departments.push(updates.department);
+    }
+    try {
+      departmentService.setReportDepartments(report.ReturnKey, report.departments);
+    } catch {}
+  }
+
+  saveDynamicReports();
+
+  try {
+    departmentService.recordReportVersion(
+      report.ReturnKey,
+      prevSnapshot.Title !== report.Title ? 'RENAMED' : 'METADATA_CHANGED',
+      adminName,
+      prevSnapshot.Title !== report.Title
+        ? `Renamed report template from "${prevSnapshot.Title}" to "${report.Title}"`
+        : `Updated report template metadata and linkages`,
+      report,
+      prevSnapshot
+    );
+  } catch {}
+
+  return { success: true, report, message: `Report "${report.Title}" updated successfully.` };
+}
+
+/**
+ * Removes or archives a report type
+ */
+export function removeReportType(key: string, adminName = 'Administrator'): { success: boolean; message?: string } {
+  const norm = key.trim().toUpperCase();
+  const index = dynamicReportsList.findIndex((r) => r.ReturnKey.toUpperCase() === norm);
+  if (index === -1) {
+    return { success: false, message: 'Report not found.' };
+  }
+
+  const removed = dynamicReportsList.splice(index, 1)[0];
+  saveDynamicReports();
+
+  // Clear linkages in departmentService and record decommissioned version
+  try {
+    departmentService.setReportDepartments(removed.ReturnKey, []);
+    departmentService.recordReportVersion(
+      removed.ReturnKey,
+      'DECOMMISSIONED',
+      adminName,
+      `Decommissioned report return template "${removed.Title}" from active catalogue`,
+      removed
+    );
+  } catch {}
+
+  return { success: true, message: `Report "${removed.Title}" (${removed.ReturnKey}) removed from active catalogue.` };
+}
+
+export function resetReportsToDefault(): void {
+  dynamicReportsList = JSON.parse(JSON.stringify(NBE_REPORTS));
+  saveDynamicReports();
+}
+
+/**
+ * Renames all occurrences of an old department name across active report templates
+ */
+export function renameDepartmentInReports(oldName: string, newName: string): number {
+  let count = 0;
+  const oldNorm = oldName.trim().toLowerCase();
+  for (const r of dynamicReportsList) {
+    let changed = false;
+    if (r.department && r.department.trim().toLowerCase() === oldNorm) {
+      r.department = newName;
+      changed = true;
+    }
+    if (Array.isArray(r.departments)) {
+      if (r.departments.some((d) => d.trim().toLowerCase() === oldNorm)) {
+        r.departments = r.departments.map((d) => (d.trim().toLowerCase() === oldNorm ? newName : d));
+        changed = true;
+      }
+    }
+    if (changed) count++;
+  }
+  if (count > 0) {
+    saveDynamicReports();
+  }
+  return count;
+}
+
+/**
+ * Reassigns department linkages when a department is removed from bank structure
+ */
+export function reassignDepartmentInReports(removedDept: string, fallbackDept: string): number {
+  let count = 0;
+  const remNorm = removedDept.trim().toLowerCase();
+  for (const r of dynamicReportsList) {
+    let changed = false;
+    if (r.department && r.department.trim().toLowerCase() === remNorm) {
+      r.department = fallbackDept;
+      changed = true;
+    }
+    if (Array.isArray(r.departments)) {
+      if (r.departments.some((d) => d.trim().toLowerCase() === remNorm)) {
+        r.departments = r.departments.filter((d) => d.trim().toLowerCase() !== remNorm);
+        if (r.departments.length === 0) {
+          r.departments = [fallbackDept];
+        }
+        changed = true;
+      }
+    }
+    if (changed) count++;
+  }
+  if (count > 0) {
+    saveDynamicReports();
+  }
+  return count;
 }

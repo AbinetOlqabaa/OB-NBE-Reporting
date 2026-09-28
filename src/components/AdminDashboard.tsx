@@ -38,6 +38,7 @@ import {
   Calendar,
   Lock,
   ExternalLink,
+  FolderTree,
 } from 'lucide-react';
 import { UserAccount, UserRole, UserStatus, userService } from '../services/userService.ts';
 import { ReportMetadata, ReportSubmission, SpecialAccessGrant, UserSession } from '../types/regulatory.ts';
@@ -46,10 +47,11 @@ import { ViewTab } from './Sidebar.tsx';
 import { submissionService } from '../services/submissionService.ts';
 import { getAllReports, getReportByKey } from '../data/report-registry.ts';
 import {
-  OROMIA_BANK_DEPARTMENTS,
+  DepartmentDefinition,
   getReportsForDepartment,
   getDepartmentForReport,
 } from '../data/organizationHierarchy.ts';
+import { departmentService } from '../services/departmentService.ts';
 
 interface AdminDashboardProps {
   currentUser: UserSession;
@@ -67,6 +69,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [users, setUsers] = useState<UserAccount[]>(userService.getAll());
   const [submissions, setSubmissions] = useState<ReportSubmission[]>(submissionService.getAll());
   const [templates, setTemplates] = useState<ReportMetadata[]>(getAllReports());
+  const [departments, setDepartments] = useState<DepartmentDefinition[]>(() => departmentService.getAll());
   const [activeSubTab, setActiveSubTab] = useState<AdminSubTab>('REPORTS_OVERSIGHT');
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,6 +87,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [grantType, setGrantType] = useState<'REPORT' | 'DEPARTMENT'>('REPORT');
   const [grantReportKey, setGrantReportKey] = useState('');
   const [grantDepartment, setGrantDepartment] = useState('');
+  const [grantSelectedDepartments, setGrantSelectedDepartments] = useState<string[]>([]);
+  const [grantDeptSearch, setGrantDeptSearch] = useState('');
   const [grantReason, setGrantReason] = useState('');
   const [grantExpiresAt, setGrantExpiresAt] = useState('');
 
@@ -140,10 +145,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setUsers(userService.getAll());
       setSubmissions(submissionService.getAll());
     }
+    setDepartments(departmentService.getAll());
+    setTemplates(getAllReports());
   };
 
   useEffect(() => {
     refreshAllData();
+    const unsubDepts = departmentService.subscribe((updated) => {
+      setDepartments(updated);
+    });
+    return () => {
+      unsubDepts();
+    };
   }, []);
 
   // Filter pending users
@@ -322,14 +335,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       showNotice('error', 'Select a report return key.');
       return;
     }
-    if (grantType === 'DEPARTMENT' && !grantDepartment) {
-      showNotice('error', 'Select a target department.');
+    if (grantType === 'DEPARTMENT' && grantSelectedDepartments.length === 0) {
+      showNotice('error', 'Select at least one department to authorize.');
       return;
     }
 
     const payload = {
       reportKey: grantType === 'REPORT' ? grantReportKey : undefined,
-      department: grantType === 'DEPARTMENT' ? grantDepartment : undefined,
+      department:
+        grantType === 'DEPARTMENT'
+          ? grantSelectedDepartments.length === 1
+            ? grantSelectedDepartments[0]
+            : grantSelectedDepartments.join(', ')
+          : undefined,
+      departments: grantType === 'DEPARTMENT' ? grantSelectedDepartments : undefined,
       reason: grantReason.trim(),
       expiresAt: grantExpiresAt || undefined,
       adminName: currentUser.name,
@@ -356,6 +375,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setGrantReason('');
       setGrantReportKey('');
       setGrantDepartment('');
+      setGrantSelectedDepartments([]);
       await refreshAllData();
     } catch {
       const local = userService.grantSpecialAccess(grantTargetUserId, payload, currentUser.name);
@@ -365,6 +385,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         showNotice('error', local.message || 'Failed to grant special access.');
       }
       setIsGrantModalOpen(false);
+      setGrantSelectedDepartments([]);
       await refreshAllData();
     }
   };
@@ -463,6 +484,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => onNavigateTab('DEPT_REPORT_MANAGEMENT')}
+              className="px-3 py-1.5 bg-ob-indigo-600 hover:bg-ob-indigo-500 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Manage bank departments, report types and linkages"
+            >
+              <FolderTree className="w-3.5 h-3.5" />
+              <span>Departments & Reports</span>
+            </button>
             <button
               type="button"
               onClick={() => setIsGrantModalOpen(true)}
@@ -637,6 +667,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <Shield className="w-3.5 h-3.5" />
             <span>Directives & Matrix</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab('DEPT_REPORT_MANAGEMENT')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press text-ob-indigo-600 dark:text-ob-indigo-400 bg-ob-indigo-50 dark:bg-ob-indigo-950/60 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900/60 border border-ob-indigo-200 dark:border-ob-indigo-800"
+            title="Configure bank departments, report templates & linkages"
+          >
+            <FolderTree className="w-3.5 h-3.5" />
+            <span>Departments & Reports</span>
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-ob-indigo-200 dark:bg-ob-indigo-800 text-ob-indigo-900 dark:text-ob-indigo-200">
+              {departments.length}
+            </span>
+          </button>
         </div>
 
         {/* Global Search Bar */}
@@ -677,7 +720,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
               >
                 <option value="ALL">All Departments</option>
-                {OROMIA_BANK_DEPARTMENTS.map((d) => (
+                {departments.map((d) => (
                   <option key={d.id} value={d.name}>
                     {d.name}
                   </option>
@@ -855,7 +898,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <div className="space-y-0.5">
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                                    {g.reportKey ? `Return: ${g.reportKey}` : `Dept: ${g.department}`}
+                                    {g.reportKey
+                                      ? `Return: ${g.reportKey}`
+                                      : `Dept(s): ${
+                                          Array.isArray(g.departments) && g.departments.length > 0
+                                            ? g.departments.join(', ')
+                                            : g.department
+                                        }`}
                                   </span>
                                   <span className="text-[10px] text-slate-400">
                                     (Granted by {g.grantedBy})
@@ -1272,27 +1321,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Grant Scope *
                   </label>
-                  <select
-                    value={grantType}
-                    onChange={(e) => setGrantType(e.target.value as any)}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white cursor-pointer font-medium"
-                  >
-                    <option value="REPORT">Specific Return Form</option>
-                    <option value="DEPARTMENT">Entire Department</option>
-                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGrantType('REPORT')}
+                      className={`p-2 rounded-lg text-xs font-bold border transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                        grantType === 'REPORT'
+                          ? 'bg-ob-indigo-600 text-white border-ob-indigo-600'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      <span>Specific Return</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGrantType('DEPARTMENT')}
+                      className={`p-2 rounded-lg text-xs font-bold border transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                        grantType === 'DEPARTMENT'
+                          ? 'bg-ob-indigo-600 text-white border-ob-indigo-600'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>Department(s) Access</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Target Selection *
-                  </label>
-                  {grantType === 'REPORT' ? (
+                {grantType === 'REPORT' ? (
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Target Regulatory Return *
+                    </label>
                     <select
+                      required
                       value={grantReportKey}
                       onChange={(e) => setGrantReportKey(e.target.value)}
                       className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white cursor-pointer font-medium"
@@ -1304,21 +1372,112 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    <select
-                      value={grantDepartment}
-                      onChange={(e) => setGrantDepartment(e.target.value)}
-                      className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white cursor-pointer font-medium"
-                    >
-                      <option value="">-- Choose Dept --</option>
-                      {OROMIA_BANK_DEPARTMENTS.map((d) => (
-                        <option key={d.id} value={d.name}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="font-semibold text-slate-700 dark:text-slate-300">
+                        Target Department(s) ({grantSelectedDepartments.length} selected) *
+                      </label>
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => setGrantSelectedDepartments(departments.map((d) => d.name))}
+                          className="text-ob-indigo-600 dark:text-ob-indigo-400 font-bold hover:underline cursor-pointer"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-slate-400">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setGrantSelectedDepartments([])}
+                          className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Selected Badges */}
+                    <div className="flex items-center gap-1 flex-wrap p-1.5 min-h-[36px] bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      {grantSelectedDepartments.length === 0 ? (
+                        <span className="text-[11px] text-slate-400 italic px-1">
+                          No departments selected. Choose single or multiple departments below.
+                        </span>
+                      ) : (
+                        grantSelectedDepartments.map((deptName) => (
+                          <span
+                            key={deptName}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-600 text-white flex items-center gap-1 shadow-2xs"
+                          >
+                            <span>{deptName}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setGrantSelectedDepartments((prev) => prev.filter((d) => d !== deptName))
+                              }
+                              className="hover:text-amber-200 cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Filter and Checkboxes */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search departments..."
+                        value={grantDeptSearch}
+                        onChange={(e) => setGrantDeptSearch(e.target.value)}
+                        className="w-full pl-8 pr-2 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-white font-medium"
+                      />
+                    </div>
+
+                    <div className="max-h-36 overflow-y-auto space-y-1 p-1 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                      {departments
+                        .filter((d) =>
+                          !grantDeptSearch
+                            ? true
+                            : d.name.toLowerCase().includes(grantDeptSearch.toLowerCase()) ||
+                              d.shortCode.toLowerCase().includes(grantDeptSearch.toLowerCase())
+                        )
+                        .map((d) => {
+                          const isSelected = grantSelectedDepartments.includes(d.name);
+                          return (
+                            <label
+                              key={d.id}
+                              className={`flex items-center justify-between p-1.5 rounded-md text-xs cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold'
+                                  : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    setGrantSelectedDepartments((prev) =>
+                                      isSelected
+                                        ? prev.filter((x) => x !== d.name)
+                                        : [...prev, d.name]
+                                    );
+                                  }}
+                                  className="w-3.5 h-3.5 text-amber-600 rounded cursor-pointer"
+                                />
+                                <span>{d.name}</span>
+                              </div>
+                              <span className="font-mono text-[10px] text-slate-400">{d.shortCode}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1397,7 +1556,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
                   className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white cursor-pointer"
                 >
-                  {OROMIA_BANK_DEPARTMENTS.map((d) => (
+                  {departments.map((d) => (
                     <option key={d.id} value={d.name}>
                       {d.name}
                     </option>

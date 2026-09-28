@@ -35,6 +35,7 @@ import {
 import { ValidationEngine } from '../utils/validationEngine.ts';
 import { Pagination } from './Pagination.tsx';
 import { PdfReportGenerator } from '../utils/pdfReportGenerator.ts';
+import { exportRegulatoryReportPDF } from '../utils/regulatoryReportPdfExport.ts';
 import { userService } from '../services/userService.ts';
 import { getDepartmentForReport } from '../data/organizationHierarchy.ts';
 import { SwipeableCard } from './SwipeableCard.tsx';
@@ -476,6 +477,16 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
                         <td className="py-2.5 px-3 text-right space-x-1.5 whitespace-nowrap">
                           <button
                             type="button"
+                            onClick={() => exportRegulatoryReportPDF(sub)}
+                            className="px-2 py-1 bg-ob-indigo-50 hover:bg-ob-indigo-100 dark:bg-ob-indigo-950/60 dark:hover:bg-ob-indigo-900/80 text-ob-indigo-700 dark:text-ob-indigo-300 border border-ob-indigo-200 dark:border-ob-indigo-800 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            title="Download NBE Signed PDF report return"
+                          >
+                            <FileCheck className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
+                            <span>PDF</span>
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => handleOpenReview(sub)}
                             className={`px-3 py-1 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer ${
                               sub.status === 'PENDING_CHECKER'
@@ -526,13 +537,24 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedSubForReview(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => exportRegulatoryReportPDF(selectedSubForReview)}
+                  className="px-2.5 py-1.5 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Download official NBE Signed PDF"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  <span>Download Signed PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubForReview(null)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Submission Summary Metadata */}

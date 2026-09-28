@@ -16,6 +16,7 @@ import { ValidationEngine, ValidationSummary } from '../utils/validationEngine.t
 import { ExcelService } from '../utils/excelService.ts';
 import { Pagination } from './Pagination.tsx';
 import { PdfReportGenerator } from '../utils/pdfReportGenerator.ts';
+import { exportRegulatoryReportPDF } from '../utils/regulatoryReportPdfExport.ts';
 import { InputAccessoryView } from './InputAccessoryView.tsx';
 import { vibrate, haptics } from '../utils/haptics.ts';
 import {
@@ -33,6 +34,7 @@ import {
   Layers,
   Table as TableIcon,
   FileText,
+  FileCheck,
 } from 'lucide-react';
 
 interface DynamicReportFormProps {
@@ -46,7 +48,7 @@ interface DynamicReportFormProps {
 }
 
 export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
-  metadata,
+  metadata: passedMetadata,
   submission,
   currentUser,
   readOnly = false,
@@ -54,6 +56,8 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   onSave,
   onSubmitToChecker,
 }) => {
+  // Use immutable template snapshot if present to maintain regulatory integrity
+  const metadata = submission.templateSnapshot || passedMetadata;
   const [values, setValues] = useState<Record<string, string | number>>(submission.values || {});
   const [dynamicRows, setDynamicRows] = useState<Record<number, DynamicRowRecord[]>>(submission.dynamicRows || {});
   const [validation, setValidation] = useState<ValidationSummary | null>(null);
@@ -366,18 +370,16 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto flex-wrap">
-          {/* Download as PDF button for APPROVED or SENT returns */}
-          {(submission.status === 'APPROVED' || submission.status === 'SENT') && (
-            <button
-              type="button"
-              onClick={() => PdfReportGenerator.generateReturnPdf(metadata, submission)}
-              className="min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 border border-ob-indigo-500 rounded-xl sm:rounded-lg transition-colors shadow-2xs cursor-pointer touch-manipulation touch-press"
-              title="Download official printable PDF regulatory return"
-            >
-              <FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-ob-green-300" />
-              <span>Download PDF</span>
-            </button>
-          )}
+          {/* Download as Signed PDF button */}
+          <button
+            type="button"
+            onClick={() => exportRegulatoryReportPDF(submission)}
+            className="min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 border border-ob-indigo-500 rounded-xl sm:rounded-lg transition-colors shadow-2xs cursor-pointer touch-manipulation touch-press"
+            title="Download official NBE signed PDF regulatory return document"
+          >
+            <FileCheck className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-ob-green-300" />
+            <span>Signed PDF</span>
+          </button>
 
           <button
             type="button"
