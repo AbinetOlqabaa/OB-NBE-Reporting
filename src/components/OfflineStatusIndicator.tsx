@@ -60,8 +60,8 @@ export const OfflineStatusIndicator: React.FC<OfflineStatusIndicatorProps> = ({ 
             <Wifi className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           )}
 
-          {/* Status Label (Hidden on mobile < 640px) */}
-          <div className="hidden sm:flex flex-col text-left leading-none">
+          {/* Status Label (Hidden on mobile and tablets < 1024px to preserve header space) */}
+          <div className="hidden lg:flex flex-col text-left leading-none">
             <span className="text-[11px] font-bold tracking-tight">
               {isEffectiveOffline
                 ? isRemoteSiteVisitMode

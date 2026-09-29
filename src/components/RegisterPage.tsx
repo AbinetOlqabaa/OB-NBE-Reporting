@@ -412,7 +412,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col justify-between overflow-y-auto bg-slate-50 dark:bg-slate-950 relative font-sans text-slate-900 dark:text-slate-100 selection:bg-ob-indigo-600 selection:text-white transition-colors">
+    <div className="min-h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950 relative font-sans text-slate-900 dark:text-slate-100 selection:bg-ob-indigo-600 selection:text-white transition-colors">
       {/* Background Accents */}
       <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-ob-indigo-500/10 dark:bg-ob-indigo-600/15 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32"></div>
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-ob-green-500/10 dark:bg-ob-green-500/10 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32"></div>
@@ -998,7 +998,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="px-4 sm:px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 text-center text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs relative z-10 flex flex-col sm:flex-row items-center justify-between gap-1 shrink-0 transition-colors pb-safe">
+      <footer className="px-4 sm:px-6 py-2.5 sm:py-3 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 text-center text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs relative z-10 flex flex-col sm:flex-row items-center justify-between gap-1 shrink-0 transition-colors">
         <div>
           © 2026 Oromia Bank S.C. All rights reserved.
         </div>

@@ -1,4 +1,4 @@
-# 13 - CURRENT IMPLEMENTATION STATUS & PHASE 1 VISUAL DESIGN SYSTEM VERIFICATION
+# 13 - CURRENT IMPLEMENTATION STATUS, PHASE 1 VISUAL DESIGN & PHASE 2 RESPONSIVE SHELL VERIFICATION
 **Application**: Oromia Bank NBE Regulatory Reporting Platform  
 **Compliance Authority**: National Bank of Ethiopia (Bank Supervision Directorate)  
 **Licensed Institution**: Oromia Bank S.C. (InstCode: `0000013`)  
@@ -10,7 +10,36 @@
 
 ---
 
-## 1. Executive Implementation Summary (Phase 1 — OB Visual Design System & Color Standardization)
+## 1. Executive Implementation Summary (Phase 2 — Responsive Viewport, Mobile, Tablet & Application Shell)
+
+Phase 2 of the responsive design, mobile/tablet layout, and application shell cycle has been completed, audited, and verified across all target viewports:
+
+1. **Modern Viewport Shell Architecture (`100dvh`)**:
+   - Codified `100dvh` dynamic viewport height units across the core application shell (`App.tsx`), eliminating document-level double scrollbars and unwanted vertical expansion.
+   - Preserved accessible sticky header and adaptive navigation, while isolating vertical scrolling to the main content region (`<main className="flex-1 h-full min-h-0 overflow-y-auto ...">`).
+   - Dialogs and modals now enforce `max-h-[calc(100dvh-2rem)] overflow-y-auto` across all modals, preventing modal clipping on short screens or mobile landscape.
+
+2. **Logout Accessibility & Touch-Target Compliance**:
+   - Audited Logout controls across all screen sizes and orientations:
+     - **Desktop (Expanded)**: High-contrast prominent button with $\ge 44$px touch height.
+     - **Desktop (Collapsed)**: Accessible 44x44px icon button.
+     - **Tablet (768x1024 Portrait & 1024x768 Landscape)**: Accessible in both top navbar and sidebar.
+     - **Mobile Portrait & Mobile Landscape**: The mobile navigation drawer body is now a unified scroll-safe container (`overflow-y-auto flex-1 min-h-0 touch-scroll-y flex flex-col justify-between`), guaranteeing that the Logout button is never pushed outside the viewport or clipped.
+     - **Header Mobile Drawer Access**: Connected hamburger toggle in `Navbar.tsx` directly to `onOpenMobileDrawer`, allowing mobile users to access the drawer and Logout directly from the header on any screen.
+
+3. **Footer Whitespace Discipline**:
+   - Eliminated the unnecessary vertical whitespace beneath "All rights reserved." on `LoginPage.tsx` and `RegisterPage.tsx` by replacing `min-h-screen min-h-[100dvh]` with pure `min-h-[100dvh]` and normalized padding (`py-2.5 sm:py-3`).
+   - Removed redundant mobile `pb-20` on `<main>` in `App.tsx` (reduced to `pb-3 sm:pb-4`), eliminating empty gaps above `BottomNavigation`.
+   - Anchored a centralized workspace footer (`mt-auto pt-6 pb-2`) at the bottom of the authenticated dashboard workspace.
+
+4. **Tablet & Responsive Multi-Device Validation Matrix**:
+   - **768x1024 (Tablet Portrait)**: Optimized `Navbar.tsx` so indicators collapse to clean compact icon buttons below 1024px, preventing overcrowding and ensuring role switchers and Logout remain accessible.
+   - **1024x768 (Tablet Landscape)**: Added `max-h-[50vh] overflow-y-auto` to desktop sidebar actions to prevent clipping on shorter viewports. All data tables wrap with `overflow-x-auto`.
+   - **Mobile Landscape (844x390, 667x375)**: Verified modal and drawer scrolling so all elements remain operable with virtual keyboards or landscape browser chrome.
+
+---
+
+## 2. Executive Implementation Summary (Phase 1 — OB Visual Design System & Color Standardization)
 
 Phase 1 of the visual design system and color standardization cycle has been completed, audited, and verified across the application:
 

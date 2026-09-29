@@ -194,7 +194,7 @@ export const NbeHealthIndicator: React.FC<NbeHealthIndicatorProps> = ({
 
         {/* Text Details with Status Light Label */}
         <div className="flex items-center gap-1.5 leading-none">
-          <span className="font-bold text-slate-800 dark:text-slate-200 hidden sm:inline">NBE Gateway:</span>
+          <span className="font-bold text-slate-800 dark:text-slate-200 hidden lg:inline">NBE Gateway:</span>
           <span className={`font-mono text-[11px] font-bold ${visuals.textColor}`}>
             {healthData.status === 'ONLINE'
               ? `${healthData.latencyMs}ms`

@@ -719,7 +719,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
 
       {/* 5.5 Mobile Sticky Thumb-Zone Action Bar (< 640px) */}
       {!isEffectiveReadOnly && (
-        <div className="sm:hidden shrink-0 bg-white/95 dark:bg-[#121428]/95 border-t border-slate-200 dark:border-[#22284D] backdrop-blur-md px-3 py-2 flex items-center justify-between gap-2 shadow-lg z-20 pb-safe">
+        <div className="sm:hidden shrink-0 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 backdrop-blur-md px-3 py-2 flex items-center justify-between gap-2 shadow-lg z-20 pb-safe">
           <button
             type="button"
             onClick={handleManualSave}

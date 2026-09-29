@@ -574,6 +574,7 @@ export default function App() {
         pendingCheckerCount={pendingCheckerCount}
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={toggleSidebar}
+        onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)}
         onLogout={handleLogout}
         onNavigateToSimulator={() => {
           setActiveTab('NBE_SIMULATOR');
@@ -606,7 +607,7 @@ export default function App() {
         <main
           ref={mainViewportRef as any}
           {...swipeTouchHandlers}
-          className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 pb-20 md:pb-4 touch-scroll-y relative"
+          className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 pb-3 sm:pb-4 touch-scroll-y relative"
         >
           {/* Subtle Mobile Drag/Swipe Navigation Direction Indicator */}
           {isSwiping && Math.abs(swipeOffset) > 25 && (
@@ -718,6 +719,14 @@ export default function App() {
               {activeTab === 'DOCUMENTATION' && <DocumentationView templates={templates} />}
             </>
           )}
+
+          {/* Centralized Application Shell Workspace Footer */}
+          <footer className="mt-auto pt-6 pb-2 text-center text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-1 shrink-0 transition-colors">
+            <div>© 2026 Oromia Bank S.C. All rights reserved.</div>
+            <div className="text-[10px] sm:text-[11px]">
+              National Bank of Ethiopia · BSD/03/2020 Supervisory Governance
+            </div>
+          </footer>
         </main>
       </div>
 

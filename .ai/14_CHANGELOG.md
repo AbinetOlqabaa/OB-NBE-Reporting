@@ -4,6 +4,38 @@ All notable changes and engineering enhancements for the Oromia Bank NBE Regulat
 
 ---
 
+## [1.6.0-phase2-responsive-viewport-and-application-shell] - 2026-09-29
+
+### Added
+- **Modern 100dvh Application Shell Architecture (`src/App.tsx`, `src/index.css`)**:
+  - Established a controlled application shell utilizing `100dvh` viewport units without document-level expansion or blind `overflow:hidden` clipping.
+  - Header and navigation remain accessible at all times while the dynamic workspace provides a controlled internal scrolling region (`overflow-y-auto min-h-0 flex-1`).
+  - Added centralized application workspace footer inside `<main>` with `mt-auto pt-6 pb-2` ensuring proper bottom anchoring without awkward gaps or floating.
+- **Header Mobile Drawer Access (`src/components/Navbar.tsx`)**:
+  - Added `onOpenMobileDrawer` prop to `Navbar`, allowing mobile users to open the navigation drawer directly from the header hamburger button on any viewport orientation or when editing reports.
+  - Responsive tablet header optimization: compact indicator presentation on `< 1024px` preserving ample breathing room at 768px tablet portrait.
+- **Scroll-Safe Mobile Navigation Drawer (`src/components/Sidebar.tsx`)**:
+  - Converted mobile drawer body into a unified, scroll-safe container (`overflow-y-auto flex-1 min-h-0 touch-scroll-y flex flex-col justify-between`).
+  - Guarantees that the Logout control, user profile, and hardware preferences are NEVER pushed outside the viewport or clipped on mobile landscape (e.g., 844x390, 667x375).
+- **Responsive Dialog & Modal Constraints**:
+  - Enforced `max-h-[calc(100dvh-2rem)] overflow-y-auto` across all modals (`BiometricPromptModal`, `UserSettingsModal`, `ReportVersionHistoryModal`, `OfflineStorageModal`, `HardwareDiagnosticsModal`, `KeyboardShortcutsModal`, `CommandPaletteModal`, `BulkImportModal`, `BiometricRecoveryModal`).
+- **Phase 2 Automated Test Matrix (`src/tests/responsive-ui-and-layout.test.ts`)**:
+  - Added test suites for 100dvh shell architecture, Logout accessibility across mobile/tablet/desktop ($\ge 44$px touch targets), footer whitespace discipline, and tablet validation matrix (768x1024 portrait & 1024x768 landscape).
+
+### Changed
+- **Footer Whitespace Discipline (`src/components/LoginPage.tsx`, `src/components/RegisterPage.tsx`, `src/App.tsx`)**:
+  - Removed unnecessary vertical empty space beneath "All rights reserved." on login and registration pages.
+  - Replaced `min-h-screen min-h-[100dvh]` with pure `min-h-[100dvh]` and normalized footer padding (`py-2.5 sm:py-3`), preventing mobile address-bar height expansion.
+  - Removed redundant mobile `pb-20` on `<main>` in `App.tsx` (reduced to `pb-3 sm:pb-4`), eliminating empty gaps above `BottomNavigation`.
+- **Desktop Sidebar Height Protection (`src/components/Sidebar.tsx`)**:
+  - Added `max-h-[50vh] overflow-y-auto` to the bottom actions container of the desktop sidebar, preventing clipping on short desktop or tablet landscape viewports (e.g. 1024x768 or 600px height).
+  - Enforced $\ge 44$px touch targets on both expanded and collapsed Logout buttons.
+- **Color Standardization Cleanups**:
+  - Standardized remaining dark hex palettes in `DynamicReportForm.tsx`, `BiometricPromptModal.tsx`, `UserSettingsModal.tsx`, `BulkImportModal.tsx`, and `BiometricRecoveryModal.tsx` to shared tokens.
+  - Updated `index.html` dark `theme-color` meta tag to `#0B0F19`.
+
+---
+
 ## [1.5.0-phase1-visual-design-system] - 2026-09-29
 
 ### Added

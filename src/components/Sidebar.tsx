@@ -327,177 +327,180 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
 
-            {/* Drawer Navigation List */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1 touch-scroll-y">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-white/75 px-2 py-1 block">
-                Workspaces & Services
-              </span>
-              <nav className="space-y-1">
-                {visibleNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
+            {/* Drawer Unified Scrollable Workspace Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3 touch-scroll-y flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-white/75 px-2 py-1 block">
+                  Workspaces & Services
+                </span>
+                <nav className="space-y-1">
+                  {visibleNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
 
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectTab(item.id);
-                        if (onCloseMobileDrawer) onCloseMobileDrawer();
-                      }}
-                      className={`w-full min-h-[48px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all touch-manipulation touch-press cursor-pointer ${
-                        isActive
-                          ? 'bg-ob-blue-800 text-white font-bold shadow-md ring-1 ring-white/30'
-                          : 'text-white/85 hover:text-white hover:bg-white/10 font-semibold text-xs'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/80'}`} />
-                      <div className="flex-1 truncate">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-xs">{item.label}</span>
-                          {item.badge && item.badge > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full bg-ob-green-500 text-slate-950 font-mono text-[9px] font-bold shadow-xs">
-                              {item.badge}
-                            </span>
-                          )}
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          onSelectTab(item.id);
+                          if (onCloseMobileDrawer) onCloseMobileDrawer();
+                        }}
+                        className={`w-full min-h-[48px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all touch-manipulation touch-press cursor-pointer ${
+                          isActive
+                            ? 'bg-ob-blue-800 text-white font-bold shadow-md ring-1 ring-white/30'
+                            : 'text-white/85 hover:text-white hover:bg-white/10 font-semibold text-xs'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/80'}`} />
+                        <div className="flex-1 truncate">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs">{item.label}</span>
+                            {item.badge && item.badge > 0 && (
+                              <span className="px-1.5 py-0.2 rounded-full bg-ob-green-500 text-slate-950 font-mono text-[9px] font-bold shadow-xs">
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[10px] font-normal block truncate ${isActive ? 'text-ob-blue-100' : 'text-white/70'}`}>
+                            {item.description}
+                          </span>
                         </div>
-                        <span className={`text-[10px] font-normal block truncate ${isActive ? 'text-ob-blue-100' : 'text-white/70'}`}>
-                          {item.description}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
 
-            {/* Drawer Footer User Settings & Profile */}
-            <div className="p-4 border-t border-ob-blue-600/80 bg-ob-blue-600/30 space-y-3 pb-safe">
-              {/* User Settings: Biometric Login Toggle */}
-              <div className="p-2.5 rounded-xl bg-ob-blue-800/60 border border-white/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Fingerprint className="w-3.5 h-3.5 text-ob-green-300" />
-                    <span className="text-[11px] font-bold text-white">Biometric Login</span>
+              {/* Drawer User Settings, Profile & Prominent Logout (Scroll-safe on Mobile Landscape) */}
+              <div className="pt-3 border-t border-ob-blue-600/80 bg-ob-blue-600/25 -mx-3 -mb-3 p-3.5 space-y-2.5 shrink-0 pb-safe">
+                {/* User Settings: Biometric Login Toggle */}
+                <div className="p-2.5 rounded-xl bg-ob-blue-800/60 border border-white/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Fingerprint className="w-3.5 h-3.5 text-ob-green-300" />
+                      <span className="text-[11px] font-bold text-white">Biometric Login</span>
+                    </div>
+
+                    {/* Toggle Switch */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isBiometricEnabled}
+                      onClick={handleToggleBiometric}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-ob-green-400 touch-press ${
+                        isBiometricEnabled ? 'bg-ob-green-500' : 'bg-ob-blue-900'
+                      }`}
+                      title={
+                        isBiometricEnabled
+                          ? 'Disable hardware authentication'
+                          : 'Enable hardware authentication'
+                      }
+                    >
+                      <span className="sr-only">Toggle Biometric Login</span>
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          isBiometricEnabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
                   </div>
 
-                  {/* Toggle Switch */}
+                  <p className="text-[10px] text-white/80 leading-tight">
+                    {isBiometricEnabled
+                      ? 'Hardware authentication active for one-touch sign-in.'
+                      : 'Disabled. Password will be required on sign-in.'}
+                  </p>
+
+                  {/* Hardware Readiness Status Badges */}
+                  {isBiometricEnabled && deviceCaps && (
+                    <div className="pt-1.5 border-t border-white/15 flex items-center justify-between text-[9px] text-white/80">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            deviceCaps.isFingerprintSupported ? 'bg-ob-green-400' : 'bg-white/40'
+                          }`}
+                        />
+                        <span>Fingerprint: {deviceCaps.isFingerprintSupported ? 'Ready' : 'Unavailable'}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            deviceCaps.cameraStatus.statusLevel === 'PERMISSION_DENIED'
+                              ? 'bg-rose-300'
+                              : deviceCaps.isCameraSupported
+                              ? 'bg-ob-green-300'
+                              : 'bg-white/40'
+                          }`}
+                        />
+                        <span>
+                          Face ID:{' '}
+                          {deviceCaps.cameraStatus.statusLevel === 'PERMISSION_DENIED'
+                            ? 'Denied'
+                            : deviceCaps.isCameraSupported
+                            ? 'Ready'
+                            : 'Unavailable'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-ob-blue-800/60 border border-white/20">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
+                    <div className="text-[10px] text-ob-green-300 font-mono flex items-center gap-1">
+                      <span>{currentUser.role}</span>
+                      <span className="text-white/40">•</span>
+                      <span className="text-white/80 truncate">{currentUser.department || 'Oromia Bank'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Authentication History & Hardware Settings Buttons */}
+                <div className="grid grid-cols-2 gap-1.5">
                   <button
                     type="button"
-                    role="switch"
-                    aria-checked={isBiometricEnabled}
-                    onClick={handleToggleBiometric}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-ob-green-400 touch-press ${
-                      isBiometricEnabled ? 'bg-ob-green-500' : 'bg-ob-blue-900'
-                    }`}
-                    title={
-                      isBiometricEnabled
-                        ? 'Disable hardware authentication'
-                        : 'Enable hardware authentication'
-                    }
+                    onClick={() => {
+                      setSettingsTab('HISTORY');
+                      setIsSettingsOpen(true);
+                    }}
+                    className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
+                    title="View hardware authentication audit history"
                   >
-                    <span className="sr-only">Toggle Biometric Login</span>
-                    <span
-                      aria-hidden="true"
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        isBiometricEnabled ? 'translate-x-4' : 'translate-x-0'
-                      }`}
-                    />
+                    <History className="w-3.5 h-3.5 text-ob-green-300" />
+                    <span>Auth History</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettingsTab('SETTINGS');
+                      setIsSettingsOpen(true);
+                    }}
+                    className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
+                    title="Configure biometric preferences"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-ob-green-300" />
+                    <span>Settings</span>
                   </button>
                 </div>
 
-                <p className="text-[10px] text-white/80 leading-tight">
-                  {isBiometricEnabled
-                    ? 'Hardware authentication active for one-touch sign-in.'
-                    : 'Disabled. Password will be required on sign-in.'}
-                </p>
-
-                {/* Hardware Readiness Status Badges */}
-                {isBiometricEnabled && deviceCaps && (
-                  <div className="pt-1.5 border-t border-white/15 flex items-center justify-between text-[9px] text-white/80">
-                    <div className="flex items-center gap-1">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          deviceCaps.isFingerprintSupported ? 'bg-ob-green-400' : 'bg-white/40'
-                        }`}
-                      />
-                      <span>Fingerprint: {deviceCaps.isFingerprintSupported ? 'Ready' : 'Unavailable'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          deviceCaps.cameraStatus.statusLevel === 'PERMISSION_DENIED'
-                            ? 'bg-rose-300'
-                            : deviceCaps.isCameraSupported
-                            ? 'bg-ob-green-300'
-                            : 'bg-white/40'
-                        }`}
-                      />
-                      <span>
-                        Face ID:{' '}
-                        {deviceCaps.cameraStatus.statusLevel === 'PERMISSION_DENIED'
-                          ? 'Denied'
-                          : deviceCaps.isCameraSupported
-                          ? 'Ready'
-                          : 'Unavailable'}
-                      </span>
-                    </div>
-                  </div>
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onCloseMobileDrawer) onCloseMobileDrawer();
+                      onLogout();
+                    }}
+                    className="w-full min-h-[48px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-500/30 hover:bg-rose-600 border border-rose-300/40 hover:border-rose-600 shadow-md transition-colors touch-press cursor-pointer"
+                    aria-label="Log Out of OB Regulatory Platform"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log Out</span>
+                  </button>
                 )}
               </div>
-
-              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-ob-blue-800/60 border border-white/20">
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
-                  <div className="text-[10px] text-ob-green-300 font-mono flex items-center gap-1">
-                    <span>{currentUser.role}</span>
-                    <span className="text-white/40">•</span>
-                    <span className="text-white/80 truncate">{currentUser.department || 'Oromia Bank'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Authentication History & Hardware Settings Buttons */}
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSettingsTab('HISTORY');
-                    setIsSettingsOpen(true);
-                  }}
-                  className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
-                  title="View hardware authentication audit history"
-                >
-                  <History className="w-3.5 h-3.5 text-ob-green-300" />
-                  <span>Auth History</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSettingsTab('SETTINGS');
-                    setIsSettingsOpen(true);
-                  }}
-                  className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
-                  title="Configure biometric preferences"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-ob-green-300" />
-                  <span>Settings</span>
-                </button>
-              </div>
-
-              {onLogout && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onCloseMobileDrawer) onCloseMobileDrawer();
-                    onLogout();
-                  }}
-                  className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-rose-500/25 hover:bg-rose-600 border border-rose-300/40 hover:border-rose-600 transition-colors touch-press cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Log Out</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -610,7 +613,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Bottom Profile / Entity / Logout Area */}
-      <div className={`p-3 border-t border-ob-blue-600/80 shrink-0 ${isCollapsed ? 'text-center' : ''}`}>
+      <div className={`p-3 border-t border-ob-blue-600/80 shrink-0 max-h-[50vh] overflow-y-auto touch-scroll-y ${isCollapsed ? 'text-center' : ''}`}>
         {!isCollapsed ? (
           <div className="space-y-2">
             {/* Quick Helper Buttons */}
@@ -765,8 +768,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onLogout}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-rose-500/25 hover:bg-rose-600 border border-rose-300/40 hover:border-rose-600 transition-colors cursor-pointer"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-rose-500/25 hover:bg-rose-600 border border-rose-300/40 hover:border-rose-600 transition-colors cursor-pointer"
                 title="Log out of OB Regulatory Platform"
+                aria-label="Log Out"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Log Out</span>
@@ -779,7 +783,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={handleToggleBiometric}
-              className={`p-2 rounded-lg transition-colors cursor-pointer relative ${
+              className={`p-2 rounded-lg transition-colors cursor-pointer relative min-h-[40px] min-w-[40px] flex items-center justify-center ${
                 isBiometricEnabled
                   ? 'text-ob-green-300 hover:bg-white/10'
                   : 'text-white/60 hover:text-white hover:bg-white/10'
@@ -806,8 +810,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 setSettingsTab('HISTORY');
                 setIsSettingsOpen(true);
               }}
-              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
               title="Authentication History"
+              aria-label="Authentication History"
             >
               <History className="w-4 h-4 text-white" />
             </button>
@@ -816,8 +821,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onOpenShortcutsModal}
-                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
                 title="Keyboard Shortcuts (?)"
+                aria-label="Keyboard Shortcuts"
               >
                 <HelpCircle className="w-4 h-4" />
               </button>
@@ -841,8 +847,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onLogout}
-                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-rose-600/40 transition-colors cursor-pointer"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-white/90 hover:text-white bg-rose-500/25 hover:bg-rose-600 transition-colors cursor-pointer"
                 title="Log Out"
+                aria-label="Log Out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
