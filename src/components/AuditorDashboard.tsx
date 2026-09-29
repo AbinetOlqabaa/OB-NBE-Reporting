@@ -282,9 +282,9 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0D24] text-slate-900 dark:text-white transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-200">
       {/* Top Banner: Supervisory Status & Clearance */}
-      <div className="bg-white dark:bg-[#101438] border-b border-slate-200 dark:border-[#22284D] px-4 sm:px-6 py-4">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -325,8 +325,8 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
         </div>
 
         {/* Auditor KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-[#1E2348]">
-          <div className="p-3 bg-slate-50 dark:bg-[#141944] rounded-xl border border-slate-200/80 dark:border-[#22284D]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-800">
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reports in Queue</div>
             <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5">
               {kpis.totalReportsInQueue}
@@ -411,7 +411,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer touch-manipulation ${
                   isActive
                     ? 'bg-ob-indigo-600 text-white shadow-md'
-                    : 'bg-slate-100 dark:bg-[#161B48] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#202866]'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -439,7 +439,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
         {activeSubTab === 'WORK_QUEUE' && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="p-3 bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -447,7 +447,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="Search by report code, title, department, maker, or NBE ref..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full min-h-[44px] pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-ob-indigo-500 font-medium"
+                  className="w-full min-h-[44px] pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-ob-indigo-500 font-medium"
                 />
               </div>
 
@@ -455,7 +455,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 <select
                   value={deptFilter}
                   onChange={(e) => setDeptFilter(e.target.value)}
-                  className="min-h-[44px] px-3 py-2 text-xs bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
+                  className="min-h-[44px] px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
                 >
                   <option value="">All Departments (8)</option>
                   {DEPARTMENTS.map((d) => (
@@ -468,7 +468,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="min-h-[44px] px-3 py-2 text-xs bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
+                  className="min-h-[44px] px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
                 >
                   <option value="">All Submission States</option>
                   <option value="SENT">Delivered to NBE (SENT)</option>
@@ -495,10 +495,10 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
             </div>
 
             {/* Queue Table */}
-            <div className="bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto touch-scroll-x">
-                <table className="min-w-full divide-y divide-slate-200 dark:divide-[#22284D] text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-[#141944] text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="py-3 px-4">Statutory Return</th>
                       <th className="py-3 px-4">Department & Maker</th>
@@ -510,7 +510,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-[#1C214D]">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {workQueue.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-slate-400">
@@ -521,7 +521,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                       workQueue.map((item) => (
                         <tr
                           key={item.reportKey}
-                          className="hover:bg-slate-50 dark:hover:bg-[#141944]/60 transition-colors"
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                         >
                           <td className="py-3 px-4">
                             <div className="font-mono font-bold text-slate-900 dark:text-white">
@@ -639,7 +639,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
         {activeSubTab === 'REPORT_AUDIT' && (
           <div className="space-y-4">
             {/* Header info bar */}
-            <div className="p-4 bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs">
@@ -690,8 +690,8 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
             </div>
 
             {/* Read-Only Form Line Items Grid */}
-            <div className="bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm p-4 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#22284D]">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                     Statutory Field Values & Calculated Aggregates
@@ -711,7 +711,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   return (
                     <div
                       key={field.Code}
-                      className="p-3 bg-slate-50 dark:bg-[#141944] rounded-xl border border-slate-200/80 dark:border-[#22284D] space-y-1"
+                      className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1"
                     >
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-mono font-bold text-ob-indigo-600 dark:text-ob-indigo-400">
@@ -724,7 +724,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                       <div className="text-xs text-slate-600 dark:text-slate-300 font-medium truncate" title={field._description}>
                         {field._description}
                       </div>
-                      <div className="font-mono font-bold text-slate-900 dark:text-white text-sm bg-white dark:bg-[#101226] p-2 rounded-lg border border-slate-200 dark:border-[#2B3369]">
+                      <div className="font-mono font-bold text-slate-900 dark:text-white text-sm bg-white dark:bg-slate-950 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
                         {typeof val === 'number' ? val.toLocaleString() : (val ?? '-')}
                       </div>
                     </div>
@@ -734,11 +734,11 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
 
               {/* Dynamic Repeatable Schedule Areas if any */}
               {currentInspection.reportDefinition?.DynamicItemsList && currentInspection.reportDefinition.DynamicItemsList.length > 0 && (
-                <div className="pt-4 border-t border-slate-100 dark:border-[#22284D]">
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                   <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">
                     Dynamic Repeatable Schedules ({currentInspection.reportDefinition.DynamicItemsList.length} Areas)
                   </h4>
-                  <div className="p-3 bg-slate-50 dark:bg-[#141944] rounded-xl text-xs text-slate-600 dark:text-slate-300">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl text-xs text-slate-600 dark:text-slate-300">
                     Schedules inspected against core banking sub-ledger exports. Zero missing required rows.
                   </div>
                 </div>
@@ -749,7 +749,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
 
         {/* SUB-VIEW 3: WORKFLOW TIMELINE */}
         {activeSubTab === 'TIMELINE' && (
-          <div className="bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm p-4 sm:p-6 space-y-6">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sm:p-6 space-y-6">
             <div>
               <h3 className="font-bold text-base text-slate-900 dark:text-white">
                 Regulatory Submission Audit Trail & Lifecycle
@@ -759,7 +759,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
               </p>
             </div>
 
-            <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-[#2B3369]">
+            <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
               {/* Event 1: Creation */}
               <div className="relative">
                 <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">
@@ -834,7 +834,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     <span>5. National Bank of Ethiopia Delivery & Cryptographic Receipt</span>
                     <span className="text-[10px] text-slate-400 font-mono">2026-01-22 08:30 UTC</span>
                   </div>
-                  <div className="p-3 bg-slate-50 dark:bg-[#141944] rounded-xl border border-slate-200 dark:border-[#22284D] text-xs font-mono space-y-1">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-mono space-y-1">
                     <div>Receipt: NBE-REC-20260122-8841</div>
                     <div>Gateway: https://nbe.gov.et/api/v2/regulatory/gateway</div>
                     <div>SHA-256 Seal: OB-SEAL-8F12AC-20260122</div>
@@ -853,7 +853,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 <select
                   value={findingSeverityFilter}
                   onChange={(e) => setFindingSeverityFilter(e.target.value)}
-                  className="min-h-[44px] px-3 py-2 text-xs bg-white dark:bg-[#101438] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
+                  className="min-h-[44px] px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
                 >
                   <option value="">All Severities</option>
                   <option value="CRITICAL">Critical Severity</option>
@@ -866,7 +866,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 <select
                   value={findingStatusFilter}
                   onChange={(e) => setFindingStatusFilter(e.target.value)}
-                  className="min-h-[44px] px-3 py-2 text-xs bg-white dark:bg-[#101438] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
+                  className="min-h-[44px] px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
                 >
                   <option value="">All Statuses</option>
                   <option value="OPEN">Open</option>
@@ -889,14 +889,14 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
 
             <div className="space-y-3">
               {findings.length === 0 ? (
-                <div className="p-8 text-center bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] text-slate-400 text-xs">
+                <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
                   No audit findings match your selected filters.
                 </div>
               ) : (
                 findings.map((f) => (
                   <div
                     key={f.id}
-                    className="p-4 bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm space-y-3"
+                    className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -940,7 +940,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap pt-2 border-t border-slate-100 dark:border-[#1E2348]">
+                    <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap pt-2 border-t border-slate-100 dark:border-slate-800">
                       {f.regulatoryReference && (
                         <div>
                           <span className="font-semibold text-slate-700 dark:text-slate-300">Authority: </span>
@@ -1032,7 +1032,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
               {evidences.map((e) => (
                 <div
                   key={e.id}
-                  className="p-4 bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm space-y-3"
+                  className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-ob-indigo-600 dark:text-ob-indigo-400">
@@ -1049,7 +1049,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     <div className="text-xs text-slate-500 font-mono mt-0.5">{e.fileName}</div>
                   </div>
 
-                  <div className="p-2.5 bg-slate-50 dark:bg-[#141944] rounded-xl space-y-1 font-mono text-[10px]">
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl space-y-1 font-mono text-[10px]">
                     <div className="text-slate-500 truncate" title={e.sha256Checksum}>
                       SHA-256: {e.sha256Checksum}
                     </div>
@@ -1058,7 +1058,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-[#1E2348]">
+                  <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <span>Uploaded: {new Date(e.uploadedAt).toLocaleDateString()}</span>
                     <span>By: {e.uploadedBy}</span>
                   </div>
@@ -1094,7 +1094,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
               {workingNotes.map((note) => (
                 <div
                   key={note.id}
-                  className="p-4 bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm space-y-2"
+                  className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
@@ -1107,7 +1107,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-sans">
                     {note.content}
                   </p>
-                  <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-[#1E2348]">
+                  <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
                     Author: {note.authorName} • Return: {note.reportKey}
                   </div>
                 </div>
@@ -1142,7 +1142,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
               {remediations.map((rem) => (
                 <div
                   key={rem.id}
-                  className="p-4 bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm space-y-3"
+                  className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
@@ -1168,7 +1168,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-slate-50 dark:bg-[#141944] p-3 rounded-xl border border-slate-200/80 dark:border-[#22284D]">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
                     <div>
                       <span className="text-slate-400 block text-[10px]">Responsible Person</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">{rem.assignedTo}</span>
@@ -1184,7 +1184,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   </div>
 
                   {rem.remediationProof && (
-                    <div className="text-xs text-slate-500 bg-slate-100 dark:bg-[#12163B] p-2.5 rounded-lg">
+                    <div className="text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2.5 rounded-lg">
                       <span className="font-bold">Proof of Rectification: </span>
                       {rem.remediationProof}
                     </div>
@@ -1240,7 +1240,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
               {reportPackages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className="p-4 sm:p-5 bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] shadow-sm space-y-3"
+                  className="p-4 sm:p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
@@ -1262,7 +1262,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     {pkg.executiveSummary}
                   </p>
 
-                  <div className="p-3 bg-slate-50 dark:bg-[#141944] rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-4">
                       <div>
                         <span className="text-[10px] text-slate-400 block">Total Findings</span>
@@ -1303,8 +1303,8 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
       {/* MODAL 1: FILE AUDIT FINDING */}
       {isFindingModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] max-w-lg w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#22284D] pb-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-600" />
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">
@@ -1329,7 +1329,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="e.g. Schedule 2 Past-Due Classification Discrepancy"
                   value={newFindingTitle}
                   onChange={(e) => setNewFindingTitle(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
@@ -1341,7 +1341,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="Describe the discrepancy, affected records, and testing observation..."
                   value={newFindingDesc}
                   onChange={(e) => setNewFindingDesc(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
@@ -1351,7 +1351,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   <select
                     value={newFindingSeverity}
                     onChange={(e) => setNewFindingSeverity(e.target.value as AuditFindingSeverity)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
                   >
                     <option value="CRITICAL">CRITICAL (High Non-Compliance)</option>
                     <option value="HIGH">HIGH (Material Variance)</option>
@@ -1367,7 +1367,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     type="text"
                     value={newFindingCircular}
                     onChange={(e) => setNewFindingCircular(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                   />
                 </div>
               </div>
@@ -1380,7 +1380,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     placeholder="e.g. TOTAL_LOANS"
                     value={newFindingField}
                     onChange={(e) => setNewFindingField(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                   />
                 </div>
 
@@ -1391,12 +1391,12 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     placeholder="e.g. 5000000"
                     value={newFindingVariance}
                     onChange={(e) => setNewFindingVariance(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#22284D]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsFindingModalOpen(false)}
@@ -1419,8 +1419,8 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
       {/* MODAL 2: ATTACH EVIDENCE */}
       {isEvidenceModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#22284D] pb-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Attach Supporting Evidence ({selectedReportKey})
               </h3>
@@ -1442,7 +1442,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="e.g. Core Banking GL Provision Extract"
                   value={evidenceTitle}
                   onChange={(e) => setEvidenceTitle(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
@@ -1453,7 +1453,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="e.g. gl_extract_2026_q1.xlsx"
                   value={evidenceFileName}
                   onChange={(e) => setEvidenceFileName(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
@@ -1464,11 +1464,11 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="Audit verification procedures applied..."
                   value={evidenceNotes}
                   onChange={(e) => setEvidenceNotes(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#22284D]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsEvidenceModalOpen(false)}
@@ -1491,8 +1491,8 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
       {/* MODAL 3: WORKING NOTE */}
       {isNoteModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#22284D] pb-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Record Auditor Working Paper Note
               </h3>
@@ -1511,7 +1511,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 <select
                   value={noteCategory}
                   onChange={(e) => setNoteCategory(e.target.value as any)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
                 >
                   <option value="OBSERVATION">Audit Observation</option>
                   <option value="METHODOLOGY">Testing Methodology</option>
@@ -1528,11 +1528,11 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="Record confidential observation or working paper remarks..."
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#22284D]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsNoteModalOpen(false)}
@@ -1555,8 +1555,8 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
       {/* MODAL 4: REMEDIATION ACTION PLAN */}
       {isRemediationModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#101438] rounded-2xl border border-slate-200 dark:border-[#22284D] max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#22284D] pb-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Create Remediation Action Plan
               </h3>
@@ -1575,7 +1575,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 <select
                   value={remFindingId}
                   onChange={(e) => setRemFindingId(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
                 >
                   {findings.map((f) => (
                     <option key={f.id} value={f.id}>
@@ -1593,7 +1593,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   placeholder="Specify exact corrective steps required by the department..."
                   value={remActionPlan}
                   onChange={(e) => setRemActionPlan(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
@@ -1603,7 +1603,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   <select
                     value={remDept}
                     onChange={(e) => setRemDept(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
                   >
                     <option value="">Department</option>
                     {DEPARTMENTS.map((d) => (
@@ -1621,7 +1621,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                     placeholder="e.g. Dawit Bekele"
                     value={remAssignee}
                     onChange={(e) => setRemAssignee(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                   />
                 </div>
               </div>
@@ -1632,11 +1632,11 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                   type="date"
                   value={remTargetDate}
                   onChange={(e) => setRemTargetDate(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#161B48] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#22284D]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsRemediationModalOpen(false)}

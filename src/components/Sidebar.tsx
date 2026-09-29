@@ -300,9 +300,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
 
           {/* Drawer Content */}
-          <div className="relative w-72 max-w-[85vw] bg-[#121428] text-slate-300 flex flex-col justify-between h-full z-10 shadow-2xl border-r border-[#22284D] animate-in slide-in-from-left duration-200">
+          <div className="relative w-72 max-w-[85vw] bg-ob-blue-500 text-white flex flex-col justify-between h-full z-10 shadow-2xl border-r border-ob-blue-600/80 animate-in slide-in-from-left duration-200">
             {/* Drawer Header */}
-            <div className="p-4 border-b border-[#22284D] flex items-center justify-between">
+            <div className="p-4 border-b border-ob-blue-600/80 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="bg-white p-1 rounded-lg shrink-0">
                   <img
@@ -313,14 +313,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-white tracking-tight leading-tight">Oromia Bank</h3>
-                  <p className="text-[10px] text-slate-400 font-medium">Regulatory Portal</p>
+                  <p className="text-[10px] text-white/80 font-medium">Regulatory Portal</p>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={onCloseMobileDrawer}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 aria-label="Close navigation drawer"
               >
                 <X className="w-5 h-5" />
@@ -329,7 +329,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Drawer Navigation List */}
             <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1 touch-scroll-y">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-ob-indigo-300/80 px-2 py-1 block">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-white/75 px-2 py-1 block">
                 Workspaces & Services
               </span>
               <nav className="space-y-1">
@@ -345,23 +345,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onSelectTab(item.id);
                         if (onCloseMobileDrawer) onCloseMobileDrawer();
                       }}
-                      className={`w-full min-h-[48px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all touch-manipulation touch-press ${
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all touch-manipulation touch-press cursor-pointer ${
                         isActive
-                          ? 'bg-ob-indigo-600 text-white font-bold shadow-md shadow-ob-indigo-950/50'
-                          : 'text-slate-300 hover:text-white hover:bg-white/5 font-semibold text-xs'
+                          ? 'bg-ob-blue-800 text-white font-bold shadow-md ring-1 ring-white/30'
+                          : 'text-white/85 hover:text-white hover:bg-white/10 font-semibold text-xs'
                       }`}
                     >
-                      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-ob-indigo-300'}`} />
+                      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-white/80'}`} />
                       <div className="flex-1 truncate">
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-xs">{item.label}</span>
                           {item.badge && item.badge > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white font-mono text-[9px] font-bold">
+                            <span className="px-1.5 py-0.2 rounded-full bg-ob-green-500 text-slate-950 font-mono text-[9px] font-bold shadow-xs">
                               {item.badge}
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-400 font-normal block truncate">
+                        <span className={`text-[10px] font-normal block truncate ${isActive ? 'text-ob-blue-100' : 'text-white/70'}`}>
                           {item.description}
                         </span>
                       </div>
@@ -372,13 +372,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Drawer Footer User Settings & Profile */}
-            <div className="p-4 border-t border-[#22284D] bg-[#0E1020] space-y-3 pb-safe">
+            <div className="p-4 border-t border-ob-blue-600/80 bg-ob-blue-600/30 space-y-3 pb-safe">
               {/* User Settings: Biometric Login Toggle */}
-              <div className="p-2.5 rounded-xl bg-black/40 border border-[#262D55] space-y-2">
+              <div className="p-2.5 rounded-xl bg-ob-blue-800/60 border border-white/20 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <Fingerprint className="w-3.5 h-3.5 text-ob-green-400" />
-                    <span className="text-[11px] font-bold text-slate-200">Biometric Login</span>
+                    <Fingerprint className="w-3.5 h-3.5 text-ob-green-300" />
+                    <span className="text-[11px] font-bold text-white">Biometric Login</span>
                   </div>
 
                   {/* Toggle Switch */}
@@ -388,7 +388,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     aria-checked={isBiometricEnabled}
                     onClick={handleToggleBiometric}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-ob-green-400 touch-press ${
-                      isBiometricEnabled ? 'bg-emerald-600' : 'bg-slate-700'
+                      isBiometricEnabled ? 'bg-ob-green-500' : 'bg-ob-blue-900'
                     }`}
                     title={
                       isBiometricEnabled
@@ -406,7 +406,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 </div>
 
-                <p className="text-[10px] text-slate-400 leading-tight">
+                <p className="text-[10px] text-white/80 leading-tight">
                   {isBiometricEnabled
                     ? 'Hardware authentication active for one-touch sign-in.'
                     : 'Disabled. Password will be required on sign-in.'}
@@ -414,11 +414,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Hardware Readiness Status Badges */}
                 {isBiometricEnabled && deviceCaps && (
-                  <div className="pt-1.5 border-t border-[#22284D]/60 flex items-center justify-between text-[9px] text-slate-400">
+                  <div className="pt-1.5 border-t border-white/15 flex items-center justify-between text-[9px] text-white/80">
                     <div className="flex items-center gap-1">
                       <span
                         className={`w-1.5 h-1.5 rounded-full ${
-                          deviceCaps.isFingerprintSupported ? 'bg-emerald-400' : 'bg-slate-500'
+                          deviceCaps.isFingerprintSupported ? 'bg-ob-green-400' : 'bg-white/40'
                         }`}
                       />
                       <span>Fingerprint: {deviceCaps.isFingerprintSupported ? 'Ready' : 'Unavailable'}</span>
@@ -427,10 +427,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span
                         className={`w-1.5 h-1.5 rounded-full ${
                           deviceCaps.cameraStatus.statusLevel === 'PERMISSION_DENIED'
-                            ? 'bg-rose-400'
+                            ? 'bg-rose-300'
                             : deviceCaps.isCameraSupported
-                            ? 'bg-teal-400'
-                            : 'bg-slate-500'
+                            ? 'bg-ob-green-300'
+                            : 'bg-white/40'
                         }`}
                       />
                       <span>
@@ -446,13 +446,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-black/30 border border-[#262D55]">
+              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-ob-blue-800/60 border border-white/20">
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
-                  <div className="text-[10px] text-ob-green-400 font-mono flex items-center gap-1">
+                  <div className="text-[10px] text-ob-green-300 font-mono flex items-center gap-1">
                     <span>{currentUser.role}</span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-slate-400 truncate">{currentUser.department || 'Oromia Bank'}</span>
+                    <span className="text-white/40">•</span>
+                    <span className="text-white/80 truncate">{currentUser.department || 'Oromia Bank'}</span>
                   </div>
                 </div>
               </div>
@@ -465,10 +465,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setSettingsTab('HISTORY');
                     setIsSettingsOpen(true);
                   }}
-                  className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors"
+                  className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
                   title="View hardware authentication audit history"
                 >
-                  <History className="w-3.5 h-3.5 text-ob-indigo-400" />
+                  <History className="w-3.5 h-3.5 text-ob-green-300" />
                   <span>Auth History</span>
                 </button>
                 <button
@@ -477,10 +477,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setSettingsTab('SETTINGS');
                     setIsSettingsOpen(true);
                   }}
-                  className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors"
+                  className="min-h-[40px] flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
                   title="Configure biometric preferences"
                 >
-                  <Sliders className="w-3.5 h-3.5 text-ob-green-400" />
+                  <Sliders className="w-3.5 h-3.5 text-ob-green-300" />
                   <span>Settings</span>
                 </button>
               </div>
@@ -492,7 +492,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     if (onCloseMobileDrawer) onCloseMobileDrawer();
                     onLogout();
                   }}
-                  className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/30 hover:bg-rose-900/60 border border-rose-900/50 transition-colors touch-press"
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-rose-500/25 hover:bg-rose-600 border border-rose-300/40 hover:border-rose-600 transition-colors touch-press cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Out</span>
@@ -505,7 +505,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Desktop / Tablet Sidebar (Hidden on Mobile phones < 768px) */}
       <aside
-        className={`hidden md:flex bg-[#121428] text-slate-300 flex-col justify-between shrink-0 h-full transition-all duration-300 ease-in-out border-r border-[#22284D] z-20 ${
+        className={`hidden md:flex bg-ob-blue-500 text-white flex-col justify-between shrink-0 h-full transition-all duration-300 ease-in-out border-r border-ob-blue-600/80 z-20 ${
           isCollapsed ? 'w-16' : 'w-64'
         }`}
       >
@@ -518,14 +518,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }`}
         >
           {!isCollapsed && (
-            <span className="text-[10px] uppercase font-bold tracking-wider text-ob-indigo-300/80">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-white/80">
               Role Navigation
             </span>
           )}
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors focus:outline-none cursor-pointer"
             title={
               isCollapsed
                 ? 'Expand sidebar (Ctrl+B)'
@@ -534,9 +534,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? (
-              <PanelLeftOpen className="w-4 h-4 text-ob-indigo-300" />
+              <PanelLeftOpen className="w-4 h-4 text-white" />
             ) : (
-              <PanelLeftClose className="w-4 h-4 text-slate-400" />
+              <PanelLeftClose className="w-4 h-4 text-white/80 hover:text-white" />
             )}
           </button>
         </div>
@@ -552,20 +552,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.id}
                 type="button"
                 onClick={() => onSelectTab(item.id)}
-                className={`w-full flex items-center transition-all rounded-xl text-left relative group ${
+                className={`w-full flex items-center transition-all rounded-xl text-left relative group cursor-pointer ${
                   isCollapsed
                     ? 'justify-center p-2.5'
                     : 'gap-3 px-3 py-2 text-xs font-semibold'
                 } ${
                   isActive
-                    ? 'bg-ob-indigo-600 text-white shadow-md shadow-ob-indigo-950/50 ring-1 ring-ob-indigo-400/40'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-ob-blue-800 text-white shadow-md ring-1 ring-white/30'
+                    : 'text-white/85 hover:text-white hover:bg-white/10'
                 }`}
                 title={isCollapsed ? `${item.label} - ${item.description}` : undefined}
               >
                 <Icon
                   className={`w-4 h-4 shrink-0 transition-transform ${
-                    isActive ? 'text-white' : 'text-ob-indigo-300/80 group-hover:text-white'
+                    isActive ? 'text-white' : 'text-white/80 group-hover:text-white'
                   }`}
                 />
 
@@ -575,15 +575,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span>{item.label}</span>
                       <kbd className={`text-[9px] font-mono px-1 py-0.2 rounded border ${
                         isActive
-                          ? 'bg-ob-indigo-700/80 border-ob-indigo-500 text-ob-indigo-100'
-                          : 'bg-black/40 border-[#2B3369] text-slate-500 opacity-60 group-hover:opacity-100'
+                          ? 'bg-ob-blue-900 border-ob-blue-400 text-white'
+                          : 'bg-black/20 border-white/20 text-white/80 opacity-75 group-hover:opacity-100'
                       }`}>
                         {item.shortcut}
                       </kbd>
                     </div>
                     <div
                       className={`text-[10px] font-normal truncate ${
-                        isActive ? 'text-ob-indigo-100' : 'text-slate-500'
+                        isActive ? 'text-ob-blue-100' : 'text-white/70 group-hover:text-white/90'
                       }`}
                     >
                       {item.description}
@@ -596,7 +596,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span
                     className={`shrink-0 font-mono font-bold rounded-full ${
                       isCollapsed
-                        ? 'absolute top-1.5 right-1.5 w-2 h-2 p-0 bg-ob-green-400 ring-2 ring-[#121428]'
+                        ? 'absolute top-1.5 right-1.5 w-2 h-2 p-0 bg-ob-green-500 ring-2 ring-ob-blue-600'
                         : 'px-1.5 py-0.2 text-[10px] bg-ob-green-500 text-slate-950 shadow-xs'
                     }`}
                   >
@@ -610,7 +610,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Bottom Profile / Entity / Logout Area */}
-      <div className={`p-3 border-t border-[#22284D] shrink-0 ${isCollapsed ? 'text-center' : ''}`}>
+      <div className={`p-3 border-t border-ob-blue-600/80 shrink-0 ${isCollapsed ? 'text-center' : ''}`}>
         {!isCollapsed ? (
           <div className="space-y-2">
             {/* Quick Helper Buttons */}
@@ -619,12 +619,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={onOpenCommandPalette}
-                  className="flex items-center justify-center gap-1 p-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors cursor-pointer"
+                  className="flex items-center justify-center gap-1 p-1.5 rounded-lg text-[11px] font-medium text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
                   title={`Command Palette (${modKey}+K)`}
                 >
-                  <Search className="w-3 h-3 text-ob-indigo-300" />
+                  <Search className="w-3 h-3 text-ob-green-300" />
                   <span>Search</span>
-                  <kbd className="text-[9px] font-mono opacity-60 ml-0.5">{modKey}+K</kbd>
+                  <kbd className="text-[9px] font-mono opacity-80 ml-0.5">{modKey}+K</kbd>
                 </button>
               )}
 
@@ -632,22 +632,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={onOpenShortcutsModal}
-                  className="flex items-center justify-center gap-1 p-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors cursor-pointer"
+                  className="flex items-center justify-center gap-1 p-1.5 rounded-lg text-[11px] font-medium text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
                   title="Keyboard Shortcuts (?)"
                 >
-                  <HelpCircle className="w-3 h-3 text-ob-green-400" />
+                  <HelpCircle className="w-3 h-3 text-ob-green-300" />
                   <span>Hotkeys</span>
-                  <kbd className="text-[9px] font-mono opacity-60 ml-0.5">?</kbd>
+                  <kbd className="text-[9px] font-mono opacity-80 ml-0.5">?</kbd>
                 </button>
               )}
             </div>
 
             {/* User Settings: Biometric Login Toggle Switch */}
-            <div className="p-2.5 rounded-xl bg-black/40 border border-[#262D55] space-y-2">
+            <div className="p-2.5 rounded-xl bg-ob-blue-800/60 border border-white/20 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <Fingerprint className="w-3.5 h-3.5 text-ob-green-400" />
-                  <span className="text-[11px] font-bold text-slate-200">Biometric Login</span>
+                  <Fingerprint className="w-3.5 h-3.5 text-ob-green-300" />
+                  <span className="text-[11px] font-bold text-white">Biometric Login</span>
                 </div>
 
                 {/* Toggle Switch */}
@@ -657,7 +657,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   aria-checked={isBiometricEnabled}
                   onClick={handleToggleBiometric}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-ob-green-400 touch-press ${
-                    isBiometricEnabled ? 'bg-emerald-600' : 'bg-slate-700'
+                    isBiometricEnabled ? 'bg-ob-green-500' : 'bg-ob-blue-900'
                   }`}
                   title={
                     isBiometricEnabled
@@ -675,7 +675,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </div>
 
-              <p className="text-[10px] text-slate-400 leading-tight">
+              <p className="text-[10px] text-white/80 leading-tight">
                 {isBiometricEnabled
                   ? 'Hardware authentication active for one-touch sign-in.'
                   : 'Disabled. Password will be required on sign-in.'}
@@ -683,11 +683,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Hardware Readiness Status Badges */}
               {isBiometricEnabled && deviceCaps && (
-                <div className="pt-1.5 border-t border-[#22284D]/60 flex items-center justify-between text-[9px] text-slate-400">
+                <div className="pt-1.5 border-t border-white/15 flex items-center justify-between text-[9px] text-white/80">
                   <div className="flex items-center gap-1">
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
-                        deviceCaps.isFingerprintSupported ? 'bg-emerald-400' : 'bg-slate-500'
+                        deviceCaps.isFingerprintSupported ? 'bg-ob-green-400' : 'bg-white/40'
                       }`}
                     />
                     <span>Fingerprint: {deviceCaps.isFingerprintSupported ? 'Ready' : 'Unavailable'}</span>
@@ -696,10 +696,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
                         deviceCaps.cameraStatus.statusLevel === 'PERMISSION_DENIED'
-                          ? 'bg-rose-400'
+                          ? 'bg-rose-300'
                           : deviceCaps.isCameraSupported
-                          ? 'bg-teal-400'
-                          : 'bg-slate-500'
+                          ? 'bg-ob-green-300'
+                          : 'bg-white/40'
                       }`}
                     />
                     <span>
@@ -715,7 +715,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-black/30 border border-[#262D55]">
+            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-ob-blue-800/60 border border-white/20">
               <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shrink-0 shadow-xs">
                 <img
                   src="/brand/oromia-logo-mark-transparent.png"
@@ -725,10 +725,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
-                <div className="text-[10px] text-ob-green-400 font-mono flex items-center gap-1">
+                <div className="text-[10px] text-ob-green-300 font-mono flex items-center gap-1">
                   <span>{currentUser.role}</span>
-                  <span className="text-slate-600">•</span>
-                  <span className="text-slate-400 truncate">{currentUser.institutionCode}</span>
+                  <span className="text-white/40">•</span>
+                  <span className="text-white/80 truncate">{currentUser.institutionCode}</span>
                 </div>
               </div>
             </div>
@@ -741,10 +741,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setSettingsTab('HISTORY');
                   setIsSettingsOpen(true);
                 }}
-                className="min-h-[36px] flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors cursor-pointer"
+                className="min-h-[36px] flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
                 title="View hardware authentication audit history"
               >
-                <History className="w-3.5 h-3.5 text-ob-indigo-400" />
+                <History className="w-3.5 h-3.5 text-ob-green-300" />
                 <span>Auth History</span>
               </button>
               <button
@@ -753,10 +753,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   setSettingsTab('SETTINGS');
                   setIsSettingsOpen(true);
                 }}
-                className="min-h-[36px] flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[#2B3369] transition-colors cursor-pointer"
+                className="min-h-[36px] flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-colors cursor-pointer"
                 title="Configure biometric preferences"
               >
-                <Sliders className="w-3.5 h-3.5 text-ob-green-400" />
+                <Sliders className="w-3.5 h-3.5 text-ob-green-300" />
                 <span>Settings</span>
               </button>
             </div>
@@ -765,7 +765,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onLogout}
-                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-rose-300 hover:bg-rose-950/40 border border-[#22284D] hover:border-rose-900 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-rose-500/25 hover:bg-rose-600 border border-rose-300/40 hover:border-rose-600 transition-colors cursor-pointer"
                 title="Log out of OB Regulatory Platform"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -781,8 +781,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={handleToggleBiometric}
               className={`p-2 rounded-lg transition-colors cursor-pointer relative ${
                 isBiometricEnabled
-                  ? 'text-ob-green-400 hover:bg-white/10'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                  ? 'text-ob-green-300 hover:bg-white/10'
+                  : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
               title={`Biometric Login: ${
                 isBiometricEnabled ? 'Enabled' : 'Disabled'
@@ -793,8 +793,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span
                 className={`absolute top-1 right-1 w-2 h-2 rounded-full ${
                   isBiometricEnabled
-                    ? 'bg-emerald-400 ring-1 ring-[#121428]'
-                    : 'bg-slate-600'
+                    ? 'bg-ob-green-400 ring-1 ring-ob-blue-700'
+                    : 'bg-white/40'
                 }`}
               />
             </button>
@@ -806,17 +806,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 setSettingsTab('HISTORY');
                 setIsSettingsOpen(true);
               }}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               title="Authentication History"
             >
-              <History className="w-4 h-4 text-ob-indigo-400" />
+              <History className="w-4 h-4 text-white" />
             </button>
 
             {onOpenShortcutsModal && (
               <button
                 type="button"
                 onClick={onOpenShortcutsModal}
-                className="p-2 rounded-lg text-slate-400 hover:text-ob-green-300 hover:bg-white/5 transition-colors cursor-pointer"
+                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title="Keyboard Shortcuts (?)"
               >
                 <HelpCircle className="w-4 h-4" />
@@ -841,7 +841,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onLogout}
-                className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+                className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-rose-600/40 transition-colors cursor-pointer"
                 title="Log Out"
               >
                 <LogOut className="w-4 h-4" />

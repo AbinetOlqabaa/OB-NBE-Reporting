@@ -41,7 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigateToSimulator,
 }) => {
   return (
-    <header className="h-14 sm:h-16 bg-white dark:bg-[#121428] border-b border-slate-200 dark:border-[#22284D] px-2.5 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-2xs shrink-0 select-none transition-colors">
+    <header className="h-14 sm:h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-2.5 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-2xs shrink-0 select-none transition-colors">
       {/* Zone 1: Sidebar / Drawer Toggle + Official Oromia Bank Brand */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {onToggleSidebar && (

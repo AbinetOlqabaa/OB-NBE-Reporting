@@ -4,6 +4,34 @@ All notable changes and engineering enhancements for the Oromia Bank NBE Regulat
 
 ---
 
+## [1.5.0-phase1-visual-design-system] - 2026-09-29
+
+### Added
+- **Centralized Design System Tokens (`src/styles/designTokens.ts`)**:
+  - Authoritative OB primary green codified as `#8CC51F` with calibrated tonal scales (50–950).
+  - Authoritative OB primary blue codified as `#5962AB` with calibrated tonal scales (50–950).
+  - Documented requested color `#5863AC` with exact 1-RGB-point delta analysis against official logo assets.
+  - Standardized surface, border, text, typography, semantic feedback, and sidebar token configurations.
+- **CSS Variables & Tailwind v4 Theme Tokens (`src/index.css`)**:
+  - Configured `:root` and `.dark` variables (`--ob-primary-green`, `--ob-primary-blue`, `--ob-sidebar-bg`, `--ob-sidebar-border`, `--ob-sidebar-text`, `--ob-sidebar-active-bg`, `--ob-sidebar-badge-bg`).
+  - Added `--color-ob-blue` alongside `--color-ob-indigo` for 100% backward compatibility.
+  - Standardized `--color-ob-green` to `#8CC51F`.
+- **Automated Test Suite for Design System & Colors (`src/tests/design-system-and-colors.test.ts`)**:
+  - Added 5 test sections validating color values, token mapping, sidebar container classes, visual consistency, and WCAG AA/AAA contrast ratios.
+  - Integrated into `src/tests/run-all-tests.ts` (10 comprehensive test suites, 100% pass).
+
+### Changed
+- **Dashboard Sidebar Visual Transformation (`src/components/Sidebar.tsx`)**:
+  - Replaced the dark/black background (`#121428`) with the authoritative OB Blue (`bg-ob-blue-500`, `#5962AB`) across both the desktop sidebar and the responsive mobile slide-out drawer.
+  - Automatically propagated across all authenticated dashboards (Admin, Maker, Checker, Auditor, NBE Simulator, SSOT Lakehouse, Audit Trail, and System Health).
+  - Enhanced contrast: navigation text in high-legibility white ($6.0:1$), active item in deep blue `#2C3161` ($12.5:1$), and notification badges in authoritative OB green `#8CC51F` ($10.5:1$).
+- **Application-Wide Color Standardization**:
+  - Standardized `AuditorDashboard.tsx` by eliminating isolated dark hex palettes (`#101438`, `#141944`, `#161B48`, `#202866`, `#101226`, `#22284D`, `#2B3369`) and unifying with shared tokens.
+  - Standardized `Navbar.tsx`, `BottomNavigation.tsx`, `MobileBottomNav.tsx`, `LoginPage.tsx`, `RegisterPage.tsx`, `ResetPasswordModal.tsx`, `ReportVersionHistoryModal.tsx`, and `ThemeToggle.tsx`.
+  - Updated PDF generators (`src/utils/pdfReportGenerator.ts` and `src/utils/pdfGenerator.ts`) to use `#8CC51F` (`[140, 197, 31]`).
+
+---
+
 ## [1.4.0-auditor-first-class-role] - 2026-09-29
 
 ### Added

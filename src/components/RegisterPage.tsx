@@ -412,13 +412,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col justify-between overflow-y-auto bg-slate-50 dark:bg-[#0D0F1F] relative font-sans text-slate-900 dark:text-slate-100 selection:bg-ob-indigo-600 selection:text-white transition-colors">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col justify-between overflow-y-auto bg-slate-50 dark:bg-slate-950 relative font-sans text-slate-900 dark:text-slate-100 selection:bg-ob-indigo-600 selection:text-white transition-colors">
       {/* Background Accents */}
       <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-ob-indigo-500/10 dark:bg-ob-indigo-600/15 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32"></div>
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-ob-green-500/10 dark:bg-ob-green-500/10 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32"></div>
 
       {/* Top Header */}
-      <header className="px-3.5 sm:px-8 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-slate-200 dark:border-[#22284D] bg-white/90 dark:bg-[#121428]/90 backdrop-blur-md sticky top-0 z-20 shrink-0 transition-colors">
+      <header className="px-3.5 sm:px-8 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-20 shrink-0 transition-colors">
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
           <div className="h-8 sm:h-10 bg-white/95 dark:bg-white/90 px-2 py-1 rounded-xl shadow-xs border border-slate-200 dark:border-white/20 flex items-center justify-center shrink-0">
             <img
@@ -449,7 +449,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
           <button
             type="button"
             onClick={onNavigateLogin}
-            className="flex items-center gap-1.5 min-h-[40px] px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#1B2042] hover:bg-slate-200 dark:hover:bg-[#252C5C] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2B3369] text-xs font-semibold transition-colors cursor-pointer touch-press"
+            className="flex items-center gap-1.5 min-h-[40px] px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold transition-colors cursor-pointer touch-press"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Back to Login</span>
@@ -462,7 +462,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
       {/* Main Registration Form Viewport */}
       <main className="flex-1 flex items-center justify-center p-3.5 sm:p-6 py-6 sm:py-8 relative z-10 w-full max-w-xl mx-auto">
-        <div className="w-full bg-white dark:bg-[#161933]/95 border border-slate-200 dark:border-[#262D55] rounded-2xl p-4 sm:p-7 shadow-xl dark:shadow-2xl backdrop-blur-md space-y-4 transition-colors">
+        <div className="w-full bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-7 shadow-xl dark:shadow-2xl backdrop-blur-md space-y-4 transition-colors">
           {step === 'SUCCESS' && createdUserSummary ? (
             /* Success Approval State Screen */
             <div className="text-center space-y-4 py-2">
@@ -480,7 +480,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
               </div>
 
               {/* Summary Pill */}
-              <div className="bg-slate-50 dark:bg-[#101226]/80 border border-slate-200 dark:border-[#22284D] rounded-xl p-3 sm:p-4 text-left space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-4 text-left space-y-2 text-xs text-slate-600 dark:text-slate-300">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Full Name:</span>
                   <span className="font-bold text-slate-900 dark:text-white truncate">{createdUserSummary.name}</span>
@@ -520,7 +520,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateLogin}
-                  className="flex-1 min-h-[44px] py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-[#1B2042] dark:hover:bg-[#252C5C] text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-[#2B3369] transition-colors flex items-center justify-center gap-1.5 cursor-pointer touch-press"
+                  className="flex-1 min-h-[44px] py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer touch-press"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Return to Sign In</span>
@@ -598,7 +598,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                     placeholder="Enter 6-digit code or 123456"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
-                    className="w-full min-h-[46px] px-3 py-2 text-center text-lg sm:text-xl font-mono tracking-widest bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-bold"
+                    className="w-full min-h-[46px] px-3 py-2 text-center text-lg sm:text-xl font-mono tracking-widest bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-bold"
                   />
                 </div>
 
@@ -624,7 +624,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                       setStep('FORM');
                       setErrorMessage(null);
                     }}
-                    className="flex-1 min-h-[44px] py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-[#1B2042] dark:hover:bg-[#252C5C] text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-[#2B3369] transition-colors cursor-pointer touch-press"
+                    className="flex-1 min-h-[44px] py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer touch-press"
                   >
                     Back to Edit Info
                   </button>
@@ -674,7 +674,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         placeholder="e.g. Tolera Bekele"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full min-h-[44px] pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
+                        className="w-full min-h-[44px] pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
                       />
                     </div>
                   </div>
@@ -691,7 +691,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         placeholder="t.bekele@oromiabank.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full min-h-[44px] pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
+                        className="w-full min-h-[44px] pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
                       />
                     </div>
                   </div>
@@ -707,7 +707,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                       placeholder="e.g. OB-8841"
                       value={employeeId}
                       onChange={(e) => setEmployeeId(e.target.value)}
-                      className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
+                      className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
                     />
                   </div>
 
@@ -718,7 +718,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value as UserRole)}
-                      className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium cursor-pointer"
+                      className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium cursor-pointer"
                     >
                       <option value="MAKER">Maker (Fills reports & delivers to NBE)</option>
                       <option value="CHECKER">Checker (4-Eyes verification & sign-off)</option>
@@ -728,7 +728,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                 </div>
 
                 {role === 'AUDITOR' && (
-                  <div className="p-3 bg-amber-50/80 dark:bg-[#1A1833] border border-amber-200 dark:border-amber-900/60 rounded-xl space-y-2 text-xs">
+                  <div className="p-3 bg-amber-50/80 dark:bg-slate-800 border border-amber-200 dark:border-amber-900/60 rounded-xl space-y-2 text-xs">
                     <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
                       <ShieldAlert className="w-4 h-4 text-amber-600" />
                       <span>Auditor Registration Request & Permission Boundary</span>
@@ -744,7 +744,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                       <select
                         value={auditScope}
                         onChange={(e) => setAuditScope(e.target.value)}
-                        className="w-full min-h-[40px] px-3 py-1.5 bg-white dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-lg text-slate-900 dark:text-white font-medium cursor-pointer"
+                        className="w-full min-h-[40px] px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-medium cursor-pointer"
                       >
                         <option value="ALL_DEPARTMENTS">Enterprise-Wide (All 8 Bank Departments)</option>
                         <option value="CREDIT_AND_RISK">Credit & Risk Directorates</option>
@@ -762,7 +762,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         placeholder="e.g. Conduct NBE Directive BSD/03/2020 annual compliance review and audit assurance..."
                         value={auditorJustification}
                         onChange={(e) => setAuditorJustification(e.target.value)}
-                        className="w-full p-2 bg-white dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-lg text-slate-900 dark:text-white font-medium"
+                        className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-medium"
                       />
                     </div>
                   </div>
@@ -780,7 +780,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium cursor-pointer"
+                    className="w-full min-h-[44px] px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium cursor-pointer"
                   >
                     {departmentsList.map((dept) => (
                       <option key={dept.id} value={dept.name} className="dark:bg-slate-900 py-1">
@@ -804,7 +804,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full min-h-[44px] pl-9 pr-10 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
+                        className="w-full min-h-[44px] pl-9 pr-10 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
                       />
                       <button
                         type="button"
@@ -830,7 +830,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         placeholder="••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full min-h-[44px] pl-9 pr-10 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-[#101226]/90 border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
+                        className="w-full min-h-[44px] pl-9 pr-10 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-ob-indigo-500 dark:focus:border-ob-indigo-400 transition-colors font-medium"
                       />
                       <button
                         type="button"
@@ -847,7 +847,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
                 {/* Biometric Passkey Enrollment Option & Hardware Signals */}
                 {isCheckingHardware ? (
-                  <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-[#101226]/60 border border-slate-200 dark:border-[#22284D] text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2 animate-pulse">
+                  <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2 animate-pulse">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-ob-indigo-500" />
                     <span>Checking device hardware capabilities...</span>
                   </div>
@@ -911,7 +911,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                   </div>
                 ) : (
                   /* Standard Credentials Fallback: All 'Register Fingerprint' prompts removed */
-                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#101226]/80 border border-slate-200 dark:border-[#22284D] text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2.5">
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2.5">
                     <Lock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                     <div>
                       <span className="font-semibold text-slate-800 dark:text-slate-200 block">
@@ -934,7 +934,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                 </button>
               </form>
 
-              <div className="pt-2.5 border-t border-slate-200 dark:border-[#22284D] text-center">
+              <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 text-center">
                 <button
                   type="button"
                   onClick={onNavigateLogin}
@@ -998,7 +998,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="px-4 sm:px-6 py-3 border-t border-slate-200 dark:border-[#22284D] bg-white/90 dark:bg-[#121428]/90 text-center text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs relative z-10 flex flex-col sm:flex-row items-center justify-between gap-1 shrink-0 transition-colors pb-safe">
+      <footer className="px-4 sm:px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 text-center text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs relative z-10 flex flex-col sm:flex-row items-center justify-between gap-1 shrink-0 transition-colors pb-safe">
         <div>
           © 2026 Oromia Bank S.C. All rights reserved.
         </div>

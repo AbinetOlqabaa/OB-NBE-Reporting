@@ -770,7 +770,7 @@ export default function App() {
           className="fixed bottom-5 right-4 sm:right-6 z-50 max-w-sm sm:max-w-md w-full animate-in fade-in slide-in-from-bottom-3 duration-300 pointer-events-auto"
         >
           {toastNotification.type === 'hardware' ? (
-            <div className="bg-[#121428]/95 dark:bg-[#0E1022]/98 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-emerald-500/40 ring-1 ring-emerald-500/20 relative overflow-hidden transition-all">
+            <div className="bg-slate-900/95 dark:bg-slate-950/98 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-emerald-500/40 ring-1 ring-emerald-500/20 relative overflow-hidden transition-all">
               {/* Subtle ambient decorative accents */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-ob-indigo-500/10 rounded-full blur-xl pointer-events-none -ml-8 -mb-8" />
@@ -781,7 +781,7 @@ export default function App() {
                   {toastNotification.iconType === 'dual' ? (
                     <div className="relative flex items-center justify-center">
                       <Fingerprint className="w-5 h-5 text-emerald-400" />
-                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#121428]" />
+                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
                     </div>
                   ) : toastNotification.iconType === 'camera' ? (
                     <Camera className="w-5 h-5 text-emerald-400" />
@@ -838,7 +838,7 @@ export default function App() {
             </div>
           ) : (
             /* Standard toast */
-            <div className="bg-[#121428] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl border border-ob-indigo-800/80 flex items-center gap-2 justify-between">
+            <div className="bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl border border-ob-indigo-800/80 flex items-center gap-2 justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-ob-green-400 animate-pulse" />
                 <span>{toastNotification.message}</span>
