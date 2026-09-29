@@ -13,6 +13,7 @@
 | **ISS-003** | Checker delivery segregation test threw unhandled promise rejection. | `deliverToNBE` is an asynchronous method returning a Promise, but was invoked synchronously in test catch block. | Made test function `async` and awaited `submissionService.deliverToNBE(...)`. | Passed. |
 | **ISS-004** | Ingestion pipeline automated report generation assigned non-Maker user. | `DEMO_USERS[3]` (Checker) was referenced instead of an authorized department Maker. | Updated `generateReportFromSSOT` to dynamically select the authorized department Maker or issue an audited Special Access grant. | Passed. |
 | **ISS-005** | Missing `nbeReferenceNumber` property on `ReportSubmission` type. | Interface omitted optional NBE receipt reference. | Added `nbeReferenceNumber?: string` to `ReportSubmission` in `src/types/regulatory.ts`. | `lint_applet` passed with 0 errors. |
+| **ISS-006** | Cloud Run service failed to start on deployment rollout. | Node 22 native type-stripping loader threw `SyntaxError: The requested module '../data/organizationHierarchy.ts' does not provide an export named 'DepartmentDefinition'` when the TypeScript interface was imported without the `type` modifier. | Changed to `import { type DepartmentDefinition, ... }` in `src/services/departmentService.ts` and updated `vite.config.ts` to use `import.meta.dirname`. | Node production server boots cleanly on port 3000/PORT and responds 200 OK to `/api/health`. |
 
 ---
 

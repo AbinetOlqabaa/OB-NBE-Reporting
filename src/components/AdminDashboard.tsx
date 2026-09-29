@@ -513,7 +513,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* 2. Top Metrics Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 shrink-0">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 shadow-2xs flex items-center justify-between transition-colors">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-ob-indigo-700 dark:text-ob-indigo-400 block">NBE Returns</span>
@@ -755,7 +755,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
+              <div className="overflow-x-auto min-w-full touch-scroll-x">
+                <table className="min-w-[700px] w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                     <th className="py-2.5 px-3">Return Code</th>
@@ -811,7 +812,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   })}
                 </tbody>
               </table>
-            )}
+            </div>
+          )}
           </div>
 
           <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
@@ -952,7 +954,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs">
+              <div className="overflow-x-auto min-w-full touch-scroll-x">
+                <table className="min-w-[650px] w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                     <th className="py-2 px-3">Applicant Name & Email</th>
@@ -992,7 +995,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   ))}
                 </tbody>
               </table>
-            )}
+            </div>
+          )}
           </div>
 
           <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850">
@@ -1012,7 +1016,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeSubTab === 'ALL_USERS' && (
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
           <div className="flex-1 min-h-0 overflow-y-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <div className="overflow-x-auto min-w-full touch-scroll-x">
+              <table className="min-w-[650px] w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                   <th className="py-2 px-3">User & Email</th>
@@ -1095,6 +1100,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850">
@@ -1276,8 +1282,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 10. Grant Special Access Modal */}
       {isGrantModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 flex items-center justify-center border border-amber-200 dark:border-amber-800">

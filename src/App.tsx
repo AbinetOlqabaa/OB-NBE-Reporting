@@ -563,7 +563,7 @@ export default function App() {
     : null;
 
   return (
-    <div className="h-[100dvh] max-h-[100dvh] w-screen overflow-hidden flex flex-col font-sans bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-ob-indigo-600 selection:text-white transition-colors">
+    <div className="h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-hidden flex flex-col font-sans bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-ob-indigo-600 selection:text-white transition-colors">
       {/* 1. Top Navigation Bar (Strictly Fixed Height h-14 / h-16) */}
       <Navbar
         currentUser={currentUser}
@@ -604,7 +604,7 @@ export default function App() {
         <main
           ref={mainViewportRef as any}
           {...swipeTouchHandlers}
-          className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 touch-scroll-y relative"
+          className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 pb-20 md:pb-4 touch-scroll-y relative"
         >
           {/* Subtle Mobile Drag/Swipe Navigation Direction Indicator */}
           {isSwiping && Math.abs(swipeOffset) > 25 && (

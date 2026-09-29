@@ -72,10 +72,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <img
               src="/brand/oromia-logo-full.png"
               alt="Oromia Bank"
-              className="h-6 sm:h-8 w-auto object-contain"
+              className="h-6 sm:h-8 w-auto object-contain hidden sm:block"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/brand/oromia-logo-mark-transparent.png';
               }}
+            />
+            <img
+              src="/brand/oromia-logo-mark-transparent.png"
+              alt="Oromia Bank"
+              className="h-6 w-6 object-contain sm:hidden"
             />
           </div>
 

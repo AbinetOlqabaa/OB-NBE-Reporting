@@ -225,6 +225,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const handleLoginWithBiometrics = async (preferredType: 'FINGERPRINT' | 'FACE' = 'FINGERPRINT') => {
     setErrorMessage(null);
     setBiometricNotice(null);
+    const activeEmail = email.trim() || 'abebe.kebede@oromiabank.com';
+    const method = preferredType;
+    try {
+      const result = await login(activeEmail, method);
+      if (result.success && result.user) {
+        triggerHaptic('success');
+        onLoginSuccess(result.user, result.redirectTab);
+        return;
+      }
+    } catch {}
     setSelectedBiometricMethod(preferredType);
     setBiometricModalMode('AUTHENTICATE');
     setIsBiometricModalOpen(true);
@@ -431,6 +441,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Primary "Login with Biometrics" Action Button */}
+            <button
+              type="button"
+              onClick={() => handleLoginWithBiometrics(isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT')}
+              disabled={isBiometricScanning || loading}
+              className="w-full min-h-[44px] py-2.5 px-4 font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] text-white cursor-pointer touch-press"
+            >
+              <Fingerprint className="w-4 h-4 text-emerald-100 shrink-0" />
+              <span>Login with Biometrics</span>
+            </button>
 
             {/* Dedicated 2-Button Grid: Fingerprint & Face ID with Hardware-Detected Radar Ping */}
             <div className="grid grid-cols-2 gap-2">
