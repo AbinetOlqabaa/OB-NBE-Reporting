@@ -21,6 +21,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { DepartmentReportManagement } from './components/DepartmentReportManagement';
 import { MakerWorkspace } from './components/MakerWorkspace';
 import { CheckerInbox } from './components/CheckerInbox';
+import { AuditorDashboard } from './components/AuditorDashboard';
 import { DynamicReportForm } from './components/DynamicReportForm';
 import { NbeSimulatorView } from './components/NbeSimulatorView';
 import { Phase2SSOTView } from './components/Phase2SSOTView';
@@ -77,6 +78,7 @@ export default function App() {
   const getInitialTabForRole = (role?: string): ViewTab => {
     if (role === 'ADMIN') return 'ADMIN_DASHBOARD';
     if (role === 'CHECKER') return 'CHECKER_INBOX';
+    if (role === 'AUDITOR') return 'AUDITOR_DASHBOARD';
     return 'MAKER_WORKSPACE';
   };
 
@@ -683,6 +685,21 @@ export default function App() {
                 />
               )}
 
+              {activeTab === 'AUDITOR_DASHBOARD' && (
+                <AuditorDashboard
+                  currentUser={currentUser}
+                  onNavigateToReport={(reportKey) => {
+                    const t = getReportByKey(reportKey);
+                    if (t) {
+                      const sub = submissions.find((s) => s.reportKey === reportKey);
+                      if (sub) {
+                        setEditingSubmission(sub);
+                      }
+                    }
+                  }}
+                />
+              )}
+
               {activeTab === 'NBE_SIMULATOR' && <NbeSimulatorView />}
 
               {activeTab === 'PHASE2_SSOT' && (
@@ -782,9 +799,9 @@ export default function App() {
                       {toastNotification.title || 'Device Hardware Verified'}
                     </span>
                     {toastNotification.badgeLabel && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        {toastNotification.badgeLabel}
+                        <span>{toastNotification.badgeLabel}</span>
                       </span>
                     )}
                   </div>

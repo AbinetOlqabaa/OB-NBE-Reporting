@@ -23,6 +23,7 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory.ts';
 import { userService } from '../services/userService.ts';
@@ -156,13 +157,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   }, [hasAnyBiometric, hasBiometricRegistered, isCameraSupported, isFingerprintSupported, isBioPrefEnabled]);
 
-  // Quick Preset Selector for 1-Click Testing
-  const handleQuickPreset = (presetEmail: string) => {
-    setEmail(presetEmail);
-    setPassword('password');
+  // Development Seed Accounts Reset Handler
+  const [isResettingSeed, setIsResettingSeed] = useState(false);
+  const handleResetSeedData = async () => {
+    setIsResettingSeed(true);
     setErrorMessage(null);
-    setBiometricNotice(null);
-    resetError();
+    try {
+      const res = await fetch('/api/auth/seed-data/reset', { method: 'POST' });
+      if (res.ok) {
+        removeBiometric();
+        setBiometricNotice('Development seed accounts restored with zero pre-seeded biometrics. Accounts are ready for browser enrollment.');
+        triggerHaptic('success');
+      } else {
+        const local = userService.resetDevelopmentSeedData();
+        removeBiometric();
+        setBiometricNotice(local.message);
+        triggerHaptic('success');
+      }
+    } catch {
+      const local = userService.resetDevelopmentSeedData();
+      removeBiometric();
+      setBiometricNotice(local.message);
+      triggerHaptic('success');
+    } finally {
+      setIsResettingSeed(false);
+    }
   };
 
   const handleOpenBiometricModal = (mode: 'REGISTER' | 'AUTHENTICATE', method?: 'FINGERPRINT' | 'FACE') => {
@@ -213,7 +232,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
 
     // Authenticate user session
-    const result = await login(email, method, faceData);
+    const targetEmail = targetUser?.email || email.trim();
+    const result = await login(targetEmail, method, faceData);
     if (result.success && result.user) {
       triggerHaptic('success');
       onLoginSuccess(result.user, result.redirectTab);
@@ -225,7 +245,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const handleLoginWithBiometrics = async (preferredType: 'FINGERPRINT' | 'FACE' = 'FINGERPRINT') => {
     setErrorMessage(null);
     setBiometricNotice(null);
-    const activeEmail = email.trim() || 'abebe.kebede@oromiabank.com';
+    const activeEmail = email.trim() || registeredEmail || localStorage.getItem('ob_regulatory_last_user') || '';
+    if (!activeEmail) {
+      setErrorMessage('Please enter your corporate email address above or register a biometric passkey.');
+      return;
+    }
     const method = preferredType;
     try {
       const result = await login(activeEmail, method);
@@ -247,13 +271,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const handleEnrollCurrentAccount = async () => {
     setErrorMessage(null);
     setBiometricNotice(null);
+    if (!email.trim()) {
+      setErrorMessage('Please enter your corporate email address before registering biometrics.');
+      return;
+    }
     handleOpenBiometricModal('REGISTER', isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setErrorMessage('Please enter your Oromia Bank email address.');
+      setErrorMessage('Please enter your Oromia Bank corporate email address.');
+      return;
+    }
+    if (!password) {
+      setErrorMessage('Please enter your account password.');
       return;
     }
 
@@ -355,50 +387,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-300">
               Enter credentials to navigate to your role dashboard
             </p>
-          </div>
-
-          {/* Quick Demo Role Fill Selector */}
-          <div className="bg-slate-50 dark:bg-[#101226]/80 border border-slate-200 dark:border-[#22284D] rounded-xl p-2.5 sm:p-3 space-y-1.5 sm:space-y-2">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-ob-green-600 dark:text-ob-green-400 shrink-0" />
-              <span>One-Click Role Login (Testing):</span>
-            </span>
-            <div className="grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleQuickPreset('admin@oromiabank.com')}
-                className={`min-h-[40px] sm:min-h-[42px] px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center cursor-pointer flex items-center justify-center touch-press ${
-                  email.includes('admin')
-                    ? 'bg-ob-indigo-600 text-white border-ob-indigo-400 shadow-sm ring-1 ring-ob-indigo-400/40 font-bold'
-                    : 'bg-white dark:bg-[#181C3B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#262D55] hover:bg-slate-100 dark:hover:bg-[#20254D]'
-                }`}
-              >
-                <span className="sm:hidden">Admin</span>
-                <span className="hidden sm:inline">Administrator</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickPreset('abebe.kebede@oromiabank.com')}
-                className={`min-h-[40px] sm:min-h-[42px] px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center cursor-pointer flex items-center justify-center touch-press ${
-                  email.includes('abebe')
-                    ? 'bg-ob-green-600 text-white border-ob-green-400 shadow-sm ring-1 ring-ob-green-400/40 font-bold'
-                    : 'bg-white dark:bg-[#181C3B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#262D55] hover:bg-slate-100 dark:hover:bg-[#20254D]'
-                }`}
-              >
-                Maker
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickPreset('chala.desta@oromiabank.com')}
-                className={`min-h-[40px] sm:min-h-[42px] px-2 py-1.5 rounded-lg text-xs font-semibold transition-all border text-center cursor-pointer flex items-center justify-center touch-press ${
-                  email.includes('chala')
-                    ? 'bg-amber-600 text-white border-amber-400 shadow-sm ring-1 ring-amber-400/40 font-bold'
-                    : 'bg-white dark:bg-[#181C3B] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#262D55] hover:bg-slate-100 dark:hover:bg-[#20254D]'
-                }`}
-              >
-                Checker
-              </button>
-            </div>
           </div>
 
           {/* Biometric Sign-in Section: Fingerprint & Face ID Buttons with Hardware Radar Ping */}
@@ -683,6 +671,105 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <UserPlus className="w-4 h-4" />
               <span>Register for Maker / Checker Account</span>
             </button>
+          </div>
+
+          {/* Development Seed Accounts Reference & Reset Mechanism */}
+          <div className="pt-2 border-t border-slate-200 dark:border-[#22284D]">
+            <details className="group border border-slate-200 dark:border-[#262D55] rounded-xl bg-slate-50/80 dark:bg-[#101226]/80 p-2.5 sm:p-3 text-xs transition-all">
+              <summary className="font-bold text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 flex items-center justify-between cursor-pointer select-none">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-ob-green-600 dark:text-ob-green-400 shrink-0" />
+                  <span>Development Test Accounts Reference</span>
+                </span>
+                <span className="text-[10px] text-ob-indigo-600 dark:text-ob-green-400 font-semibold group-open:rotate-180 transition-transform">
+                  ▼
+                </span>
+              </summary>
+
+              <div className="mt-2.5 space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Default dev password: <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono font-bold text-slate-800 dark:text-slate-200">password</code>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleResetSeedData}
+                    disabled={isResettingSeed}
+                    className="text-[10px] font-semibold text-ob-indigo-700 dark:text-ob-green-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isResettingSeed ? 'animate-spin' : ''}`} />
+                    <span>{isResettingSeed ? 'Resetting...' : 'Reset Seed Data'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {[
+                    {
+                      role: 'ADMIN',
+                      email: 'admin@oromiabank.com',
+                      name: 'Dawit Bekele',
+                      dept: 'Compliance & Legal Governance',
+                    },
+                    {
+                      role: 'MAKER',
+                      email: 'abebe.kebede@oromiabank.com',
+                      name: 'Abebe Kebede',
+                      dept: 'Credit Operations & Portfolio Mgmt',
+                    },
+                    {
+                      role: 'CHECKER',
+                      email: 'chala.desta@oromiabank.com',
+                      name: 'Chala Desta',
+                      dept: 'Credit Operations & Portfolio Mgmt',
+                    },
+                    {
+                      role: 'AUDITOR',
+                      email: 'auditor@oromiabank.com',
+                      name: 'Worku Alemu',
+                      dept: 'Internal Audit & Regulatory Control',
+                    },
+                  ].map((acc) => (
+                    <div
+                      key={acc.email}
+                      className="p-2 rounded-lg bg-white dark:bg-[#181C3B] border border-slate-200 dark:border-[#262D55] text-[11px] flex flex-col justify-between gap-1 shadow-xs"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-bold text-slate-900 dark:text-white text-[10px] uppercase tracking-wide">
+                            {acc.role}
+                          </span>
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 truncate max-w-[120px]">
+                            {acc.dept}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 truncate">
+                          {acc.email}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 text-[9px]">
+                        <span className="text-slate-400 truncate">{acc.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmail(acc.email);
+                            setPassword('');
+                            setErrorMessage(null);
+                            setBiometricNotice(`Selected ${acc.name} (${acc.role}). Enter password "password" to authenticate or enroll biometrics.`);
+                          }}
+                          className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-ob-indigo-50 dark:hover:bg-ob-indigo-950/40 text-ob-indigo-700 dark:text-ob-green-300 font-semibold cursor-pointer transition-colors"
+                        >
+                          Use Email
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-tight italic">
+                  Note: Biometrics start un-enrolled so authentic device/browser passkey or camera Face ID registration can be verified.
+                </p>
+              </div>
+            </details>
           </div>
         </div>
       </main>

@@ -148,7 +148,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
             <div>
               <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
                 <span>Power User Keyboard Shortcuts</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-ob-green-500/20 text-ob-green-300 border border-ob-green-500/40">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-ob-green-500/20 text-ob-green-300 border border-ob-green-500/40">
                   Productivity Boost
                 </span>
               </h3>

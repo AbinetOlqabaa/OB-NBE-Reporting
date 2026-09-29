@@ -67,6 +67,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   });
   const [phoneNumber, setPhoneNumber] = useState('');
   const [role, setRole] = useState<UserRole>('MAKER');
+  const [auditorJustification, setAuditorJustification] = useState('');
+  const [auditScope, setAuditScope] = useState('ALL_DEPARTMENTS');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -314,9 +316,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         email: normEmail,
         password,
         role,
-        department,
+        department: role === 'AUDITOR' ? (department || 'Internal Audit & Regulatory Control') : department,
         employeeId: employeeId.trim() || `OB-${Math.floor(100 + Math.random() * 900)}`,
         phoneNumber: phoneNumber.trim(),
+        auditorJustification: role === 'AUDITOR' ? auditorJustification.trim() : undefined,
+        auditScope: role === 'AUDITOR' ? auditScope : undefined,
       };
 
       const regRes = await fetch('/api/auth/register', {
@@ -364,9 +368,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         email: normEmail,
         password,
         role,
-        department,
+        department: role === 'AUDITOR' ? (department || 'Internal Audit & Regulatory Control') : department,
         employeeId: employeeId.trim() || `OB-${Math.floor(100 + Math.random() * 900)}`,
         phoneNumber: phoneNumber.trim(),
+        auditorJustification: role === 'AUDITOR' ? auditorJustification.trim() : undefined,
+        auditScope: role === 'AUDITOR' ? auditScope : undefined,
       });
 
       if (localResult.success && localResult.user) {
@@ -716,9 +722,51 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                     >
                       <option value="MAKER">Maker (Fills reports & delivers to NBE)</option>
                       <option value="CHECKER">Checker (4-Eyes verification & sign-off)</option>
+                      <option value="AUDITOR">Internal Compliance Auditor (Audit work queue & inspection)</option>
                     </select>
                   </div>
                 </div>
+
+                {role === 'AUDITOR' && (
+                  <div className="p-3 bg-amber-50/80 dark:bg-[#1A1833] border border-amber-200 dark:border-amber-900/60 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                      <ShieldAlert className="w-4 h-4 text-amber-600" />
+                      <span>Auditor Registration Request & Permission Boundary</span>
+                    </div>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                      Notice (Abinet Alemu Directive): An Auditor account strictly obtains read-only inspection, findings management, and remediation oversight. Auditors are strictly barred from Maker (drafting) and Checker (review sign-off) privileges.
+                    </p>
+
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                        Requested Audit Scope *
+                      </label>
+                      <select
+                        value={auditScope}
+                        onChange={(e) => setAuditScope(e.target.value)}
+                        className="w-full min-h-[40px] px-3 py-1.5 bg-white dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-lg text-slate-900 dark:text-white font-medium cursor-pointer"
+                      >
+                        <option value="ALL_DEPARTMENTS">Enterprise-Wide (All 8 Bank Departments)</option>
+                        <option value="CREDIT_AND_RISK">Credit & Risk Directorates</option>
+                        <option value="TREASURY_AND_FX">Treasury & International Banking</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                        Reason for Audit Access / Regulatory Mandate *
+                      </label>
+                      <textarea
+                        rows={2}
+                        required={role === 'AUDITOR'}
+                        placeholder="e.g. Conduct NBE Directive BSD/03/2020 annual compliance review and audit assurance..."
+                        value={auditorJustification}
+                        onChange={(e) => setAuditorJustification(e.target.value)}
+                        className="w-full p-2 bg-white dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-lg text-slate-900 dark:text-white font-medium"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">

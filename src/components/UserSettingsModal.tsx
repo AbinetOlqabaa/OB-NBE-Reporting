@@ -206,7 +206,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           >
             <History className="w-3.5 h-3.5" />
             <span>Authentication History</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-ob-indigo-100 dark:bg-ob-indigo-950/80 text-ob-indigo-700 dark:text-ob-indigo-300 font-mono font-bold">
+            <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-ob-indigo-100 dark:bg-ob-indigo-950/80 text-ob-indigo-700 dark:text-ob-indigo-300 font-mono font-bold">
               {records.length}
             </span>
           </button>

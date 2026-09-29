@@ -25,6 +25,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Activity,
+  ShieldAlert,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory';
 import {
@@ -43,6 +44,7 @@ export type ViewTab =
   | 'DEPT_REPORT_MANAGEMENT'
   | 'MAKER_WORKSPACE'
   | 'CHECKER_INBOX'
+  | 'AUDITOR_DASHBOARD'
   | 'NBE_SIMULATOR'
   | 'PHASE2_SSOT'
   | 'AUDIT_TRAIL'
@@ -214,6 +216,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       roles: ['ADMIN', 'CHECKER'],
     },
     {
+      id: 'AUDITOR_DASHBOARD' as ViewTab,
+      label: 'Auditor Workspace',
+      shortLabel: 'Auditor',
+      icon: ShieldAlert,
+      description: 'Audit work queue, findings & evidence',
+      badge: null,
+      shortcut: `${modKey}+⇧+A`,
+      roles: ['ADMIN', 'AUDITOR'],
+    },
+    {
       id: 'NBE_SIMULATOR' as ViewTab,
       label: 'NBE Simulator',
       shortLabel: 'Simulator',
@@ -231,7 +243,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       description: 'Lakehouse & GL reconcile',
       badge: null,
       shortcut: `${modKey}+⇧+S`,
-      roles: ['ADMIN', 'MAKER', 'CHECKER'],
+      roles: ['ADMIN', 'MAKER', 'CHECKER', 'AUDITOR'],
     },
     {
       id: 'AUDIT_TRAIL' as ViewTab,
@@ -241,7 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       description: 'Immutable event history',
       badge: null,
       shortcut: `${modKey}+⇧+L`,
-      roles: ['ADMIN', 'CHECKER', 'MAKER', 'NBE_OFFICER'],
+      roles: ['ADMIN', 'CHECKER', 'MAKER', 'NBE_OFFICER', 'AUDITOR'],
     },
     {
       id: 'SYSTEM_HEALTH' as ViewTab,
@@ -251,7 +263,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       description: 'Real-time sensors & enclave telemetry',
       badge: null,
       shortcut: `${modKey}+⇧+H`,
-      roles: ['ADMIN', 'MAKER', 'CHECKER', 'NBE_OFFICER'],
+      roles: ['ADMIN', 'MAKER', 'CHECKER', 'NBE_OFFICER', 'AUDITOR'],
     },
     {
       id: 'DOCUMENTATION' as ViewTab,
@@ -261,7 +273,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       description: 'Regulatory contracts & formulas',
       badge: null,
       shortcut: `${modKey}+⇧+D`,
-      roles: ['ADMIN', 'MAKER', 'CHECKER', 'NBE_OFFICER'],
+      roles: ['ADMIN', 'MAKER', 'CHECKER', 'NBE_OFFICER', 'AUDITOR'],
     },
   ];
 

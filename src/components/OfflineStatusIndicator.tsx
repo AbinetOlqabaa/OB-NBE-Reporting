@@ -77,7 +77,7 @@ export const OfflineStatusIndicator: React.FC<OfflineStatusIndicatorProps> = ({ 
           {/* Pending Sync Badge */}
           {hasPending && (
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono shrink-0 flex items-center gap-1 ${
+              className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono shrink-0 flex items-center gap-1 ${
                 isEffectiveOffline
                   ? 'bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200'
                   : 'bg-blue-200 dark:bg-blue-900/80 text-blue-900 dark:text-blue-200'

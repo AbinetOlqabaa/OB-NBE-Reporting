@@ -759,40 +759,22 @@ export function useBiometricAuth() {
         });
       }
 
-      // If no enrolled credential exists, auto-provision simulated biometric passkey for user session
+      // If no enrolled credential exists, require registration (no fake auto-provisioning bypass)
       if (!targetCred) {
-        const fallbackUser = (normEmail ? userService.getByEmail(normEmail) : null) || userService.getAll()[0];
-        if (fallbackUser) {
-          targetCred = {
-            credentialId: `sim_cred_${fallbackUser.id}_${Date.now()}`,
-            rawIdBase64: window.btoa(`ob_key_${fallbackUser.id}_${Date.now()}`),
-            userId: fallbackUser.id,
-            email: fallbackUser.email,
-            name: fallbackUser.name,
-            role: fallbackUser.role,
-            department: fallbackUser.department,
-            employeeId: fallbackUser.employeeId,
-            registeredAt: new Date().toISOString(),
-            deviceLabel: 'Oromia Bank Platform Authenticator (Simulated / Device)',
-            type,
-          };
-          saveLocalCredential(fallbackUser, targetCred.credentialId, type);
-        } else {
-          setIsAuthenticating(false);
-          const errorMsg = `No ${type === 'FINGERPRINT' ? 'fingerprint passkey' : 'face recognition profile'} registered for ${normEmail || 'this account'}. Please register your biometric passkey first.`;
-          setError(errorMsg);
-          recordBiometricAuditLog({
-            actorId: normEmail || 'unregistered_user',
-            actorName: normEmail || 'Unregistered Account',
-            actorRole: 'UNKNOWN',
-            action: 'BIOMETRIC_AUTH_FAILURE',
-            type,
-            entityId: normEmail || 'OB_AUTH',
-            errorMessage: errorMsg,
-            details: `[NBE BSD/03/2020 Compliance] Biometric ${type} login rejected: No registered biometric passkey.`,
-          }).catch(() => {});
-          return { success: false, error: errorMsg };
-        }
+        setIsAuthenticating(false);
+        const errorMsg = `No ${type === 'FINGERPRINT' ? 'fingerprint passkey' : 'face recognition profile'} registered for ${normEmail || 'this account'}. Please register your biometric passkey first.`;
+        setError(errorMsg);
+        recordBiometricAuditLog({
+          actorId: normEmail || 'unregistered_user',
+          actorName: normEmail || 'Unregistered Account',
+          actorRole: 'UNKNOWN',
+          action: 'BIOMETRIC_AUTH_FAILURE',
+          type,
+          entityId: normEmail || 'OB_AUTH',
+          errorMessage: errorMsg,
+          details: `[NBE BSD/03/2020 Compliance] Biometric ${type} login rejected: No registered biometric passkey.`,
+        }).catch(() => {});
+        return { success: false, error: errorMsg };
       }
 
       try {
@@ -872,42 +854,42 @@ export function useBiometricAuth() {
         }
       } catch {}
 
-      // Fallback local session resolution
-      const existingUser = userService.getByEmail(targetCred.email);
-      let userSession: UserSession;
-
-      if (existingUser) {
-        userSession = {
-          id: existingUser.id,
-          name: existingUser.name,
-          email: existingUser.email,
-          role: existingUser.role,
-          institutionCode: existingUser.institutionCode,
-          department: existingUser.department,
-          employeeId: existingUser.employeeId,
-          specialAccessGrants: existingUser.specialAccessGrants || [],
-        };
-      } else {
-        userSession = {
-          id: targetCred.userId,
-          name: targetCred.name,
-          email: targetCred.email,
-          role: (targetCred.role as any) || 'MAKER',
-          institutionCode: '0000013',
-          department: targetCred.department,
-          employeeId: targetCred.employeeId || 'OB-BIO-001',
-          specialAccessGrants: [],
-        };
+      // Fallback local session resolution with authoritative verification
+      const verifyLocal = userService.verifyBiometric(
+        targetCred.email,
+        type,
+        targetCred.credentialId,
+        faceData?.faceHash || targetCred.faceHash
+      );
+      if (!verifyLocal.success || !verifyLocal.user) {
+        setIsAuthenticating(false);
+        const errorMsg = verifyLocal.message || 'Biometric authentication verification failed.';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
+
+      const existingUser = verifyLocal.user;
+      const userSession: UserSession = {
+        id: existingUser.id,
+        name: existingUser.name,
+        email: existingUser.email,
+        role: existingUser.role,
+        institutionCode: existingUser.institutionCode,
+        department: existingUser.department,
+        employeeId: existingUser.employeeId,
+        specialAccessGrants: existingUser.specialAccessGrants || [],
+      };
 
       localStorage.setItem(LAST_USER_KEY, targetCred.email);
       try {
         localStorage.setItem('ob_logged_in_user', JSON.stringify(userSession));
       } catch {}
 
-      let redirectTab = 'MAKER_WORKSPACE';
+      let redirectTab = verifyLocal.redirectTab || 'MAKER_WORKSPACE';
       if (userSession.role === 'ADMIN') redirectTab = 'ADMIN_DASHBOARD';
       else if (userSession.role === 'CHECKER') redirectTab = 'CHECKER_INBOX';
+      else if (userSession.role === 'AUDITOR') redirectTab = 'AUDITOR_DASHBOARD';
+      else if (userSession.role === 'MAKER') redirectTab = 'MAKER_WORKSPACE';
 
       vibrate([30, 45, 35]);
       haptics.success();

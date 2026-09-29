@@ -13,6 +13,7 @@ import {
   Menu,
   History,
   HelpCircle,
+  ShieldAlert,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory.ts';
 import { ViewTab } from './Sidebar.tsx';
@@ -88,6 +89,33 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             id: 'AUDIT_TRAIL' as ViewTab,
             label: 'Audit',
             icon: History,
+            badge: null,
+          },
+        ];
+      case 'AUDITOR':
+        return [
+          {
+            id: 'AUDITOR_DASHBOARD' as ViewTab,
+            label: 'Auditor',
+            icon: ShieldAlert,
+            badge: null,
+          },
+          {
+            id: 'AUDIT_TRAIL' as ViewTab,
+            label: 'Audit',
+            icon: History,
+            badge: null,
+          },
+          {
+            id: 'PHASE2_SSOT' as ViewTab,
+            label: 'SSOT',
+            icon: Database,
+            badge: null,
+          },
+          {
+            id: 'DOCUMENTATION' as ViewTab,
+            label: 'Specs',
+            icon: HelpCircle,
             badge: null,
           },
         ];

@@ -15,7 +15,16 @@ import {
   History,
   HelpCircle,
   Menu,
+  Activity,
+  ShieldAlert,
 } from 'lucide-react';
+
+interface NavItem {
+  id: ViewTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number | null;
+}
 
 interface MobileBottomNavProps {
   activeTab: ViewTab;
@@ -35,7 +44,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   isDrawerOpen,
 }) => {
   // Determine primary mobile thumb-navigation tabs based on authorized user role
-  const getNavItems = () => {
+  const getNavItems = (): NavItem[] => {
     if (currentUser.role === 'ADMIN') {
       return [
         { id: 'ADMIN_DASHBOARD' as ViewTab, label: 'Admin', icon: Users },
@@ -61,6 +70,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         { id: 'NBE_SIMULATOR' as ViewTab, label: 'NBE Probe', icon: Send },
         { id: 'PHASE2_SSOT' as ViewTab, label: 'SSOT Lake', icon: Database },
         { id: 'AUDIT_TRAIL' as ViewTab, label: 'Audit', icon: History },
+      ];
+    }
+
+    if (currentUser.role === 'AUDITOR') {
+      return [
+        { id: 'AUDITOR_DASHBOARD' as ViewTab, label: 'Auditor', icon: ShieldAlert },
+        { id: 'AUDIT_TRAIL' as ViewTab, label: 'Audit', icon: History },
+        { id: 'PHASE2_SSOT' as ViewTab, label: 'SSOT Lake', icon: Database },
+        { id: 'DOCUMENTATION' as ViewTab, label: 'NBE Docs', icon: HelpCircle },
       ];
     }
 
