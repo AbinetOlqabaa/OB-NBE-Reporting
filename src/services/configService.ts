@@ -4,7 +4,7 @@
  */
 
 import { BrowserSafeEventEmitter } from '../utils/browserEventEmitter.ts';
-import { OROMIA_BANK_DEPARTMENTS, DepartmentDefinition } from '../data/organizationHierarchy.ts';
+import { OROMIA_BANK_DEPARTMENTS, type DepartmentDefinition } from '../data/organizationHierarchy.ts';
 import { getAllReports, getReportByKey, NBE_REPORTS, syncSSOTReportToRegistry, retireSSOTReportInRegistry } from '../data/report-registry.ts';
 import { auditService } from './auditService.ts';
 import { realtimeSsotEngine } from './realtimeSsotEngine.ts';

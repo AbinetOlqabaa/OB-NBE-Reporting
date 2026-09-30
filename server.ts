@@ -23,7 +23,7 @@ import {
   getReportsForDepartment,
   getDepartmentForReport,
 } from './src/data/organizationHierarchy.ts';
-import { paginateList, PaginatedResult } from './src/utils/paginationUtils.ts';
+import { paginateList, type PaginatedResult } from './src/utils/paginationUtils.ts';
 import { configService } from './src/services/configService.ts';
 import { effectiveAccessEngine } from './src/services/effectiveAccessEngine.ts';
 import { bulkOperationsEngine } from './src/services/bulkOperationsEngine.ts';
