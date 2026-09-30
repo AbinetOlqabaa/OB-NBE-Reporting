@@ -13,6 +13,7 @@ import { departmentService } from './departmentService.ts';
 import { getAllReports } from '../data/report-registry.ts';
 import { auditService } from './auditService.ts';
 import { effectiveAccessEngine } from './effectiveAccessEngine.ts';
+import { realtimeSsotEngine } from './realtimeSsotEngine.ts';
 
 export type UserRole = 'ADMIN' | 'MAKER' | 'CHECKER' | 'AUDITOR';
 export type UserStatus = 'ACTIVE' | 'PENDING_APPROVAL' | 'DISABLED';
@@ -688,6 +689,20 @@ class UserServiceClass {
     effectiveAccessEngine.invalidateUser(userId);
 
     const { password, ...safe } = user;
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'USER_CHANGED',
+        action: 'STATUS_CHANGE',
+        domain: 'USER',
+        entityId: user.id,
+        topic: `USER:${user.id}`,
+        actor: { id: 'usr_admin', name: adminName, role: 'ADMIN' },
+        summary: `User ${user.email} status changed to ${status}`,
+        payload: { userId: user.id, status, role: user.role, department: user.department },
+      });
+    } catch (_) {}
+
     return { success: true, user: safe as UserAccount };
   }
 
@@ -768,6 +783,19 @@ class UserServiceClass {
       newState: safe,
     });
 
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'USER_CHANGED',
+        action: 'CREATE',
+        domain: 'USER',
+        entityId: newUser.id,
+        topic: 'ADMIN:CONFIG',
+        actor: { id: 'usr_admin', name: adminName, role: 'ADMIN' },
+        summary: `User account created for ${newUser.name} (${newUser.email}) [${newUser.role}]`,
+        payload: { userId: newUser.id, email: newUser.email, role: newUser.role, department: newUser.department, status: newUser.status },
+      });
+    } catch (_) {}
+
     return {
       success: true,
       user: safe as UserAccount,
@@ -840,6 +868,19 @@ class UserServiceClass {
       details: `User account details updated for ${user.name} (${user.email}) [Role: ${user.role}, Dept: ${user.department}].`,
       newState: safe,
     });
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'USER_CHANGED',
+        action: 'UPDATE',
+        domain: 'USER',
+        entityId: user.id,
+        topic: `USER:${user.id}`,
+        actor: { id: 'usr_admin', name: adminName, role: 'ADMIN' },
+        summary: `User details updated for ${user.name} (${user.email})`,
+        payload: { userId: user.id, role: user.role, department: user.department, status: user.status },
+      });
+    } catch (_) {}
 
     return { success: true, user: safe as UserAccount };
   }
@@ -1026,10 +1067,30 @@ class UserServiceClass {
     user.specialAccessGrants.push(newGrant);
     effectiveAccessEngine.onSpecialAccessChange(userId);
 
-    const { password, ...safe } = user;
     const targetLabel = grantData.reportKey
       ? `report ${grantData.reportKey}`
       : `department(s) ${targetDepts.join(', ')}`;
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'SPECIAL_ACCESS_CHANGED',
+        action: 'GRANTED',
+        domain: 'SPECIAL_ACCESS',
+        entityId: userId,
+        topic: `USER:${userId}`,
+        actor: { id: 'usr_admin', name: adminName, role: 'ADMIN' },
+        summary: `Special access granted to ${user.name} for ${targetLabel}`,
+        payload: {
+          grantId: newGrant.id,
+          userId,
+          reportKey: newGrant.reportKey,
+          department: newGrant.department,
+          expiresAt: newGrant.expiresAt,
+        },
+      });
+    } catch (_) {}
+
+    const { password, ...safe } = user;
     return {
       success: true,
       user: safe as UserAccount,
@@ -1059,6 +1120,19 @@ class UserServiceClass {
     }
 
     effectiveAccessEngine.onSpecialAccessChange(userId);
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'SPECIAL_ACCESS_CHANGED',
+        action: 'REVOKED',
+        domain: 'SPECIAL_ACCESS',
+        entityId: userId,
+        topic: `USER:${userId}`,
+        actor: { id: 'usr_admin', name: adminName, role: 'ADMIN' },
+        summary: `Special access grant revoked for ${user.name} by ${adminName}`,
+        payload: { grantId, userId },
+      });
+    } catch (_) {}
 
     const { password, ...safe } = user;
     return {
@@ -1148,3 +1222,4 @@ class UserServiceClass {
 }
 
 export const userService = new UserServiceClass();
+effectiveAccessEngine.setUserProvider(userService);

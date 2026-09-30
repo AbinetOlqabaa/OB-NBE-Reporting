@@ -4,6 +4,36 @@ All notable changes and engineering enhancements for the Oromia Bank NBE Regulat
 
 ---
 
+## [7.0.0-phase7-real-time-ssot-synchronization] - 2026-09-30
+
+### Added
+- **Authoritative Real-Time SSOT Engine (`src/services/realtimeSsotEngine.ts`, `server.ts`, `07_REAL_TIME_SSOT_SYNCHRONIZATION.md`)**:
+  - WebSocket (`/ws/ssot`) + SSE (`/api/config/events`) real-time communication pipeline strictly anchored to Django/database SSOT authority.
+  - Zero simulated timers or synthetic pollers; state changes propagate purely on committed transactional mutations.
+  - Monotonic event sequence counter (`sequenceNumber`) and UUID generation (`eventId`) with 1,000-event circular replay buffer.
+  - Comprehensive event taxonomy: `USER_CHANGED`, `DEPARTMENT_CHANGED`, `REPORT_CHANGED`, `ASSIGNMENT_CHANGED`, `SPECIAL_ACCESS_CHANGED`, `WORKFLOW_STATUS_CHANGED`, `CONFIG_SYNC_TRIGGER`.
+  - Sensitive credential scrubbing: Automatic removal of `password`, `passwordHash`, `token`, and auth headers from event payloads.
+  - Fine-grained topic subscription authorization (RBAC):
+    - `ADMIN:CONFIG` & `ADMIN:USERS`: Strict Admin-only access.
+    - `USER:<id>`: Strict individual officer isolation.
+    - `DEPT:<id>`: Department members and authorized multi-department delegates.
+    - `AUDIT:EVENTS`: Auditor and Admin inspection feed.
+    - `GLOBAL` & `REPORTS`: Authenticated bank officer broad catalog updates.
+- **Client Synchronization Service (`src/services/realtimeSsotClient.ts`)**:
+  - Dual WebSocket + SSE failover transport.
+  - Connection lifecycle management: Auto-reconnect with exponential backoff (`1s` to `30s`) and random jitter, heartbeat keep-alive (`30s`), and connection state broadcasting.
+  - Reconnect gap recovery: Transmits `SYNC_REQUEST` on connect; replays missed events or issues `REVALIDATE_ALL` if gap exceeds buffer.
+  - Message deduplication: 1,000-entry LRU cache to eliminate duplicate event handling.
+- **Surgical React State Invalidation Hook (`src/hooks/useRealtimeSSOT.ts`)**:
+  - Domain-specific invalidation listeners preserving mounted React component state and active user input in draft forms.
+- **Authoritative Service Integrations**:
+  - Connected `configService`, `userService`, `submissionService`, and `effectiveAccessEngine` to broadcast events upon successful committed mutations.
+- **Comprehensive Automated Test Suite (`src/tests/realtime-ssot-synchronization.test.ts`)**:
+  - 9 automated test scenarios covering Admin changes, assignment changes, report publishing, special access revocation, reconnect & gap replay, duplicate event discarding, stale cache revalidation, RBAC topic scoping, and atomic rollback safety.
+  - Integrated into `src/tests/run-all-tests.ts` with 19/19 test suites passing (100% success).
+
+---
+
 ## [6.0.0-phase6-safe-bulk-operations-import-export-and-file-workflows] - 2026-09-30
 
 ### Added

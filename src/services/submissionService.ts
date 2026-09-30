@@ -28,6 +28,7 @@ import { departmentService } from './departmentService.ts';
 import { configService } from './configService.ts';
 import { indexedDbStorage } from './indexedDbStorage.ts';
 import { effectiveAccessEngine } from './effectiveAccessEngine.ts';
+import { realtimeSsotEngine } from './realtimeSsotEngine.ts';
 
 // Default Demo User Accounts with verified Oromia Bank departments
 export const DEMO_USERS: UserSession[] = [
@@ -950,6 +951,24 @@ class SubmissionServiceClass {
     // Save to IndexedDB
     indexedDbStorage.saveDraft(finalSubWithSnapshot).catch(() => {});
 
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'WORKFLOW_STATUS_CHANGED',
+        action: 'PENDING_CHECKER',
+        domain: 'WORKFLOW',
+        entityId: id,
+        topic: 'WORKFLOWS',
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Report ${sub.reportKey} submitted to Checker by ${user.name}`,
+        payload: {
+          submissionId: id,
+          reportKey: sub.reportKey,
+          status: 'PENDING_CHECKER',
+          version: finalSubWithSnapshot.version,
+        },
+      });
+    } catch (_) {}
+
     auditService.log({
       actorId: user.id,
       actorName: user.name,
@@ -1037,6 +1056,24 @@ class SubmissionServiceClass {
 
     // Save to IndexedDB
     indexedDbStorage.saveDraft(finalSubWithSnapshot).catch(() => {});
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'WORKFLOW_STATUS_CHANGED',
+        action: targetStatus,
+        domain: 'WORKFLOW',
+        entityId: id,
+        topic: 'WORKFLOWS',
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Report ${sub.reportKey} ${targetStatus} by Checker ${user.name}`,
+        payload: {
+          submissionId: id,
+          reportKey: sub.reportKey,
+          status: targetStatus,
+          version: finalSubWithSnapshot.version,
+        },
+      });
+    } catch (_) {}
 
     auditService.log({
       actorId: user.id,
@@ -1166,6 +1203,25 @@ class SubmissionServiceClass {
 
     // Save to IndexedDB
     indexedDbStorage.saveDraft(updatedSub).catch(() => {});
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'WORKFLOW_STATUS_CHANGED',
+        action: finalStatus,
+        domain: 'WORKFLOW',
+        entityId: id,
+        topic: 'WORKFLOWS',
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Report ${sendingSub.reportKey} delivered to NBE Gateway (Status: ${finalStatus})`,
+        payload: {
+          submissionId: id,
+          reportKey: sendingSub.reportKey,
+          status: finalStatus,
+          version: updatedSub.version,
+          receiptNumber: receiptNum,
+        },
+      });
+    } catch (_) {}
 
     auditService.log({
       actorId: user.id,

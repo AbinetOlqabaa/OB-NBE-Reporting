@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
@@ -26,6 +27,7 @@ import { paginateList, PaginatedResult } from './src/utils/paginationUtils.ts';
 import { configService } from './src/services/configService.ts';
 import { effectiveAccessEngine } from './src/services/effectiveAccessEngine.ts';
 import { bulkOperationsEngine } from './src/services/bulkOperationsEngine.ts';
+import { realtimeSsotEngine } from './src/services/realtimeSsotEngine.ts';
 
 dotenv.config();
 
@@ -111,12 +113,18 @@ app.get('/api/config/events', (req, res) => {
     res.write(`event: cache_invalidated\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
+  const onSsotEvent = (evt: any) => {
+    res.write(`event: ssot_event\ndata: ${JSON.stringify(evt)}\n\n`);
+  };
+
   configService.events.on('CONFIG_CHANGED', onConfigChanged);
   configService.events.on('CACHE_INVALIDATED', onCacheInvalidated);
+  realtimeSsotEngine.events.on('SSOT_EVENT', onSsotEvent);
 
   req.on('close', () => {
     configService.events.off('CONFIG_CHANGED', onConfigChanged);
     configService.events.off('CACHE_INVALIDATED', onCacheInvalidated);
+    realtimeSsotEngine.events.off('SSOT_EVENT', onSsotEvent);
   });
 });
 
@@ -1919,7 +1927,10 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = http.createServer(app);
+  realtimeSsotEngine.attachServer(server, '/ws/ssot');
+
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`[Oromia Bank NBE Platform] Server listening on port ${PORT}`);
   });
 }

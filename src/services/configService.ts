@@ -7,6 +7,7 @@ import { BrowserSafeEventEmitter } from '../utils/browserEventEmitter.ts';
 import { OROMIA_BANK_DEPARTMENTS, DepartmentDefinition } from '../data/organizationHierarchy.ts';
 import { getAllReports, getReportByKey, NBE_REPORTS, syncSSOTReportToRegistry, retireSSOTReportInRegistry } from '../data/report-registry.ts';
 import { auditService } from './auditService.ts';
+import { realtimeSsotEngine } from './realtimeSsotEngine.ts';
 import type { ReportMetadata } from '../types/regulatory.ts';
 
 // ============================================================================
@@ -279,21 +280,23 @@ export interface WorkflowDefinitionSSOT {
   updatedAt: string;
 }
 
+export type ConfigurationEntityType =
+  | 'DEPARTMENT'
+  | 'REPORT_DEFINITION'
+  | 'REPORT_VERSION'
+  | 'ROLE'
+  | 'PERMISSION'
+  | 'ASSIGNMENT'
+  | 'SPECIAL_ACCESS'
+  | 'WORKFLOW';
+
 export interface ConfigurationChangeSSOT {
   id: string;
   timestamp: string;
   actorId: string;
   actorName: string;
   actorRole: string;
-  entityType:
-    | 'DEPARTMENT'
-    | 'REPORT_DEFINITION'
-    | 'REPORT_VERSION'
-    | 'ROLE'
-    | 'PERMISSION'
-    | 'ASSIGNMENT'
-    | 'SPECIAL_ACCESS'
-    | 'WORKFLOW';
+  entityType: ConfigurationEntityType;
   entityId: string;
   entityName: string;
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'VERSION_BUMP' | 'ASSIGN' | 'REVOKE' | 'RESTORE';
@@ -358,6 +361,9 @@ class ConfigurationEngine {
 
   constructor() {
     this.events.setMaxListeners(100);
+    try {
+      realtimeSsotEngine.setHashProvider(() => this.generateGlobalHash());
+    } catch (_) {}
     this.bootstrapDefaults();
   }
 
@@ -778,7 +784,7 @@ class ConfigurationEngine {
   // CACHE & METRIC MANAGEMENT
   // --------------------------------------------------------------------------
 
-  private generateGlobalHash(): string {
+  public generateGlobalHash(): string {
     return `ssot_${this.deptVersion}_${this.reportsVersion}_${this.workflowsVersion}_${this.rbacVersion}_${this.assignmentsVersion}`;
   }
 
@@ -863,7 +869,65 @@ class ConfigurationEngine {
       oldState: record.oldState,
     });
 
+    // Real-Time SSOT Event propagation
+    try {
+      const eventType = this.resolveRealtimeEventType(record.entityType, record.action);
+      const domain = this.resolveRealtimeDomain(record.entityType);
+      realtimeSsotEngine.publishEvent({
+        eventType,
+        action: record.action,
+        domain,
+        entityId: record.entityId,
+        actor: { id: record.actorId, name: record.actorName, role: record.actorRole },
+        summary: record.summary,
+        globalConfigHash: this.generateGlobalHash(),
+        payload: {
+          diff: record.diff,
+          details: record.details,
+          entityName: record.entityName,
+          entityType: record.entityType,
+          action: record.action,
+          newState: record.newState,
+          oldState: record.oldState,
+        },
+      });
+    } catch (_) {}
+
     return record;
+  }
+
+  private resolveRealtimeEventType(entityType: ConfigurationEntityType, action: string): any {
+    switch (entityType) {
+      case 'DEPARTMENT':
+        return 'DEPARTMENT_CHANGED';
+      case 'REPORT_DEFINITION':
+      case 'REPORT_VERSION':
+        return 'REPORT_CHANGED';
+      case 'ASSIGNMENT':
+        return 'ASSIGNMENT_CHANGED';
+      case 'ROLE':
+      case 'PERMISSION':
+        return 'ROLE_CHANGED';
+      default:
+        return 'CONFIG_SYNC_TRIGGER';
+    }
+  }
+
+  private resolveRealtimeDomain(entityType: ConfigurationEntityType): any {
+    switch (entityType) {
+      case 'DEPARTMENT':
+        return 'DEPARTMENT';
+      case 'REPORT_DEFINITION':
+      case 'REPORT_VERSION':
+        return 'REPORT';
+      case 'ASSIGNMENT':
+        return 'ASSIGNMENT';
+      case 'ROLE':
+      case 'PERMISSION':
+        return 'RBAC';
+      default:
+        return 'REPORT';
+    }
   }
 
   public getChangeLogs(limit = 100): ConfigurationChangeSSOT[] {

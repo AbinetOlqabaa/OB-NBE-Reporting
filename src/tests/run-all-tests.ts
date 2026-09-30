@@ -350,6 +350,7 @@ import { runDynamicReportDefinitionTests } from './dynamic-report-definition.tes
 import { runPhase5FinalVerificationTests } from './phase5-final-verification.test.ts';
 import { runRelationshipEffectiveAccessEngineTests } from './relationship-effective-access-engine.test.ts';
 import { runPhase6BulkOperationsTests } from './phase6-bulk-operations.test.ts';
+import { runRealtimeSsotSynchronizationTests } from './realtime-ssot-synchronization.test.ts';
 
 async function runFullApplicationTestSuite() {
   runRegulatoryCoreTests();
@@ -370,6 +371,7 @@ async function runFullApplicationTestSuite() {
   await runPhase5FinalVerificationTests();
   await runRelationshipEffectiveAccessEngineTests();
   await runPhase6BulkOperationsTests();
+  await runRealtimeSsotSynchronizationTests();
 
   console.log('\n========================================================================');
   console.log('✅ ALL COMPREHENSIVE AUTOMATED TEST SUITES PASSED CLEANLY (100% SUCCESS)');

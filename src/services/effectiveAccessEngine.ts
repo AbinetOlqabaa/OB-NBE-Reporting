@@ -16,6 +16,7 @@ import { getDepartmentForReport } from '../data/organizationHierarchy.ts';
 import { departmentService } from './departmentService.ts';
 import { configService } from './configService.ts';
 import { auditService } from './auditService.ts';
+import { realtimeSsotEngine } from './realtimeSsotEngine.ts';
 
 export type UserRole = 'ADMIN' | 'MAKER' | 'CHECKER' | 'AUDITOR';
 export type AccountStatus = 'ACTIVE' | 'PENDING_APPROVAL' | 'DISABLED' | 'SUSPENDED';
@@ -128,6 +129,11 @@ class EffectiveAccessEngineClass {
 
   // User to Report direct assignments (userId -> Set of reportKeys)
   private userReportAssignments: Map<string, Set<string>> = new Map();
+  private userProvider: { getById: (id: string) => any } | null = null;
+
+  public setUserProvider(provider: { getById: (id: string) => any }): void {
+    this.userProvider = provider;
+  }
 
   constructor() {
     this.setupListeners();
@@ -150,6 +156,34 @@ class EffectiveAccessEngineClass {
         });
         configService.events.on('CACHE_INVALIDATED', () => {
           this.invalidateAll('SSOT cache invalidated');
+        });
+      } catch {}
+
+      try {
+        realtimeSsotEngine.events.on('ASSIGNMENT_CHANGED', (event) => {
+          const payload = event.payload || {};
+          if (event.action === 'ASSIGN' && (payload.userId || payload.newState?.userId) && (payload.reportKey || payload.newState?.reportKey)) {
+            const uId = payload.userId || payload.newState.userId;
+            const rKey = payload.reportKey || payload.newState.reportKey;
+            this.assignReportToUser(uId, rKey, event.actor?.name || 'ADMIN');
+          } else if (event.action === 'REVOKE' && (payload.oldState?.userId || payload.userId) && (payload.oldState?.reportKey || payload.reportKey)) {
+            const uId = payload.oldState?.userId || payload.userId;
+            const rKey = payload.oldState?.reportKey || payload.reportKey;
+            this.removeReportFromUser(uId, rKey, event.actor?.name || 'ADMIN');
+          }
+          this.invalidateAll(`Assignment changed: ${event.action}`);
+        });
+
+        realtimeSsotEngine.events.on('SPECIAL_ACCESS_CHANGED', (event) => {
+          if (event.entityId) {
+            this.invalidateUser(event.entityId);
+          }
+        });
+
+        realtimeSsotEngine.events.on('USER_CHANGED', (event) => {
+          if (event.entityId) {
+            this.invalidateUser(event.entityId);
+          }
         });
       } catch {}
     }
@@ -615,7 +649,13 @@ class EffectiveAccessEngineClass {
     const isDirectAssignment = Boolean(directAssignments && directAssignments.has(reportKey));
 
     // Relationship 4: Special Access Grants
-    const grants: SpecialAccessGrant[] = (user as any).specialAccessGrants || [];
+    let grants: SpecialAccessGrant[] = (user as any).specialAccessGrants || [];
+    if (grants.length === 0 && user.id && this.userProvider) {
+      const u = this.userProvider.getById(user.id);
+      if (u && Array.isArray(u.specialAccessGrants)) {
+        grants = u.specialAccessGrants;
+      }
+    }
     const coveringGrant = this.findActiveGrantCoveringReport(grants, reportKey, reportPrimaryDept);
     const isSpecialAccess = Boolean(coveringGrant);
 
