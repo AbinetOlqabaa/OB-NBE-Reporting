@@ -120,6 +120,14 @@ class AuditServiceClass {
     return [...this.logs.slice(0, limit)];
   }
 
+  public getAllLogs(): AuditLogEntry[] {
+    return [...this.logs];
+  }
+
+  public getAll(): AuditLogEntry[] {
+    return [...this.logs];
+  }
+
   public getLogsByEntity(entityId: string): AuditLogEntry[] {
     return this.logs.filter((l) => l.entityId === entityId);
   }

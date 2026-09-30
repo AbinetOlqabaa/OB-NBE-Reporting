@@ -48,9 +48,10 @@ import { userService } from '../services/userService.ts';
 import { submissionService } from '../services/submissionService.ts';
 import { Pagination } from './Pagination.tsx';
 import { vibrate, haptics } from '../utils/haptics.ts';
-import { BulkImportModal } from './BulkImportModal.tsx';
+import { BulkOperationsModal } from './BulkOperationsModal.tsx';
 import { ReportVersionHistoryModal } from './ReportVersionHistoryModal.tsx';
 import { ChangeHistoryView } from './ChangeHistoryView.tsx';
+import { ReportTemplateStudioModal } from './ReportTemplateStudioModal.tsx';
 
 // =========================================================================
 // SUB-COMPONENT: DepartmentEditor
@@ -354,15 +355,15 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-[#121428] border border-slate-200 dark:border-[#22284D] rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
         {/* Sub-Header / Action Bar */}
-        <div className="p-4 border-b border-slate-200 dark:border-[#22284D] flex items-center justify-between flex-wrap gap-3">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-900 dark:text-white">
                 Active Bank Departments
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-[#1E234B] text-slate-600 dark:text-slate-300">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 {filteredDepartments.length} of {departments.length}
               </span>
             </div>
@@ -372,7 +373,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
               <select
                 value={divisionFilter}
                 onChange={(e) => setDivisionFilter(e.target.value)}
-                className="text-xs px-2.5 py-1 bg-slate-50 dark:bg-[#161933] border border-slate-200 dark:border-[#262D55] rounded-lg text-slate-900 dark:text-white focus:outline-none"
+                className="text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="ALL">All Divisions</option>
                 {availableDivisions.map((div) => (
@@ -392,7 +393,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                 placeholder="Search departments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs pl-7 pr-3 py-1 bg-slate-50 dark:bg-[#161933] border border-slate-200 dark:border-[#262D55] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                className="w-full text-xs pl-7 pr-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
               />
             </div>
             <button
@@ -410,7 +411,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-slate-50 dark:bg-[#161933] border-b border-slate-200 dark:border-[#22284D] text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider">
                 <th className="py-3 px-4">Department & Short Code</th>
                 <th className="py-3 px-4">Division Directorate</th>
                 <th className="py-3 px-4">Authorized Returns</th>
@@ -418,7 +419,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-[#1C203F]">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredDepartments.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-slate-400">
@@ -433,7 +434,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                     return (
                       <tr
                         key={dept.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-[#161933]/60 transition-colors"
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors"
                       >
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -459,7 +460,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                               </span>
                             ) : (
                               <>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-ob-green-50 dark:bg-ob-green-950 text-ob-green-800 dark:text-ob-green-300 border border-ob-green-300 dark:border-ob-green-700">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-ob-green-50 dark:bg-ob-green-950 text-ob-green-800 dark:text-ob-green-300 border border-ob-green-300 dark:border-ob-green-700">
                                   {dept.reportKeys.length} return{dept.reportKeys.length > 1 ? 's' : ''}
                                 </span>
                                 <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
@@ -473,7 +474,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
 
                         <td className="py-3.5 px-4 text-center">
                           <div className="inline-flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-[#1A1F40] text-slate-700 dark:text-slate-300">
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               {stats.makersCount} Makers
                             </span>
                             <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300">
@@ -511,7 +512,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
         </div>
 
         {/* Pagination */}
-        <div className="p-3 border-t border-slate-200 dark:border-[#22284D] bg-slate-50/50 dark:bg-[#121428]">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
           <Pagination
             currentPage={page}
             totalItems={filteredDepartments.length}
@@ -528,7 +529,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
       {/* MODAL: ADD DEPARTMENT */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-[#161933] rounded-2xl max-w-lg w-full border border-slate-200 dark:border-[#262D55] shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-ob-indigo-500/10 dark:bg-ob-indigo-500/20 text-ob-indigo-600 dark:text-ob-indigo-400 flex items-center justify-center">
@@ -567,10 +568,10 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                       setFormData({ ...formData, name: e.target.value });
                       if (formErrors.name) setFormErrors({ ...formErrors, name: undefined });
                     }}
-                    className={`w-full p-2.5 bg-slate-50 dark:bg-[#101226] border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
+                    className={`w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
                       formErrors.name
                         ? 'border-rose-500 focus:border-rose-500'
-                        : 'border-slate-200 dark:border-[#2B3369] focus:border-ob-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 focus:border-ob-indigo-500'
                     }`}
                   />
                   {formErrors.name && (
@@ -595,10 +596,10 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                       setFormData({ ...formData, shortCode: e.target.value.toUpperCase() });
                       if (formErrors.shortCode) setFormErrors({ ...formErrors, shortCode: undefined });
                     }}
-                    className={`w-full p-2.5 font-mono uppercase bg-slate-50 dark:bg-[#101226] border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
+                    className={`w-full p-2.5 font-mono uppercase bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
                       formErrors.shortCode
                         ? 'border-rose-500 focus:border-rose-500'
-                        : 'border-slate-200 dark:border-[#2B3369] focus:border-ob-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 focus:border-ob-indigo-500'
                     }`}
                   />
                   {formErrors.shortCode && (
@@ -620,7 +621,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                   placeholder="e.g. Finance & Accounts Division"
                   value={formData.division}
                   onChange={(e) => setFormData({ ...formData, division: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
                 />
               </div>
 
@@ -633,7 +634,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                   placeholder="Mandate summary..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
                 />
               </div>
 
@@ -655,7 +656,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap p-2 min-h-[42px] bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl">
+                <div className="flex items-center gap-1.5 flex-wrap p-2 min-h-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
                   {formData.selectedReportKeys.length === 0 ? (
                     <span className="text-[11px] text-slate-400 italic">
                       No returns linked yet.
@@ -680,13 +681,13 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                 </div>
 
                 {isReportDropdownOpenInModal && (
-                  <div className="border border-slate-200 dark:border-[#2B3369] rounded-xl p-2.5 bg-white dark:bg-[#121428] space-y-2 max-h-48 overflow-y-auto animate-in fade-in">
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 space-y-2 max-h-48 overflow-y-auto animate-in fade-in">
                     <input
                       type="text"
                       placeholder="Filter reports..."
                       value={reportSearchInModal}
                       onChange={(e) => setReportSearchInModal(e.target.value)}
-                      className="w-full text-xs p-1.5 bg-slate-50 dark:bg-[#161933] border border-slate-200 dark:border-[#262D55] rounded-lg text-slate-900 dark:text-white"
+                      className="w-full text-xs p-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
                     />
                     <div className="grid grid-cols-1 gap-1">
                       {reports
@@ -750,7 +751,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
       {/* MODAL: EDIT DEPARTMENT */}
       {isEditModalOpen && activeDeptForEdit && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-[#161933] rounded-2xl max-w-lg w-full border border-slate-200 dark:border-[#262D55] shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-ob-indigo-500/10 dark:bg-ob-indigo-500/20 text-ob-indigo-600 dark:text-ob-indigo-400 flex items-center justify-center">
@@ -788,10 +789,10 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                       setFormData({ ...formData, name: e.target.value });
                       if (formErrors.name) setFormErrors({ ...formErrors, name: undefined });
                     }}
-                    className={`w-full p-2.5 bg-slate-50 dark:bg-[#101226] border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
+                    className={`w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
                       formErrors.name
                         ? 'border-rose-500 focus:border-rose-500'
-                        : 'border-slate-200 dark:border-[#2B3369] focus:border-ob-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 focus:border-ob-indigo-500'
                     }`}
                   />
                   {formErrors.name && (
@@ -815,10 +816,10 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                       setFormData({ ...formData, shortCode: e.target.value.toUpperCase() });
                       if (formErrors.shortCode) setFormErrors({ ...formErrors, shortCode: undefined });
                     }}
-                    className={`w-full p-2.5 font-mono uppercase bg-slate-50 dark:bg-[#101226] border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
+                    className={`w-full p-2.5 font-mono uppercase bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
                       formErrors.shortCode
                         ? 'border-rose-500 focus:border-rose-500'
-                        : 'border-slate-200 dark:border-[#2B3369] focus:border-ob-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 focus:border-ob-indigo-500'
                     }`}
                   />
                   {formErrors.shortCode && (
@@ -839,7 +840,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                   required
                   value={formData.division}
                   onChange={(e) => setFormData({ ...formData, division: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
                 />
               </div>
 
@@ -851,7 +852,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-ob-indigo-500"
                 />
               </div>
 
@@ -873,7 +874,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap p-2 min-h-[42px] bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl">
+                <div className="flex items-center gap-1.5 flex-wrap p-2 min-h-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
                   {formData.selectedReportKeys.length === 0 ? (
                     <span className="text-[11px] text-slate-400 italic">
                       No returns linked.
@@ -898,13 +899,13 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
                 </div>
 
                 {isReportDropdownOpenInModal && (
-                  <div className="border border-slate-200 dark:border-[#2B3369] rounded-xl p-2.5 bg-white dark:bg-[#121428] space-y-2 max-h-48 overflow-y-auto animate-in fade-in">
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-900 space-y-2 max-h-48 overflow-y-auto animate-in fade-in">
                     <input
                       type="text"
                       placeholder="Filter reports..."
                       value={reportSearchInModal}
                       onChange={(e) => setReportSearchInModal(e.target.value)}
-                      className="w-full text-xs p-1.5 bg-slate-50 dark:bg-[#161933] border border-slate-200 dark:border-[#262D55] rounded-lg text-slate-900 dark:text-white"
+                      className="w-full text-xs p-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
                     />
                     <div className="grid grid-cols-1 gap-1">
                       {reports
@@ -965,7 +966,7 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
       {/* MODAL: DELETE DEPARTMENT */}
       {isDeleteModalOpen && activeDeptForDelete && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-[#161933] rounded-2xl max-w-md w-full border border-slate-200 dark:border-[#262D55] shadow-2xl p-5 space-y-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
@@ -984,14 +985,14 @@ export const DepartmentEditor: React.FC<DepartmentEditorProps> = ({
               Are you sure you want to remove <span className="font-bold text-slate-900 dark:text-white">{activeDeptForDelete.name}</span> from the bank organizational hierarchy?
             </p>
 
-            <div className="bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#22284D] rounded-xl p-3 space-y-2">
+            <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2">
               <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Reassign Existing Officers & Returns to:
               </label>
               <select
                 value={fallbackDeptForDelete}
                 onChange={(e) => setFallbackDeptForDelete(e.target.value)}
-                className="w-full text-xs p-2 bg-white dark:bg-[#161933] border border-slate-200 dark:border-[#2B3369] rounded-lg text-slate-900 dark:text-white"
+                className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
               >
                 {departments
                   .filter((d) => d.id !== activeDeptForDelete.id)
@@ -1059,6 +1060,10 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Template Studio state
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioReportKey, setStudioReportKey] = useState<string | undefined>(undefined);
 
   const [activeReportForEdit, setActiveReportForEdit] = useState<ReportMetadata | null>(null);
   const [activeReportForDelete, setActiveReportForDelete] = useState<ReportMetadata | null>(null);
@@ -1298,15 +1303,15 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-[#121428] border border-slate-200 dark:border-[#22284D] rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
         {/* Action Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-[#22284D] flex items-center justify-between flex-wrap gap-3">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-900 dark:text-white">
                 Regulatory Returns Registry
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-[#1E234B] text-slate-600 dark:text-slate-300">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                 {filteredReports.length} of {reports.length}
               </span>
             </div>
@@ -1316,7 +1321,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="text-xs px-2.5 py-1 bg-slate-50 dark:bg-[#161933] border border-slate-200 dark:border-[#262D55] rounded-lg text-slate-900 dark:text-white focus:outline-none"
+                className="text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="ALL">All Categories</option>
                 {availableCategories.map((cat) => (
@@ -1332,7 +1337,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
               <select
                 value={frequencyFilter}
                 onChange={(e) => setFrequencyFilter(e.target.value)}
-                className="text-xs px-2.5 py-1 bg-slate-50 dark:bg-[#161933] border border-slate-200 dark:border-[#262D55] rounded-lg text-slate-900 dark:text-white focus:outline-none"
+                className="text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="ALL">All Frequencies</option>
                 <option value="MONTHLY">Monthly</option>
@@ -1350,9 +1355,21 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                 placeholder="Search returns..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs pl-7 pr-3 py-1 bg-slate-50 dark:bg-[#161933] border border-slate-200 dark:border-[#262D55] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                className="w-full text-xs pl-7 pr-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
               />
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setStudioReportKey(undefined);
+                setIsStudioOpen(true);
+              }}
+              className="min-h-[36px] px-3.5 py-1.5 bg-ob-indigo-600 hover:bg-ob-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer touch-press"
+              title="Open Dynamic Template Studio to configure fields, sections, formulas and versioning"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Template Studio</span>
+            </button>
             <button
               type="button"
               onClick={handleOpenAddModal}
@@ -1368,7 +1385,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-slate-50 dark:bg-[#161933] border-b border-slate-200 dark:border-[#22284D] text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider">
+              <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider">
                 <th className="py-3 px-4">Return Key & Code</th>
                 <th className="py-3 px-4">Title & Description</th>
                 <th className="py-3 px-4">Category & Frequency</th>
@@ -1376,7 +1393,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-[#1C203F]">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredReports.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-slate-400">
@@ -1396,7 +1413,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     return (
                       <tr
                         key={report.ReturnKey}
-                        className="hover:bg-slate-50/80 dark:hover:bg-[#161933]/60 transition-colors"
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors"
                       >
                         <td className="py-3.5 px-4">
                           <span className="font-mono font-bold text-ob-indigo-600 dark:text-ob-indigo-400 bg-ob-indigo-50 dark:bg-ob-indigo-950/80 px-2 py-0.5 rounded border border-ob-indigo-200 dark:border-ob-indigo-800 inline-block">
@@ -1422,7 +1439,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                           <span className="block font-medium text-slate-700 dark:text-slate-300">
                             {report.Category}
                           </span>
-                          <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 dark:bg-[#1B2042] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#2B3369]">
+                          <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                             {report.Frequency}
                           </span>
                         </td>
@@ -1445,11 +1462,22 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                             <button
                               type="button"
                               onClick={() => {
+                                setStudioReportKey(report.ReturnKey);
+                                setIsStudioOpen(true);
+                              }}
+                              className="p-1.5 text-ob-green-700 dark:text-ob-green-400 hover:bg-ob-green-50 dark:hover:bg-ob-green-950/60 rounded-lg transition-colors cursor-pointer"
+                              title="Template Studio: Configure Structure, Sections, Fields, Formulas & Versioning"
+                            >
+                              <Layers className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
                                 setVersionModalReportKey(report.ReturnKey);
                                 setVersionModalReportTitle(report.Title);
                                 setIsVersionModalOpen(true);
                               }}
-                              className="p-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1E234B] rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                               title="Version History & Structure Audit"
                             >
                               <History className="w-4 h-4" />
@@ -1481,7 +1509,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
         </div>
 
         {/* Pagination */}
-        <div className="p-3 border-t border-slate-200 dark:border-[#22284D] bg-slate-50/50 dark:bg-[#121428]">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
           <Pagination
             currentPage={page}
             totalItems={filteredReports.length}
@@ -1498,7 +1526,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
       {/* MODAL: ADD REPORT TYPE */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-[#161933] rounded-2xl max-w-lg w-full border border-slate-200 dark:border-[#262D55] shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-ob-green-500/10 text-ob-green-600 dark:text-ob-green-400 flex items-center justify-center">
@@ -1541,10 +1569,10 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                       });
                       if (formErrors.ReturnKey) setFormErrors({ ...formErrors, ReturnKey: undefined });
                     }}
-                    className={`w-full p-2.5 font-mono uppercase bg-slate-50 dark:bg-[#101226] border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
+                    className={`w-full p-2.5 font-mono uppercase bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
                       formErrors.ReturnKey
                         ? 'border-rose-500 focus:border-rose-500'
-                        : 'border-slate-200 dark:border-[#2B3369] focus:border-ob-indigo-500'
+                        : 'border-slate-200 dark:border-slate-700 focus:border-ob-indigo-500'
                     }`}
                   />
                   {formErrors.ReturnKey && (
@@ -1564,7 +1592,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, Frequency: e.target.value as any })
                     }
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
                   >
                     <option value="MONTHLY">Monthly Return</option>
                     <option value="QUARTERLY">Quarterly Return</option>
@@ -1586,10 +1614,10 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     setFormData({ ...formData, Title: e.target.value });
                     if (formErrors.Title) setFormErrors({ ...formErrors, Title: undefined });
                   }}
-                  className={`w-full p-2.5 bg-slate-50 dark:bg-[#101226] border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
+                  className={`w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
                     formErrors.Title
                       ? 'border-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 dark:border-[#2B3369] focus:border-ob-indigo-500'
+                      : 'border-slate-200 dark:border-slate-700 focus:border-ob-indigo-500'
                   }`}
                 />
                 {formErrors.Title && (
@@ -1610,7 +1638,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, Category: e.target.value as any })
                     }
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
                   >
                     <option value="Credit & Lending">Credit & Lending</option>
                     <option value="Classification & Provisioning">Classification & Provisioning</option>
@@ -1633,7 +1661,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, initialFieldsCount: parseInt(e.target.value) || 4 })
                     }
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
                   />
                 </div>
               </div>
@@ -1647,7 +1675,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                   placeholder="e.g. Directive SBB/82/2026 reporting requirements on liquidity..."
                   value={formData.Description}
                   onChange={(e) => setFormData({ ...formData, Description: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
                 />
               </div>
 
@@ -1662,7 +1690,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-1 max-h-36 overflow-y-auto border border-slate-200 dark:border-[#2B3369] rounded-xl p-2 bg-slate-50 dark:bg-[#101226]">
+                <div className="grid grid-cols-1 gap-1 max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-slate-50 dark:bg-slate-800">
                   {departments.map((d) => {
                     const isSelected = formData.selectedDepartments.includes(d.name);
                     return (
@@ -1683,7 +1711,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                           />
                           <span>{d.name}</span>
                         </div>
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white dark:bg-[#181C3B] text-slate-500">
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white dark:bg-slate-800 text-slate-500">
                           {d.shortCode}
                         </span>
                       </label>
@@ -1721,7 +1749,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
       {/* MODAL: EDIT / RENAME REPORT TYPE */}
       {isEditModalOpen && activeReportForEdit && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-[#161933] rounded-2xl max-w-lg w-full border border-slate-200 dark:border-[#262D55] shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-ob-indigo-500/10 dark:bg-ob-indigo-500/20 text-ob-indigo-600 dark:text-ob-indigo-400 flex items-center justify-center">
@@ -1758,10 +1786,10 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     setFormData({ ...formData, Title: e.target.value });
                     if (formErrors.Title) setFormErrors({ ...formErrors, Title: undefined });
                   }}
-                  className={`w-full p-2.5 bg-slate-50 dark:bg-[#101226] border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
+                  className={`w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white focus:outline-none ${
                     formErrors.Title
                       ? 'border-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 dark:border-[#2B3369] focus:border-ob-indigo-500'
+                      : 'border-slate-200 dark:border-slate-700 focus:border-ob-indigo-500'
                   }`}
                 />
                 {formErrors.Title && (
@@ -1782,7 +1810,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, Category: e.target.value as any })
                     }
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
                   >
                     <option value="Credit & Lending">Credit & Lending</option>
                     <option value="Classification & Provisioning">Classification & Provisioning</option>
@@ -1802,7 +1830,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, Frequency: e.target.value as any })
                     }
-                    className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
                   >
                     <option value="MONTHLY">Monthly Return</option>
                     <option value="QUARTERLY">Quarterly Return</option>
@@ -1819,7 +1847,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                   rows={2}
                   value={formData.Description}
                   onChange={(e) => setFormData({ ...formData, Description: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-[#101226] border border-slate-200 dark:border-[#2B3369] rounded-xl text-slate-900 dark:text-white focus:outline-none"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
                 />
               </div>
 
@@ -1828,7 +1856,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                 <label className="font-semibold text-slate-700 dark:text-slate-300 block">
                   Linked Department(s) ({formData.selectedDepartments.length} assigned) *
                 </label>
-                <div className="grid grid-cols-1 gap-1 max-h-36 overflow-y-auto border border-slate-200 dark:border-[#2B3369] rounded-xl p-2 bg-slate-50 dark:bg-[#101226]">
+                <div className="grid grid-cols-1 gap-1 max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-slate-50 dark:bg-slate-800">
                   {departments.map((d) => {
                     const isSelected = formData.selectedDepartments.includes(d.name);
                     return (
@@ -1849,7 +1877,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
                           />
                           <span>{d.name}</span>
                         </div>
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white dark:bg-[#181C3B] text-slate-500">
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white dark:bg-slate-800 text-slate-500">
                           {d.shortCode}
                         </span>
                       </label>
@@ -1887,7 +1915,7 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
       {/* MODAL: DELETE REPORT */}
       {isDeleteModalOpen && activeReportForDelete && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-[#161933] rounded-2xl max-w-md w-full border border-slate-200 dark:border-[#262D55] shadow-2xl p-5 space-y-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
@@ -1935,6 +1963,17 @@ export const ReportTypeEditor: React.FC<ReportTypeEditorProps> = ({
         onSuccess={(msg) => triggerNotice(msg, 'SUCCESS')}
         adminName={currentUser.name}
       />
+
+      {/* MODAL: DYNAMIC REPORT DEFINITION & TEMPLATE STUDIO */}
+      {isStudioOpen && (
+        <ReportTemplateStudioModal
+          isOpen={isStudioOpen}
+          onClose={() => setIsStudioOpen(false)}
+          reportKey={studioReportKey}
+          currentUser={currentUser}
+          onSuccess={(msg) => triggerNotice(msg, 'SUCCESS')}
+        />
+      )}
     </div>
   );
 };
@@ -2020,7 +2059,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-150 pb-16">
       {/* Top Header Card */}
-      <div className="bg-white dark:bg-[#121428] border border-slate-200 dark:border-[#22284D] rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl bg-ob-indigo-500/10 dark:bg-ob-indigo-500/20 text-ob-indigo-600 dark:text-ob-indigo-400 border border-ob-indigo-500/30 flex items-center justify-center shrink-0">
@@ -2031,7 +2070,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
                 <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                   Departments & Regulatory Returns Governance
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-ob-indigo-100 dark:bg-ob-indigo-950 text-ob-indigo-800 dark:text-ob-indigo-300 border border-ob-indigo-300 dark:border-ob-indigo-700">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-ob-indigo-100 dark:bg-ob-indigo-950 text-ob-indigo-800 dark:text-ob-indigo-300 border border-ob-indigo-300 dark:border-ob-indigo-700">
                   Dynamic SSOT
                 </span>
               </div>
@@ -2047,7 +2086,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
           <button
             type="button"
             onClick={() => setIsBulkImportModalOpen(true)}
-            className="min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#161933] hover:bg-slate-50 dark:hover:bg-[#1F2448] rounded-xl border border-slate-200 dark:border-[#2B3369] shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer touch-press"
+            className="min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer touch-press"
           >
             <Upload className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
             <span>Bulk Import (CSV/JSON)</span>
@@ -2057,7 +2096,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
             <button
               type="button"
               onClick={onBackToDashboard}
-              className="min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-[#1B2042] hover:bg-slate-200 dark:hover:bg-[#252C5C] rounded-xl border border-slate-200 dark:border-[#2B3369] transition-all cursor-pointer touch-press"
+              className="min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer touch-press"
             >
               ← Back to Admin Governance
             </button>
@@ -2093,7 +2132,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
       )}
 
       {/* Primary View Mode Tabs */}
-      <div className="bg-white dark:bg-[#121428] border border-slate-200 dark:border-[#22284D] rounded-2xl p-2 shadow-xs flex items-center justify-between flex-wrap gap-2">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-xs flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             type="button"
@@ -2104,7 +2143,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
             className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer touch-press ${
               viewMode === 'DEPARTMENTS'
                 ? 'bg-ob-indigo-600 text-white shadow-sm ring-1 ring-ob-indigo-400/40'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1B2042]'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Building2 className="w-4 h-4" />
@@ -2120,7 +2159,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
             className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer touch-press ${
               viewMode === 'REPORT_TYPES'
                 ? 'bg-ob-indigo-600 text-white shadow-sm ring-1 ring-ob-indigo-400/40'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1B2042]'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -2136,7 +2175,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
             className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer touch-press ${
               viewMode === 'LINKAGE_MATRIX'
                 ? 'bg-ob-indigo-600 text-white shadow-sm ring-1 ring-ob-indigo-400/40'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1B2042]'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Network className="w-4 h-4" />
@@ -2152,7 +2191,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
             className={`min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer touch-press ${
               viewMode === 'CHANGE_HISTORY'
                 ? 'bg-ob-indigo-600 text-white shadow-sm ring-1 ring-ob-indigo-400/40'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1B2042]'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <History className="w-4 h-4" />
@@ -2188,8 +2227,8 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
       {/* ========================================================================= */}
       {viewMode === 'LINKAGE_MATRIX' && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-[#121428] border border-slate-200 dark:border-[#22284D] rounded-2xl p-4 shadow-xs">
-            <div className="flex items-start justify-between gap-4 flex-wrap pb-3 border-b border-slate-200 dark:border-[#22284D]">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+            <div className="flex items-start justify-between gap-4 flex-wrap pb-3 border-b border-slate-200 dark:border-slate-800">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Network className="w-4 h-4 text-ob-indigo-600 dark:text-ob-indigo-400" />
@@ -2218,9 +2257,9 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
             {/* Matrix Table */}
             <div className="overflow-x-auto mt-4 max-h-[600px] overflow-y-auto">
               <table className="w-full text-xs border-collapse">
-                <thead className="sticky top-0 bg-white dark:bg-[#121428] z-10 shadow-xs">
-                  <tr className="border-b border-slate-200 dark:border-[#22284D]">
-                    <th className="py-2.5 px-3 text-left font-bold text-slate-900 dark:text-white min-w-[200px] bg-slate-50 dark:bg-[#161933]">
+                <thead className="sticky top-0 bg-white dark:bg-slate-900 z-10 shadow-xs">
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-2.5 px-3 text-left font-bold text-slate-900 dark:text-white min-w-[200px] bg-slate-50 dark:bg-slate-800">
                       Report Return Key / Title
                     </th>
                     {departments.map((dept) => (
@@ -2239,13 +2278,13 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-[#1C203F]">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {reports.map((report) => (
                     <tr
                       key={report.ReturnKey}
-                      className="hover:bg-slate-50 dark:hover:bg-[#161933]/50 transition-colors"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                     >
-                      <td className="py-2.5 px-3 font-medium bg-slate-50/50 dark:bg-[#14162B]">
+                      <td className="py-2.5 px-3 font-medium bg-slate-50/50 dark:bg-slate-800">
                         <span className="font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-300 block">
                           {report.ReturnKey}
                         </span>
@@ -2264,7 +2303,7 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
                               className={`w-6 h-6 rounded-md transition-all inline-flex items-center justify-center cursor-pointer touch-press ${
                                 isLinked
                                   ? 'bg-ob-indigo-600 text-white shadow-xs hover:bg-ob-indigo-700 scale-105'
-                                  : 'border border-slate-300 dark:border-slate-700 hover:border-ob-indigo-400 dark:hover:border-ob-indigo-500 bg-white dark:bg-[#181C3B]'
+                                  : 'border border-slate-300 dark:border-slate-700 hover:border-ob-indigo-400 dark:hover:border-ob-indigo-500 bg-white dark:bg-slate-800'
                               }`}
                               title={
                                 isLinked
@@ -2293,12 +2332,19 @@ export const DepartmentReportManagement: React.FC<DepartmentReportManagementProp
         <ChangeHistoryView currentUser={currentUser} onNotice={showNotice} />
       )}
 
-      {/* MODAL: BULK IMPORT (CSV / JSON) */}
-      <BulkImportModal
+      {/* MODAL: BULK OPERATIONS (CSV / JSON / XLSX) */}
+      <BulkOperationsModal
         isOpen={isBulkImportModalOpen}
         onClose={() => setIsBulkImportModalOpen(false)}
         onSuccess={(msg) => showNotice(msg, 'SUCCESS')}
-        adminName={currentUser.name}
+        currentUser={{
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role,
+          department: currentUser.department,
+        }}
+        initialTarget="DEPARTMENTS"
       />
     </div>
   );
