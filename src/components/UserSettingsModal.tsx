@@ -42,6 +42,7 @@ import {
 } from '../utils/deviceCapabilities.ts';
 import { triggerHaptic, vibrate } from '../utils/haptics.ts';
 import { BiometricSecurityCenter } from './BiometricSecurityCenter.tsx';
+import { BiometricPromptModal } from './BiometricPromptModal.tsx';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -67,6 +68,8 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     isBiometricLoginEnabled(currentUser.email)
   );
   const [deviceCaps, setDeviceCaps] = useState<DeviceCapabilities | null>(null);
+  const [isBiometricPromptOpen, setIsBiometricPromptOpen] = useState<boolean>(false);
+  const [biometricEnrollMethod, setBiometricEnrollMethod] = useState<'FINGERPRINT' | 'FACE'>('FACE');
 
   useEffect(() => {
     if (isOpen) {
@@ -232,7 +235,14 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         {/* Tab 0: Biometric Security Center & Device Management */}
         {activeTab === 'SECURITY' && (
           <div className="p-5 overflow-y-auto space-y-4">
-            <BiometricSecurityCenter currentUser={currentUser} isEmbedded={true} />
+            <BiometricSecurityCenter
+              currentUser={currentUser}
+              isEmbedded={true}
+              onTriggerEnrollment={(method) => {
+                setBiometricEnrollMethod(method);
+                setIsBiometricPromptOpen(true);
+              }}
+            />
           </div>
         )}
 
@@ -539,6 +549,22 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             Close
           </button>
         </div>
+
+        {/* Biometric Enrollment Modal */}
+        <BiometricPromptModal
+          isOpen={isBiometricPromptOpen}
+          mode="REGISTER"
+          userName={currentUser.name}
+          userEmail={currentUser.email}
+          userRole={currentUser.role}
+          initialMethod={biometricEnrollMethod}
+          onSuccess={() => {
+            setIsBiometricPromptOpen(false);
+            setIsBioEnabled(true);
+            triggerHaptic('success');
+          }}
+          onCancel={() => setIsBiometricPromptOpen(false)}
+        />
       </div>
     </div>
   );

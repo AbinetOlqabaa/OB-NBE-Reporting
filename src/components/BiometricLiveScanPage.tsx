@@ -132,19 +132,18 @@ export const BiometricLiveScanPage: React.FC<BiometricLiveScanPageProps> = ({
       let frame = capturedData;
 
       if (!frame && videoRef.current && cameraActive) {
-        const captured = captureFaceFrame(videoRef.current);
+        const captured = await captureFaceFrame(videoRef.current);
         if (captured.success && captured.faceHash) {
           frame = captured;
         }
       }
 
-      // If no live stream active, retrieve enrolled facial signature for simulated scan
+      // Phase 19: Strict enforcement - No fake bypass when camera fails
       if (!frame) {
-        const targetUser = userService.getByEmail(normEmail);
-        const enrolledCred = targetUser?.biometricCredentials?.find((c) => c.type === 'FACE');
-        frame = {
-          faceHash: enrolledCred?.faceHash || `face_sig_${normEmail.replace(/[^a-z0-9]/g, '')}`,
-        };
+        setErrorMessage('No optical face frame captured. Look at camera or upload selfie photo to verify.');
+        setStatusMessage('Facial capture failed. Optical frame missing.');
+        setPhase('FAILED');
+        return;
       }
 
       setScanProgress(85);

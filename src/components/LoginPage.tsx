@@ -549,16 +549,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
 
           {/* Biometric Prompt Interactive Modal */}
-          <BiometricPromptModal
-            isOpen={isBiometricModalOpen}
-            mode={biometricModalMode}
-            userName={currentTargetUser?.name || 'Bank Officer'}
-            userEmail={currentTargetUser?.email || email}
-            userRole={currentTargetUser?.role || 'MAKER'}
-            initialMethod={selectedBiometricMethod}
-            onSuccess={handleBiometricModalSuccess}
-            onCancel={() => setIsBiometricModalOpen(false)}
-          />
+          {isBiometricModalOpen && (
+            <BiometricPromptModal
+              isOpen={isBiometricModalOpen}
+              mode={biometricModalMode}
+              userName={currentTargetUser?.name || 'Bank Officer'}
+              userEmail={currentTargetUser?.email || email}
+              userRole={currentTargetUser?.role || 'MAKER'}
+              initialMethod={selectedBiometricMethod}
+              onSuccess={handleBiometricModalSuccess}
+              onCancel={() => setIsBiometricModalOpen(false)}
+            />
+          )}
 
           {/* Reset Password Interactive Modal */}
           <ResetPasswordModal
