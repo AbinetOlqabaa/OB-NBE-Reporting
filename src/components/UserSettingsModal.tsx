@@ -41,21 +41,22 @@ import {
   DeviceCapabilities,
 } from '../utils/deviceCapabilities.ts';
 import { triggerHaptic, vibrate } from '../utils/haptics.ts';
+import { BiometricSecurityCenter } from './BiometricSecurityCenter.tsx';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: UserSession;
-  initialTab?: 'SETTINGS' | 'HISTORY';
+  initialTab?: 'SECURITY' | 'SETTINGS' | 'HISTORY';
 }
 
 export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   isOpen,
   onClose,
   currentUser,
-  initialTab = 'SETTINGS',
+  initialTab = 'SECURITY',
 }) => {
-  const [activeTab, setActiveTab] = useState<'SETTINGS' | 'HISTORY'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'SECURITY' | 'SETTINGS' | 'HISTORY'>(initialTab);
   const [records, setRecords] = useState<AuthHistoryEntry[]>([]);
   const [methodFilter, setMethodFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -175,21 +176,37 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900 px-5 pt-2 gap-2">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900 px-5 pt-2 gap-2 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => {
+              vibrate(10);
+              setActiveTab('SECURITY');
+            }}
+            className={`py-2 px-3 text-xs font-bold rounded-t-xl border-b-2 transition-all flex items-center gap-1.5 cursor-pointer touch-press shrink-0 ${
+              activeTab === 'SECURITY'
+                ? 'border-ob-indigo-600 text-ob-indigo-600 dark:text-ob-indigo-400 bg-white dark:bg-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Biometric Security Center</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
               vibrate(10);
               setActiveTab('SETTINGS');
             }}
-            className={`py-2 px-3 text-xs font-bold rounded-t-xl border-b-2 transition-all flex items-center gap-1.5 cursor-pointer touch-press ${
+            className={`py-2 px-3 text-xs font-bold rounded-t-xl border-b-2 transition-all flex items-center gap-1.5 cursor-pointer touch-press shrink-0 ${
               activeTab === 'SETTINGS'
                 ? 'border-ob-indigo-600 text-ob-indigo-600 dark:text-ob-indigo-400 bg-white dark:bg-slate-900'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Fingerprint className="w-3.5 h-3.5" />
-            <span>Hardware & Biometrics</span>
+            <span>Hardware Diagnostics</span>
           </button>
 
           <button
@@ -198,7 +215,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
               vibrate(10);
               setActiveTab('HISTORY');
             }}
-            className={`py-2 px-3 text-xs font-bold rounded-t-xl border-b-2 transition-all flex items-center gap-1.5 cursor-pointer touch-press relative ${
+            className={`py-2 px-3 text-xs font-bold rounded-t-xl border-b-2 transition-all flex items-center gap-1.5 cursor-pointer touch-press relative shrink-0 ${
               activeTab === 'HISTORY'
                 ? 'border-ob-indigo-600 text-ob-indigo-600 dark:text-ob-indigo-400 bg-white dark:bg-slate-900'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -211,6 +228,13 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             </span>
           </button>
         </div>
+
+        {/* Tab 0: Biometric Security Center & Device Management */}
+        {activeTab === 'SECURITY' && (
+          <div className="p-5 overflow-y-auto space-y-4">
+            <BiometricSecurityCenter currentUser={currentUser} isEmbedded={true} />
+          </div>
+        )}
 
         {/* Tab 1: Hardware & Biometrics Content */}
         {activeTab === 'SETTINGS' && (

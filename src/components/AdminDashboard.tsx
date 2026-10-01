@@ -43,6 +43,7 @@ import {
   Power,
   ArrowUpDown,
   ChevronRight,
+  Fingerprint,
   ChevronDown,
   Info,
 } from 'lucide-react';
@@ -61,6 +62,8 @@ import { departmentService } from '../services/departmentService.ts';
 import { ReportTemplateStudioModal } from './ReportTemplateStudioModal.tsx';
 import { BulkOperationsModal } from './BulkOperationsModal.tsx';
 import { bulkOperationsEngine, type BulkTargetType } from '../services/bulkOperationsEngine.ts';
+import { ConfigurationGovernanceView } from './ConfigurationGovernanceView.tsx';
+import { BiometricSecurityCenter } from './BiometricSecurityCenter.tsx';
 
 interface AdminDashboardProps {
   currentUser: UserSession;
@@ -258,6 +261,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [bulkTargetDept, setBulkTargetDept] = useState('');
   const [isBulkAssignRoleOpen, setIsBulkAssignRoleOpen] = useState(false);
   const [bulkTargetRole, setBulkTargetRole] = useState<UserRole>('MAKER');
+
+  // Biometric Management Target User (Phase 13)
+  const [biometricTargetUser, setBiometricTargetUser] = useState<UserAccount | null>(null);
 
   const showNotice = (type: 'success' | 'error', message: string) => {
     setActionNotice({ type, message });
@@ -1278,7 +1284,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>Directives & Matrix</span>
+            <span>Governance & Versioning</span>
           </button>
 
           <button
@@ -1924,6 +1930,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <Eye className="w-3.5 h-3.5" />
                         </button>
 
+                        <button
+                          type="button"
+                          onClick={() => setBiometricTargetUser(user)}
+                          className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"
+                          title="Manage Biometrics & Registered Authenticators"
+                        >
+                          <Fingerprint className="w-3.5 h-3.5" />
+                        </button>
+
                         {user.status === 'PENDING_APPROVAL' ? (
                           <button
                             type="button"
@@ -2307,7 +2322,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 9. Tab Content 6: GOVERNANCE & MATRIX */}
       {activeSubTab === 'GOVERNANCE' && (
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+          {/* Phase 8 Configuration Governance, Versioning & Governed Rollback */}
+          <ConfigurationGovernanceView currentUser={currentUser} />
+
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs">
             <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-2">
               <Shield className="w-4 h-4 text-ob-indigo-600 dark:text-ob-indigo-400" />
@@ -4016,6 +4034,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 Apply Role Change
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMINISTRATIVE BIOMETRIC SECURITY CENTER MODAL (PHASE 13) */}
+      {biometricTargetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-3xl w-full p-5 max-h-[90vh] overflow-y-auto">
+            <BiometricSecurityCenter
+              currentUser={currentUser}
+              targetEmail={biometricTargetUser.email}
+              onClose={() => setBiometricTargetUser(null)}
+              isEmbedded={true}
+            />
           </div>
         </div>
       )}
