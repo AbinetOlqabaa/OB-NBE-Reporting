@@ -2387,6 +2387,9 @@ function ensureDjangoSimulatorRunning() {
           stdio: 'ignore',
           cwd: __dirname,
         });
+        proc.on('error', (err) => {
+          console.warn('[NBE Simulator Service] Python microservice auto-spawn unavailable (using built-in simulator engine):', err.message);
+        });
         proc.unref();
       } catch (e: any) {
         console.warn('[NBE Simulator Service] Auto-spawn notice:', e.message);

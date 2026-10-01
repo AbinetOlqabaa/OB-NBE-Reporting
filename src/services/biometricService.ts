@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
+import type {
   BiometricMethod,
   BiometricLifecycleState,
   BiometricCredentialRecord,
@@ -22,7 +22,7 @@ import {
   BiometricServiceHealth,
   BiometricComplianceArchive,
 } from '../types/biometrics.ts';
-import { userService, UserAccount } from './userService.ts';
+import { userService, type UserAccount } from './userService.ts';
 import { auditService } from './auditService.ts';
 
 const CHALLENGE_TTL_MS = 60 * 1000; // 60 seconds
