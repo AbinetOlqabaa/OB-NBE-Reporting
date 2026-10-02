@@ -247,11 +247,16 @@ export const BiometricPromptModal: React.FC<BiometricPromptModalProps> = ({
 
   // Synchronize cameraActive with cameraService stream status
   useEffect(() => {
+    let isMounted = true;
     const unsub = cameraService.subscribe(() => {
+      if (!isMounted) return;
       const active = cameraService.getActiveStream();
       setCameraActive(Boolean(active && cameraService.isStreamAlive(active)));
     });
-    return unsub;
+    return () => {
+      isMounted = false;
+      unsub();
+    };
   }, []);
 
   // Phase 17: Real-time Live Optical Image Quality Evaluator (Poor, Good, Excellent)
@@ -1401,10 +1406,12 @@ export const BiometricPromptModal: React.FC<BiometricPromptModalProps> = ({
       </div>
 
       {/* Embedded Hardware Diagnostics Modal */}
-      <HardwareDiagnosticsModal
-        isOpen={isDiagnosticsOpen}
-        onClose={() => setIsDiagnosticsOpen(false)}
-      />
+      {isDiagnosticsOpen && (
+        <HardwareDiagnosticsModal
+          isOpen={isDiagnosticsOpen}
+          onClose={() => setIsDiagnosticsOpen(false)}
+        />
+      )}
     </div>
   );
 };

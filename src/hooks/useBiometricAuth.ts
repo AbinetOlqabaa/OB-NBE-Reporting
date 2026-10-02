@@ -266,7 +266,9 @@ export function useBiometricAuth() {
 
   // Synchronize with authoritative cameraService singleton
   useEffect(() => {
+    let isMounted = true;
     const unsub = cameraService.subscribe((state) => {
+      if (!isMounted) return;
       setCameraState(state);
       const stream = cameraService.getActiveStream();
       setCameraStream(stream);
@@ -292,7 +294,10 @@ export function useBiometricAuth() {
         });
       }
     });
-    return unsub;
+    return () => {
+      isMounted = false;
+      unsub();
+    };
   }, []);
 
   // Read stored credentials from localStorage

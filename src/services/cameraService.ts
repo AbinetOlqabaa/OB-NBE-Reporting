@@ -193,13 +193,13 @@ class CameraService {
   private setState(newState: CameraState, diagnostic?: CameraDiagnosticLog): void {
     this.state = newState;
     const diag = diagnostic || this.logDiagnostic(`STATE_CHANGE:${newState}`);
-    queueMicrotask(() => {
+    setTimeout(() => {
       this.subscribers.forEach((fn) => {
         try {
           fn(newState, diag);
         } catch {}
       });
-    });
+    }, 0);
   }
 
   /**
