@@ -39,7 +39,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3000', 10);
+// In AI Studio / Cloud Run architecture, the container reverse-proxy (Nginx) listens on port 8080
+// and forwards internal application traffic to localhost:3000.
+// Therefore, if PORT is 8080 or unset, the Node backend must strictly listen on port 3000.
+const PORT = parseInt(
+  process.env.APP_PORT || (process.env.PORT === '8080' ? '3000' : process.env.PORT || '3000'),
+  10
+);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
