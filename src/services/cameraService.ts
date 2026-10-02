@@ -90,14 +90,9 @@ class CameraService {
    */
   public subscribe(subscriber: CameraStateSubscriber): () => void {
     this.subscribers.add(subscriber);
-    // Notify in microtask to avoid calling React setStates during render
-    queueMicrotask(() => {
-      if (this.subscribers.has(subscriber)) {
-        try {
-          subscriber(this.state, this.lastDiagnostic || undefined);
-        } catch {}
-      }
-    });
+    try {
+      subscriber(this.state, this.lastDiagnostic || undefined);
+    } catch {}
     return () => {
       this.subscribers.delete(subscriber);
     };
@@ -125,9 +120,24 @@ class CameraService {
   /**
    * Check if a MediaStream has active, non-ended video tracks
    */
-  private isStreamAlive(stream: MediaStream): boolean {
-    const tracks = stream.getVideoTracks();
+  public isStreamAlive(stream?: MediaStream | null): boolean {
+    const s = stream || this.activeStream;
+    if (!s) return false;
+    const tracks = s.getVideoTracks();
     return tracks.length > 0 && tracks.some((t) => t.readyState === 'live');
+  }
+
+  /**
+   * Restores stream_ready state if the MediaStream is active and live
+   * Allows re-verification from the existing video stream without calling getUserMedia() again.
+   */
+  public resetToStreamReady(): boolean {
+    if (this.activeStream && this.isStreamAlive(this.activeStream)) {
+      this.setState('stream_ready');
+      this.logDiagnostic('STREAM_RESTORED_READY');
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -316,23 +326,31 @@ class CameraService {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'user' },
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         },
         audio: false,
       });
     } catch (primaryErr: any) {
       const errName = primaryErr?.name || '';
-      // If error is NOT a hard permission refusal, attempt generic video constraint fallback
+      // If error is NOT a hard permission refusal, attempt tolerant constraint fallbacks
       if (errName !== 'NotAllowedError' && errName !== 'PermissionDeniedError' && errName !== 'SecurityError') {
         try {
-          this.currentFacingMode = 'generic';
+          this.currentFacingMode = 'user_fallback';
           stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: { facingMode: 'user' },
             audio: false,
           });
-        } catch (fallbackErr: any) {
-          return this.handleCameraError(fallbackErr, 'GET_USER_MEDIA_FALLBACK');
+        } catch {
+          try {
+            this.currentFacingMode = 'generic';
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false,
+            });
+          } catch (fallbackErr: any) {
+            return this.handleCameraError(fallbackErr, 'GET_USER_MEDIA_FALLBACK');
+          }
         }
       } else {
         return this.handleCameraError(primaryErr, 'GET_USER_MEDIA_PRIMARY');
@@ -548,7 +566,7 @@ class CameraService {
   /**
    * Computes deterministic salted optical hash from image pixel data
    */
-  private computeOpticalHash(imageData: ImageData): string {
+  public computeOpticalHash(imageData: ImageData): string {
     const data = imageData.data;
     let rSum = 0;
     let gSum = 0;

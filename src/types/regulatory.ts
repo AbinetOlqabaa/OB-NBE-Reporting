@@ -191,6 +191,87 @@ export interface ReportSubmission {
   syncStatus?: OfflineSyncStatus;
   isOfflineDraft?: boolean;
   offlineSavedAt?: string;
+  reusedFromSubmissionId?: string;
+  reusedFromVersion?: number;
+  sourceReportId?: string;
+  sourceVersion?: number;
+}
+
+export function normalizeSubmissionStatus(status: string): SubmissionStatus {
+  const upper = (status || '').toUpperCase().trim();
+  if (upper === 'SAVED' || upper === 'IN_PROGRESS' || upper === 'SAVED/IN_PROGRESS') return 'DRAFT';
+  if (upper === 'RETURNED_FOR_CORRECTION' || upper === 'RETURNED') return 'CORRECTION_REQUIRED';
+  if (upper === 'READY_FOR_SUBMISSION') return 'DRAFT';
+  if (upper === 'SUBMITTED') return 'PENDING_CHECKER';
+  if (upper === 'ACCEPTED') return 'APPROVED';
+  return (status as SubmissionStatus) || 'DRAFT';
+}
+
+export function isMakerEditableStatus(status: SubmissionStatus | string): boolean {
+  const norm = normalizeSubmissionStatus(status);
+  return norm === 'DRAFT' || norm === 'CORRECTION_REQUIRED';
+}
+
+export function isFinalSubmittedStatus(status: SubmissionStatus | string): boolean {
+  const s = (status || '').toUpperCase();
+  return s === 'SENT' || s === 'APPROVED' || s === 'SENDING';
+}
+
+export type LibraryLifecycleState =
+  | 'DRAFT'
+  | 'IN_PROGRESS'
+  | 'RETURNED'
+  | 'SUBMITTED'
+  | 'REUSED_COPY';
+
+export function deriveLibraryLifecycleState(sub: Partial<ReportSubmission>): LibraryLifecycleState {
+  if (sub.reusedFromSubmissionId && (sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED')) {
+    return 'REUSED_COPY';
+  }
+  const norm = normalizeSubmissionStatus(sub.status || 'DRAFT');
+  if (norm === 'CORRECTION_REQUIRED') {
+    return 'RETURNED';
+  }
+  if (norm === 'PENDING_CHECKER' || norm === 'APPROVED' || norm === 'SENT' || norm === 'SENDING') {
+    return 'SUBMITTED';
+  }
+  if (norm === 'DRAFT') {
+    if (sub.version !== undefined && sub.version > 1) {
+      return 'IN_PROGRESS';
+    }
+    return 'DRAFT';
+  }
+  return 'DRAFT';
+}
+
+export interface LibraryFilterOptions {
+  search?: string;
+  lifecycleState?: LibraryLifecycleState | 'ALL';
+  status?: SubmissionStatus | 'ALL';
+  reportType?: string;
+  frequency?: string;
+  startDate?: string;
+  endDate?: string;
+  sortBy?: 'updatedAt' | 'createdAt' | 'reportKey' | 'title' | 'status' | 'version';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+export interface LibraryQueryResult {
+  items: ReportSubmission[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  stats: {
+    all: number;
+    draft: number;
+    inProgress: number;
+    returned: number;
+    submitted: number;
+    reusedCopy: number;
+  };
 }
 
 export type OfflineSyncStatus = "SYNCED" | "PENDING_SYNC" | "LOCAL_DRAFT";

@@ -25,6 +25,7 @@ export type AccessAction =
   | 'VIEW'
   | 'CREATE_DRAFT'
   | 'EDIT_DRAFT'
+  | 'DELETE_DRAFT'
   | 'VALIDATE'
   | 'SUBMIT_CHECKER'
   | 'REVIEW'
@@ -735,6 +736,65 @@ class EffectiveAccessEngineClass {
           grantId: coveringGrant?.id,
           grantReason: coveringGrant?.reason,
         },
+      };
+      this.accessCache.set(cacheKey, res);
+      return res;
+    }
+
+    // 9b. MAKER Action: DELETE_DRAFT
+    if (action === 'DELETE_DRAFT') {
+      if (role !== 'MAKER') {
+        const res: AccessEvaluationResult = {
+          allowed: false,
+          reason: `Draft deletion requires MAKER role (current role: ${role}).`,
+          code: 'ROLE_FORBIDDEN',
+          context: { role, userDept, reportKey, reportDept: reportPrimaryDept },
+        };
+        this.accessCache.set(cacheKey, res);
+        return res;
+      }
+
+      if (submission) {
+        const subStatus = (submission.status || 'DRAFT').toUpperCase();
+        if (
+          subStatus === 'PENDING_CHECKER' ||
+          subStatus === 'APPROVED' ||
+          subStatus === 'SENT' ||
+          subStatus === 'SENDING'
+        ) {
+          const res: AccessEvaluationResult = {
+            allowed: false,
+            reason: `Submitted regulatory reports cannot be deleted (status: ${subStatus}). Under NBE Directive BSD/03/2020, submitted reports are permanent immutable records.`,
+            code: 'INVALID_WORKFLOW_STATE',
+            context: { role, userDept, reportKey, workflowStatus: subStatus },
+          };
+          this.accessCache.set(cacheKey, res);
+          return res;
+        }
+
+        if (role === 'MAKER') {
+          if (
+            submission.makerId &&
+            submission.makerId !== user.id &&
+            (!submission.department || submission.department.toLowerCase() !== (userDept || '').toLowerCase())
+          ) {
+            const res: AccessEvaluationResult = {
+              allowed: false,
+              reason: 'Ownership violation: Makers can only delete unsubmitted reports they created or that belong to their assigned department.',
+              code: 'DEPT_MISMATCH',
+              context: { role, userDept, reportKey, workflowStatus: subStatus },
+            };
+            this.accessCache.set(cacheKey, res);
+            return res;
+          }
+        }
+      }
+
+      const res: AccessEvaluationResult = {
+        allowed: true,
+        reason: 'Authorized to delete unsubmitted report draft.',
+        code: 'ALLOWED',
+        context: { role, userDept, reportKey },
       };
       this.accessCache.set(cacheKey, res);
       return res;

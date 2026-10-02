@@ -31,6 +31,8 @@ export interface ProtectedFaceTemplate {
   livenessPassed: boolean;
   createdAt: string;
   sampleDimension?: number;
+  rawVectorChecksum?: string;
+  enrolledAt?: string;
 }
 
 export interface BiometricCredentialRecord {

@@ -14,6 +14,7 @@ import {
   History,
   HelpCircle,
   ShieldAlert,
+  BookOpen,
 } from 'lucide-react';
 import { UserSession } from '../types/regulatory.ts';
 import { ViewTab } from './Sidebar.tsx';
@@ -129,6 +130,12 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             badge: null,
           },
           {
+            id: 'LIBRARY' as ViewTab,
+            label: 'Library',
+            icon: BookOpen,
+            badge: null,
+          },
+          {
             id: 'PHASE2_SSOT' as ViewTab,
             label: 'SSOT',
             icon: Database,
@@ -138,12 +145,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             id: 'AUDIT_TRAIL' as ViewTab,
             label: 'Audit',
             icon: History,
-            badge: null,
-          },
-          {
-            id: 'DOCUMENTATION' as ViewTab,
-            label: 'Catalog',
-            icon: HelpCircle,
             badge: null,
           },
         ];

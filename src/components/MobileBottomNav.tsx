@@ -17,6 +17,7 @@ import {
   Menu,
   Activity,
   ShieldAlert,
+  BookOpen,
 } from 'lucide-react';
 
 interface NavItem {
@@ -84,9 +85,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
     // Default: MAKER role
     return [
-      { id: 'MAKER_WORKSPACE' as ViewTab, label: 'Catalog', icon: FileText },
-      { id: 'PHASE2_SSOT' as ViewTab, label: 'SSOT Lake', icon: Database },
-      { id: 'DOCUMENTATION' as ViewTab, label: 'NBE Docs', icon: HelpCircle },
+      { id: 'MAKER_WORKSPACE' as ViewTab, label: 'Maker', icon: FileText },
+      { id: 'LIBRARY' as ViewTab, label: 'Library', icon: BookOpen },
+      { id: 'PHASE2_SSOT' as ViewTab, label: 'SSOT', icon: Database },
       { id: 'AUDIT_TRAIL' as ViewTab, label: 'Audit', icon: History },
     ];
   };

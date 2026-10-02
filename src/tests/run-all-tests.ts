@@ -360,6 +360,20 @@ import { runPhase13BiometricResetRecoveryDevicesTests } from './phase13-biometri
 import { runPhase14BiometricHardeningPrivacyComplianceTests } from './phase14-biometric-hardening-privacy-compliance.test.ts';
 import { runPhase15BiometricE2EHardwareValidationAcceptanceTests } from './phase15-biometric-e2e-hardware-validation-acceptance.test.ts';
 import { runPhase16FaceIdCameraLifecycleTests } from './phase16-face-id-camera-lifecycle.test.ts';
+import { runPhase17ImageQualityAdaptiveMatchingTests } from './phase17-image-quality-adaptive-matching.test.ts';
+import { runPhase18LoginFormProductionCleanupTests } from './phase18-login-form-production-cleanup.test.ts';
+import { runPhase19ContextAwareBiometricResetTests } from './phase19-context-aware-biometric-reset.test.ts';
+import { runPhase20RegulatoryReportingXlsxExportTests } from './phase20-regulatory-reporting-xlsx-export.test.ts';
+import { runPhase21RealtimeFieldLevelValidationTests } from './phase21-realtime-field-level-validation.test.ts';
+import { runPhase22XlsxSheetJsExportTests } from './phase22-xlsx-sheetjs-export.test.ts';
+import { runPhase23IndexedDbAutoSaveTests } from './phase23-indexeddb-autosave.test.ts';
+import { runPhase23MakerDraftLifecycleTests } from './phase23-maker-draft-lifecycle.test.ts';
+import { runPhase24ZodRealtimeValidationTests } from './phase24-zod-realtime-validation.test.ts';
+import { runPhase24ValidationRemediationAssistantTests } from './phase24-validation-remediation-assistant.test.ts';
+import { runPhase25XlsxNbeOfflineExportTests } from './phase25-xlsx-nbe-offline-export.test.ts';
+import { runPhase25LibraryCoreAndMakerLibraryTests } from './phase25-library-core-architecture-maker-library.test.ts';
+import { runPhase26PasswordAndPriorEnrollmentBiometricResetTests } from './phase26-password-and-prior-enrollment-biometric-reset.test.ts';
+import { runXlsxExportAndDynamicValidationTests } from './xlsx-export-and-dynamic-validation.test.ts';
 
 async function runFullApplicationTestSuite() {
   runRegulatoryCoreTests();
@@ -376,6 +390,20 @@ async function runFullApplicationTestSuite() {
   await runPhase14BiometricHardeningPrivacyComplianceTests();
   await runPhase15BiometricE2EHardwareValidationAcceptanceTests();
   await runPhase16FaceIdCameraLifecycleTests();
+  await runPhase17ImageQualityAdaptiveMatchingTests();
+  await runPhase18LoginFormProductionCleanupTests();
+  await runPhase19ContextAwareBiometricResetTests();
+  await runPhase20RegulatoryReportingXlsxExportTests();
+  await runPhase21RealtimeFieldLevelValidationTests();
+  await runPhase22XlsxSheetJsExportTests();
+  await runPhase23IndexedDbAutoSaveTests();
+  await runPhase23MakerDraftLifecycleTests();
+  await runPhase24ZodRealtimeValidationTests();
+  await runPhase24ValidationRemediationAssistantTests();
+  await runPhase25XlsxNbeOfflineExportTests();
+  await runPhase25LibraryCoreAndMakerLibraryTests();
+  await runPhase26PasswordAndPriorEnrollmentBiometricResetTests();
+  await runXlsxExportAndDynamicValidationTests();
   await runPdfAndSnapshotTests();
   await runIndexedDbOfflineStorageTests();
   await runResponsiveUiAndLayoutTests();
