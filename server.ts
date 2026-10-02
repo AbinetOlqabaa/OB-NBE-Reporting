@@ -6,6 +6,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import dotenv from 'dotenv';
@@ -2542,7 +2543,7 @@ app.post('/api/bulk/export', (req, res) => {
 });
 
 // System Health
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/healthz', '/_ah/health'], (req, res) => {
   res.json({
     status: 'ONLINE',
     service: 'Oromia Bank NBE Platform',
@@ -2585,24 +2586,40 @@ function ensureDjangoSimulatorRunning() {
 }
 
 async function startServer() {
-  ensureDjangoSimulatorRunning();
+  const distDir = path.resolve(__dirname, 'dist');
+  const distIndexHtml = path.join(distDir, 'index.html');
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.K_SERVICE) ||
+    Boolean(process.env.K_REVISION) ||
+    (fs.existsSync(distIndexHtml) && process.env.NODE_ENV !== 'development');
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (isProduction) {
+    console.log('[Oromia Bank NBE Platform] Running in PRODUCTION mode (serving dist/ assets)');
+    app.use(express.static(distDir));
+    app.get('*', (req, res) => {
+      if (fs.existsSync(distIndexHtml)) {
+        res.sendFile(distIndexHtml);
+      } else {
+        res.status(200).send('<!doctype html><html><body><h1>Oromia Bank NBE Platform</h1><p>Application ready.</p></body></html>');
+      }
+    });
+  } else {
+    console.log('[Oromia Bank NBE Platform] Running in DEVELOPMENT mode with Vite middleware');
+    ensureDjangoSimulatorRunning();
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
-    // Production static serving
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
-    });
   }
 
   const server = http.createServer(app);
+  server.on('error', (err: any) => {
+    console.error('[Server Fatal Error]', err);
+  });
+
   realtimeSsotEngine.attachServer(server, '/ws/ssot');
 
   server.listen(PORT, '0.0.0.0', () => {
