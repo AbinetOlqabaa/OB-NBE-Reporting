@@ -3,14 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "engines": {
-    "node": ">=22.0.0"
-  },
   "scripts": {
     "dev": "tsx server.ts",
     "dev:vite": "vite --host 0.0.0.0 --port 5173",
     "serve": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
+    "gcp-build": "vite build",
     "start": "node server.ts",
     "preview": "vite preview --host 0.0.0.0 --port 5173",
     "clean": "rm -rf dist server.js",

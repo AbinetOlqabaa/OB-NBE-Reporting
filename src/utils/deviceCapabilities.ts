@@ -171,9 +171,7 @@ export function subscribeToBiometricPreferenceChanges(
   if (typeof window === 'undefined') return () => {};
   const handler = (e: Event) => {
     const customEvent = e as CustomEvent;
-    setTimeout(() => {
-      callback(customEvent.detail || { enabled: isBiometricLoginEnabled() });
-    }, 0);
+    callback(customEvent.detail || { enabled: isBiometricLoginEnabled() });
   };
   window.addEventListener(PREFERENCE_CHANGED_EVENT, handler);
   return () => {
@@ -715,16 +713,9 @@ export function subscribeToDeviceChanges(callback: () => void): () => void {
     navigator.mediaDevices &&
     typeof navigator.mediaDevices.addEventListener === 'function'
   ) {
-    const handler = () => {
-      setTimeout(() => {
-        try {
-          callback();
-        } catch {}
-      }, 0);
-    };
-    navigator.mediaDevices.addEventListener('devicechange', handler);
+    navigator.mediaDevices.addEventListener('devicechange', callback);
     return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', handler);
+      navigator.mediaDevices.removeEventListener('devicechange', callback);
     };
   }
   return () => {};

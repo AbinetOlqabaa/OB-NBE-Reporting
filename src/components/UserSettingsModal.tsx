@@ -551,22 +551,20 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         </div>
 
         {/* Biometric Enrollment Modal */}
-        {isBiometricPromptOpen && (
-          <BiometricPromptModal
-            isOpen={isBiometricPromptOpen}
-            mode="REGISTER"
-            userName={currentUser.name}
-            userEmail={currentUser.email}
-            userRole={currentUser.role}
-            initialMethod={biometricEnrollMethod}
-            onSuccess={() => {
-              setIsBiometricPromptOpen(false);
-              setIsBioEnabled(true);
-              triggerHaptic('success');
-            }}
-            onCancel={() => setIsBiometricPromptOpen(false)}
-          />
-        )}
+        <BiometricPromptModal
+          isOpen={isBiometricPromptOpen}
+          mode="REGISTER"
+          userName={currentUser.name}
+          userEmail={currentUser.email}
+          userRole={currentUser.role}
+          initialMethod={biometricEnrollMethod}
+          onSuccess={() => {
+            setIsBiometricPromptOpen(false);
+            setIsBioEnabled(true);
+            triggerHaptic('success');
+          }}
+          onCancel={() => setIsBiometricPromptOpen(false)}
+        />
       </div>
     </div>
   );

@@ -16,6 +16,9 @@ import type {
   LibraryFilterOptions,
   LibraryQueryResult,
   LibraryLifecycleState,
+  RemovalImpactAssessment,
+  GovernedRemovalResult,
+  ReviewerAssignment,
 } from '../types/regulatory.ts';
 import {
   deriveLibraryLifecycleState,
@@ -32,12 +35,15 @@ import type { NormalizedValidationSummary, ProposedFix } from '../types/remediat
 import { nbeAdapter } from './nbeAdapter.ts';
 import type { DeliveryResult } from './nbeAdapter.ts';
 import { auditService } from './auditService.ts';
+import { notificationService } from './notificationService.ts';
 import { userService } from './userService.ts';
 import { departmentService } from './departmentService.ts';
 import { configService } from './configService.ts';
 import { indexedDbStorage } from './indexedDbStorage.ts';
 import { effectiveAccessEngine } from './effectiveAccessEngine.ts';
 import { realtimeSsotEngine } from './realtimeSsotEngine.ts';
+import { BrowserSafeEventEmitter } from '../utils/browserEventEmitter.ts';
+import { templateInitializationService } from './templateInitializationService.ts';
 
 // Default Demo User Accounts with verified Oromia Bank departments
 export const DEMO_USERS: UserSession[] = [
@@ -59,6 +65,16 @@ export const DEMO_USERS: UserSession[] = [
     institutionCode: '0000013',
     department: 'Credit Operations & Portfolio Management',
     employeeId: 'OB-CHK-055',
+    specialAccessGrants: [],
+  },
+  {
+    id: 'usr_checker_credit_2',
+    name: 'Almaz Bekele',
+    email: 'almaz.bekele@oromiabank.com',
+    role: 'CHECKER',
+    institutionCode: '0000013',
+    department: 'Credit Operations & Portfolio Management',
+    employeeId: 'OB-CHK-056',
     specialAccessGrants: [],
   },
   {
@@ -113,6 +129,17 @@ export const DEMO_USERS: UserSession[] = [
 
 class SubmissionServiceClass {
   private submissions: Map<string, ReportSubmission> = new Map();
+  public readonly events = new BrowserSafeEventEmitter();
+
+  public onSubmissionChange(callback: (sub: ReportSubmission) => void): () => void {
+    this.events.on('submissionChange', callback);
+    return () => this.events.off('submissionChange', callback);
+  }
+
+  public onSubmissionsUpdated(callback: (subs: ReportSubmission[]) => void): () => void {
+    this.events.on('submissionsUpdated', callback);
+    return () => this.events.off('submissionsUpdated', callback);
+  }
 
   constructor() {
     this.seedInitialSubmissions();
@@ -559,6 +586,10 @@ class SubmissionServiceClass {
     return this.submissions.get(id);
   }
 
+  public getSubmissionById(id: string): ReportSubmission | undefined {
+    return this.submissions.get(id);
+  }
+
   public getByFilter(filter: {
     status?: SubmissionStatus;
     reportKey?: string;
@@ -587,6 +618,10 @@ class SubmissionServiceClass {
    * 2. Maker must be assigned to the department that owns this report,
    *    OR have been granted special access by the Administrator.
    */
+  public createDraft(reportKey: string, user: UserSession): ReportSubmission {
+    return this.createSubmission(reportKey, user);
+  }
+
   public createSubmission(reportKey: string, user: UserSession): ReportSubmission {
     const report = getReportByKey(reportKey);
     if (!report) {
@@ -608,15 +643,8 @@ class SubmissionServiceClass {
     const id = 'sub_' + reportKey.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
     const now = new Date().toISOString();
 
-    const initialValues: Record<string, string | number> = {};
-    for (const item of report.ReturnItemsList) {
-      initialValues[item.Code] = item.Value !== undefined ? item.Value : '';
-    }
-
-    const initialDynamicRows: Record<number, DynamicRowRecord[]> = {};
-    for (const area of report.DynamicItemsList) {
-      initialDynamicRows[area.Area] = [];
-    }
+    const { values: initialValues, dynamicRows: initialDynamicRows } =
+      templateInitializationService.initializeDraftFromTemplate(report);
 
     const templateSnapshot = this.createTemplateSnapshot(report);
     const structuralHash = this.generateStructuralHash(report);
@@ -704,7 +732,10 @@ class SubmissionServiceClass {
       idempotencyKey: 'idemp_' + id + '_v1',
     };
 
-    const isOnline = typeof navigator !== 'undefined' ? Boolean(navigator.onLine) : true;
+    const isOnline =
+      typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+        ? navigator.onLine
+        : true;
     submission.syncStatus = isOnline ? 'SYNCED' : 'PENDING_SYNC';
     submission.isOfflineDraft = !isOnline;
     submission.offlineSavedAt = now;
@@ -718,6 +749,11 @@ class SubmissionServiceClass {
     }).catch((err) => {
       console.warn('[SubmissionService] IndexedDB saveDraft warning:', err);
     });
+
+    try {
+      this.events.emit('submissionChange', submission);
+      this.events.emit('submissionsUpdated', this.getAll());
+    } catch (_) {}
 
     auditService.log({
       actorId: user.id,
@@ -828,6 +864,58 @@ class SubmissionServiceClass {
     const report = this.getEffectiveTemplate(sub);
     let finalValues = { ...values };
 
+    // Phase 34: Maker Template Governance & Field Code Immutability Enforcement
+    // Makers enter and edit report values only.
+    // Maker cannot change report title, subtitle, section title, row title, column title,
+    // field code, formula definition, NBE mapping, API endpoint or validation rule.
+    if (user.role === 'MAKER') {
+      const allowedCodes = new Set<string>();
+      if (report.ReturnItemsList) {
+        report.ReturnItemsList.forEach((item) => allowedCodes.add(item.Code.trim().toUpperCase()));
+      }
+      if (report.Formulas) {
+        report.Formulas.forEach((f) => {
+          const t = (f.targetCode || (f as any).code || '').trim().toUpperCase();
+          if (t) allowedCodes.add(t);
+        });
+      }
+
+      for (const rawCode of Object.keys(values)) {
+        const codeUpper = rawCode.trim().toUpperCase();
+        if (!allowedCodes.has(codeUpper)) {
+          throw new Error(
+            `REPORT_DEFINITION_IMMUTABLE: Unknown or unauthorized field code '${rawCode}'. Makers cannot alter report schema or create new field codes. Only Compliance Administrators can govern report definitions.`
+          );
+        }
+      }
+
+      if (dynamicRows && report.DynamicItemsList && report.DynamicItemsList.length > 0) {
+        const allowedColsByArea = new Map<number, Set<string>>();
+        report.DynamicItemsList.forEach((area) => {
+          const colSet = new Set<string>();
+          area.DynamicItems.forEach((col) => colSet.add(col.Code.trim().toUpperCase()));
+          allowedColsByArea.set(area.Area, colSet);
+        });
+
+        for (const [rawAreaId, rowList] of Object.entries(dynamicRows)) {
+          const areaNum = Number(rawAreaId);
+          const allowedCols = allowedColsByArea.get(areaNum);
+          if (Array.isArray(rowList) && allowedCols) {
+            for (const row of rowList) {
+              const cellKeys = Object.keys(row.values || {});
+              for (const colKey of cellKeys) {
+                if (!allowedCols.has(colKey.trim().toUpperCase())) {
+                  throw new Error(
+                    `REPORT_DEFINITION_IMMUTABLE: Unknown or unauthorized schedule column code '${colKey}' in area ${areaNum}. Makers cannot alter schedule column schema.`
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     // Auto-calculate formulas
     if (report && report.Formulas.length > 0) {
       const calcResult = FormulaEngine.calculateAllFormulas(report.Formulas, finalValues);
@@ -878,7 +966,10 @@ class SubmissionServiceClass {
       integrityHash,
     };
 
-    const isOnline = typeof navigator !== 'undefined' ? Boolean(navigator.onLine) : true;
+    const isOnline =
+      typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+        ? navigator.onLine
+        : true;
     const updated: ReportSubmission = {
       ...sub,
       version: nextVersion,
@@ -907,6 +998,27 @@ class SubmissionServiceClass {
     }).catch((err) => {
       console.warn('[SubmissionService] IndexedDB updateDraft save warning:', err);
     });
+
+    try {
+      this.events.emit('submissionChange', updated);
+      this.events.emit('submissionsUpdated', this.getAll());
+      realtimeSsotEngine.publishEvent({
+        eventType: 'REPORT_CHANGED',
+        action: 'UPDATE_DRAFT',
+        domain: 'REPORT',
+        entityId: updated.id,
+        topic: `REPORT:${updated.reportKey}`,
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Report ${updated.reportKey} draft updated to v${nextVersion} by ${user.name}`,
+        payload: {
+          submissionId: updated.id,
+          reportKey: updated.reportKey,
+          version: updated.version,
+          updatedAt: updated.updatedAt,
+          status: updated.status,
+        },
+      });
+    } catch (_) {}
 
     auditService.log({
       actorId: user.id,
@@ -1047,7 +1159,10 @@ class SubmissionServiceClass {
       idempotencyKey: 'idemp_' + newId + '_v1',
     };
 
-    const isOnline = typeof navigator !== 'undefined' ? Boolean(navigator.onLine) : true;
+    const isOnline =
+      typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+        ? navigator.onLine
+        : true;
     newSubmission.syncStatus = isOnline ? 'SYNCED' : 'PENDING_SYNC';
     newSubmission.isOfflineDraft = !isOnline;
     newSubmission.offlineSavedAt = now;
@@ -1080,6 +1195,180 @@ class SubmissionServiceClass {
     });
 
     return newSubmission;
+  }
+
+  /**
+   * Phase 33: Resets an unsubmitted report draft to clean template defaults.
+   * Guarantees:
+   * 1. Only authorized Makers can reset drafts.
+   * 2. Only unsubmitted drafts (DRAFT or CORRECTION_REQUIRED) can be reset.
+   * 3. Submitted reports (APPROVED, SENT, PENDING_CHECKER) are permanently sealed.
+   * 4. Does NOT modify the report definition metadata in any way.
+   * 5. Increments draft version, creates audit trail entry, and emits change events.
+   */
+  public resetToTemplateDefaults(id: string, user: UserSession): ReportSubmission {
+    const sub = this.submissions.get(id);
+    if (!sub) {
+      throw new Error(`Submission not found: ${id}`);
+    }
+
+    if (user.role !== 'MAKER') {
+      throw new Error(
+        `Role violation: Only Makers can reset drafts to template defaults. Current role: ${user.role}`
+      );
+    }
+
+    if (sub.status === 'SENT' || sub.status === 'APPROVED' || sub.status === 'SENDING') {
+      throw new Error(
+        `Cannot reset submitted/final report ${id} in status ${sub.status}. Submitted records are permanently sealed.`
+      );
+    }
+
+    if (sub.status === 'PENDING_CHECKER') {
+      throw new Error(
+        `Cannot reset submission ${id} while under Checker review (PENDING_CHECKER). Wait for review completion or return for correction.`
+      );
+    }
+
+    const evalResult = effectiveAccessEngine.evaluateAccess(user, sub.reportKey, 'EDIT_DRAFT', sub);
+    if (!evalResult.allowed) {
+      throw new Error(evalResult.reason);
+    }
+
+    const report = this.getEffectiveTemplate(sub);
+    const defBefore = configService.getReportDefinition(sub.reportKey);
+    const defHashBefore = defBefore ? JSON.stringify(defBefore) : '';
+
+    const { values: resetValues, dynamicRows: resetDynamic } =
+      templateInitializationService.resetDraftToTemplateDefaults(sub, report);
+
+    const nextVersion = sub.version + 1;
+    const now = new Date().toISOString();
+    const clonedValues = JSON.parse(JSON.stringify(resetValues));
+    const clonedDynamic = JSON.parse(JSON.stringify(resetDynamic));
+    const tmplSnapshot = sub.templateSnapshot || this.createTemplateSnapshot(report);
+    const structHash = sub.structuralHash || this.generateStructuralHash(report);
+    const integrityHash = this.computeIntegrityHash({
+      id: sub.id,
+      reportKey: sub.reportKey,
+      version: nextVersion,
+      templateVersion: sub.templateVersion || 1,
+      values: clonedValues,
+      status: sub.status,
+    });
+
+    const newSnapshot: SubmissionSnapshot = {
+      snapshotId: `snap_${sub.id}_v${nextVersion}_${Date.now()}`,
+      version: nextVersion,
+      templateVersion: sub.templateVersion || 1,
+      dataVersion: nextVersion,
+      timestamp: now,
+      status: sub.status,
+      capturedBy: user.name,
+      capturedByRole: user.role,
+      reason: `Reset to template defaults by Maker ${user.name}`,
+      values: clonedValues,
+      dynamicRows: clonedDynamic,
+      templateSnapshot: tmplSnapshot,
+      structuralHash: structHash,
+      integrityHash,
+    };
+
+    const isOnline =
+      typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+        ? navigator.onLine
+        : true;
+
+    const updated: ReportSubmission = {
+      ...sub,
+      version: nextVersion,
+      dataVersion: nextVersion,
+      values: resetValues,
+      dynamicRows: resetDynamic,
+      dataSnapshot: clonedValues,
+      dynamicRowsSnapshot: clonedDynamic,
+      updatedAt: now,
+      templateSnapshot: tmplSnapshot,
+      structuralHash: structHash,
+      integrityHash,
+      historicalSnapshots: [...(sub.historicalSnapshots || []), newSnapshot],
+      revisionHistory: [
+        ...(sub.revisionHistory || []),
+        {
+          version: nextVersion,
+          modifiedAt: now,
+          modifiedBy: user.name,
+          modifiedByRole: user.role,
+          values: resetValues,
+          dynamicRows: resetDynamic,
+          reason: `Draft reset to clean template defaults by Maker ${user.name}`,
+          templateSnapshot: tmplSnapshot,
+          integrityHash,
+        },
+      ],
+      comments: [
+        ...(sub.comments || []),
+        {
+          id: 'comm_' + Math.random().toString(36).substring(2, 9),
+          userId: user.id,
+          userName: user.name,
+          userRole: user.role as any,
+          comment: `Draft reset to clean template defaults. Unsubmitted edits reverted.`,
+          action: 'SAVE_DRAFT',
+          timestamp: now,
+        },
+      ],
+      syncStatus: isOnline ? 'SYNCED' : 'PENDING_SYNC',
+      isOfflineDraft: !isOnline,
+      offlineSavedAt: now,
+    };
+
+    // Verify report definition was NOT modified during reset
+    const defAfter = configService.getReportDefinition(sub.reportKey);
+    if (defBefore && JSON.stringify(defAfter) !== defHashBefore) {
+      throw new Error(`CRITICAL INVARIANT VIOLATION: Report definition for ${sub.reportKey} was mutated during draft reset!`);
+    }
+
+    this.submissions.set(id, updated);
+
+    indexedDbStorage.saveDraft(updated, {
+      syncStatus: updated.syncStatus,
+      isOffline: updated.isOfflineDraft,
+    }).catch(() => {});
+
+    try {
+      this.events.emit('submissionChange', updated);
+      this.events.emit('submissionsUpdated', this.getAll());
+      realtimeSsotEngine.publishEvent({
+        eventType: 'REPORT_CHANGED',
+        action: 'UPDATE_DRAFT',
+        domain: 'REPORT',
+        entityId: updated.id,
+        topic: `REPORT:${updated.reportKey}`,
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Report ${updated.reportKey} reset to template defaults (v${nextVersion}) by ${user.name}`,
+        payload: {
+          submissionId: updated.id,
+          reportKey: updated.reportKey,
+          version: updated.version,
+          updatedAt: updated.updatedAt,
+          status: updated.status,
+        },
+      });
+    } catch (_) {}
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'UPDATE_DRAFT',
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_' + id,
+      details: `Maker ${user.name} reset draft ${id} (return ${sub.reportKey}) to clean template defaults (v${nextVersion})`,
+    });
+
+    return updated;
   }
 
   /**
@@ -1169,12 +1458,15 @@ class SubmissionServiceClass {
 
   /**
    * Maker submits report to Checker.
+   * Phase 36: Supports Maker-selected Checker assignment with server-side validation
+   * and authoritative smart notifications dispatched to all assigned reviewers.
    */
   public submitToChecker(
     id: string,
     user: UserSession,
     commentText?: string,
-    expectedVersion?: number
+    expectedVersion?: number,
+    selectedCheckerIds?: string[]
   ): ReportSubmission {
     const sub = this.submissions.get(id);
     if (!sub) throw new Error(`Submission not found: ${id}`);
@@ -1200,6 +1492,33 @@ class SubmissionServiceClass {
       throw new Error(
         `Validation failed with ${valSummary.errorsCount} errors. Please correct all validation issues before submitting to Checker.`
       );
+    }
+
+    // Phase 36: Server-side Checker assignment & validation
+    let assignedCheckers: Array<{ id: string; name: string; email?: string; department?: string }> = [];
+    let reviewerAssignments: ReviewerAssignment[] | undefined = undefined;
+    let primaryChecker: { id: string; name: string; email?: string; department?: string } | undefined = undefined;
+    let primaryCheckerId: string | undefined = undefined;
+    let assignedCheckerIds: string[] | undefined = undefined;
+
+    if (selectedCheckerIds && selectedCheckerIds.length > 0) {
+      const val = effectiveAccessEngine.validateCheckerSelection(sub.reportKey, user, selectedCheckerIds, sub);
+      if (!val.valid) {
+        throw new Error(val.error);
+      }
+      assignedCheckers = val.selectedCheckers;
+      reviewerAssignments = assignedCheckers.map((c, idx) => ({
+        checkerId: c.id,
+        checkerName: c.name,
+        checkerEmail: c.email,
+        checkerDepartment: c.department,
+        assignedAt: new Date().toISOString(),
+        isPrimary: idx === 0,
+        status: 'PENDING',
+      }));
+      primaryChecker = assignedCheckers[0];
+      primaryCheckerId = primaryChecker?.id;
+      assignedCheckerIds = assignedCheckers.map((c) => c.id);
     }
 
     const isResubmission = sub.status === 'CORRECTION_REQUIRED' || sub.status === 'REJECTED';
@@ -1241,12 +1560,42 @@ class SubmissionServiceClass {
       dynamicRowsSnapshot: dynamicSnapshot,
       integrityHash,
       historicalSnapshots: [...(updatedSubmission.historicalSnapshots || []), submitSnapshot],
+      assignedCheckerIds,
+      reviewerAssignments,
+      primaryCheckerId,
+      checkerId: primaryChecker?.id || updatedSubmission.checkerId,
+      checkerName: primaryChecker?.name || updatedSubmission.checkerName,
+      checkerEmail: primaryChecker?.email || updatedSubmission.checkerEmail,
+      checkerDepartment: primaryChecker?.department || updatedSubmission.checkerDepartment,
     };
 
     this.submissions.set(id, finalSubWithSnapshot);
 
     // Save to IndexedDB
     indexedDbStorage.saveDraft(finalSubWithSnapshot).catch(() => {});
+
+    // Phase 36: Emit Authoritative Smart Notifications to all assigned Checkers
+    for (const c of assignedCheckers) {
+      notificationService.addNotification({
+        recipientUserId: c.id,
+        recipientRole: 'CHECKER',
+        recipientDepartment: c.department,
+        targetReportKey: sub.reportKey,
+        title: `New Review Assignment: Return ${sub.reportKey}`,
+        message: `Maker ${user.name} (${user.department}) assigned you to review return ${sub.reportKey} (4-eyes dual control). Remarks: "${commentText || 'Ready for 4-eyes review'}"`,
+        category: 'WORKFLOW',
+        priority: 'HIGH',
+        actionTab: 'CHECKER_INBOX',
+        metadata: {
+          submissionId: id,
+          reportKey: sub.reportKey,
+          makerId: user.id,
+          makerName: user.name,
+          isPrimary: c.id === primaryCheckerId,
+          assignedCheckersCount: assignedCheckers.length,
+        },
+      });
+    }
 
     try {
       realtimeSsotEngine.publishEvent({
@@ -1263,6 +1612,8 @@ class SubmissionServiceClass {
           status: 'PENDING_CHECKER',
           version: finalSubWithSnapshot.version,
           isResubmission,
+          assignedCheckerIds,
+          primaryCheckerId,
         },
       });
     } catch (_) {}
@@ -1276,11 +1627,87 @@ class SubmissionServiceClass {
       entityId: id,
       correlationId: 'corr_' + id,
       details: isResubmission
-        ? `Submission resubmitted for 4-eyes review by Maker ${user.name} (${user.department}) after addressing correction requests.`
-        : `Submission submitted for 4-eyes review by Maker ${user.name} (${user.department})`,
+        ? `Submission resubmitted for 4-eyes review by Maker ${user.name} (${user.department}) after addressing correction requests. Assigned Checkers: ${assignedCheckers.map(c => `${c.name} (${c.id})`).join(', ')}`
+        : `Submission submitted for 4-eyes review by Maker ${user.name} (${user.department}). Assigned Checkers: ${assignedCheckers.map(c => `${c.name} (${c.id})`).join(', ')}. Primary: ${primaryChecker?.name || 'N/A'}.`,
     });
 
+    if (assignedCheckers.length > 0) {
+      auditService.log({
+        actorId: user.id,
+        actorName: user.name,
+        actorRole: user.role,
+        action: 'CHECKER_ASSIGNED',
+        entityType: 'REPORT_SUBMISSION',
+        entityId: id,
+        correlationId: 'corr_assign_' + id,
+        details: `Assigned ${assignedCheckers.length} reviewer(s) to return ${sub.reportKey}: ${assignedCheckers.map(c => `${c.name} (${c.id})`).join(', ')}. Notifications dispatched to all assigned reviewers.`,
+      });
+    }
+
     return finalSubWithSnapshot;
+  }
+
+  /**
+   * Phase 36: Checker accepts/opens review. Emits authoritative notification to Maker.
+   */
+  public acceptReview(id: string, user: UserSession): ReportSubmission {
+    const sub = this.submissions.get(id);
+    if (!sub) throw new Error(`Submission not found: ${id}`);
+
+    const evalResult = effectiveAccessEngine.evaluateAccess(user, sub.reportKey, 'REVIEW', sub);
+    if (!evalResult.allowed) {
+      throw new Error(`Cannot accept review: ${evalResult.reason}`);
+    }
+
+    const assignments = (sub.reviewerAssignments || []).map((ra) => {
+      if (ra.checkerId === user.id) {
+        return {
+          ...ra,
+          status: 'ACCEPTED' as const,
+          openedAt: new Date().toISOString(),
+        };
+      }
+      return ra;
+    });
+
+    const updatedSub: ReportSubmission = {
+      ...sub,
+      reviewerAssignments: assignments,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.submissions.set(id, updatedSub);
+
+    notificationService.addNotification({
+      recipientUserId: sub.makerId,
+      recipientRole: 'MAKER',
+      recipientDepartment: sub.makerDepartment || user.department,
+      targetReportKey: sub.reportKey,
+      title: `Review In Progress: Return ${sub.reportKey}`,
+      message: `Checker ${user.name} has accepted and opened review on return ${sub.reportKey}.`,
+      category: 'WORKFLOW',
+      priority: 'MEDIUM',
+      actionTab: 'MAKER_WORKSPACE',
+      metadata: {
+        submissionId: id,
+        reportKey: sub.reportKey,
+        checkerId: user.id,
+        action: 'ACCEPT_REVIEW',
+      },
+    });
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'CHECKER_REVIEW_ACCEPTED',
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_' + id,
+      details: `Checker ${user.name} (${user.department}) accepted and opened 4-eyes review on return ${sub.reportKey}.`,
+    });
+
+    return updatedSub;
   }
 
   /**
@@ -1288,7 +1715,19 @@ class SubmissionServiceClass {
    * Enforces:
    * 1. Only CHECKERS can review. (Makers cannot approve; Admins are read-only).
    * 2. Checker must be from the same department, OR have Admin-granted special access.
+   * 3. Phase 36: If reviewers were specifically assigned, Checker must be an assigned reviewer.
+   * 4. Phase 36: Single authoritative decision transitions workflow state; duplicate/conflicting actions prevented.
+   * 5. Phase 36: Emits authoritative notification to Maker upon review completion.
    */
+  public approveSubmission(
+    id: string,
+    user: UserSession,
+    commentText?: string,
+    expectedVersion?: number
+  ): ReportSubmission {
+    return this.reviewSubmission(id, 'APPROVE', user, commentText);
+  }
+
   public reviewSubmission(
     id: string,
     action: 'APPROVE' | 'REJECT' | 'REQUEST_CORRECTION',
@@ -1313,6 +1752,22 @@ class SubmissionServiceClass {
         : 'CORRECTION_REQUIRED';
 
     const { updatedSubmission } = WorkflowEngine.applyTransition(sub, targetStatus, user, commentText);
+
+    // Phase 36: Update Reviewer Assignment record
+    const updatedAssignments = (sub.reviewerAssignments || []).map((ra) => {
+      if (ra.checkerId === user.id) {
+        return {
+          ...ra,
+          status: 'REVIEWED' as const,
+          reviewedAt: new Date().toISOString(),
+          notes: commentText,
+        };
+      }
+      return {
+        ...ra,
+        status: 'SUPERSEDED' as const,
+      };
+    });
 
     // Capture snapshot at Checker decision point
     const valuesSnapshot = JSON.parse(JSON.stringify(updatedSubmission.values));
@@ -1350,12 +1805,48 @@ class SubmissionServiceClass {
       dynamicRowsSnapshot: dynamicSnapshot,
       integrityHash,
       historicalSnapshots: [...(updatedSubmission.historicalSnapshots || []), reviewSnapshot],
+      reviewerAssignments: updatedAssignments.length > 0 ? updatedAssignments : undefined,
+      checkerId: user.id,
+      checkerName: user.name,
+      checkerEmail: user.email,
+      checkerDepartment: user.department,
     };
 
     this.submissions.set(id, finalSubWithSnapshot);
 
     // Save to IndexedDB
     indexedDbStorage.saveDraft(finalSubWithSnapshot).catch(() => {});
+
+    // Phase 36: Authoritative Smart Notification to Maker upon review outcome
+    let notifTitle = `Review Complete: Return ${sub.reportKey} Approved`;
+    let notifMsg = `Your return ${sub.reportKey} has been verified and approved by Checker ${user.name}. Ready for final NBE delivery.`;
+    if (action === 'REJECT') {
+      notifTitle = `Review Decision: Return ${sub.reportKey} Rejected`;
+      notifMsg = `Checker ${user.name} rejected return ${sub.reportKey}. Reason: "${commentText || 'No reason provided'}"`;
+    } else if (action === 'REQUEST_CORRECTION') {
+      notifTitle = `Correction Requested: Return ${sub.reportKey}`;
+      notifMsg = `Checker ${user.name} requested corrections on return ${sub.reportKey}. Notes: "${commentText || 'Please verify figures'}"`;
+    }
+
+    notificationService.addNotification({
+      recipientUserId: sub.makerId,
+      recipientRole: 'MAKER',
+      recipientDepartment: sub.makerDepartment || user.department,
+      targetReportKey: sub.reportKey,
+      title: notifTitle,
+      message: notifMsg,
+      category: 'WORKFLOW',
+      priority: 'HIGH',
+      actionTab: 'MAKER_WORKSPACE',
+      metadata: {
+        submissionId: id,
+        reportKey: sub.reportKey,
+        checkerId: user.id,
+        checkerName: user.name,
+        action,
+        decision: targetStatus,
+      },
+    });
 
     try {
       realtimeSsotEngine.publishEvent({
@@ -1371,6 +1862,8 @@ class SubmissionServiceClass {
           reportKey: sub.reportKey,
           status: targetStatus,
           version: finalSubWithSnapshot.version,
+          checkerId: user.id,
+          checkerName: user.name,
         },
       });
     } catch (_) {}
@@ -1384,6 +1877,17 @@ class SubmissionServiceClass {
       entityId: id,
       correlationId: 'corr_' + id,
       details: `Checker ${user.name} (${user.department}) reviewed submission with decision: ${targetStatus}. Notes: ${commentText || 'N/A'}`,
+    });
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'NOTIFICATION_DISPATCHED',
+      entityType: 'NOTIFICATION',
+      entityId: id,
+      correlationId: 'corr_notif_' + id,
+      details: `Dispatched review outcome notification to Maker ${sub.makerName} (${sub.makerId}) for return ${sub.reportKey}: ${targetStatus}.`,
     });
 
     return finalSubWithSnapshot;
@@ -1648,6 +2152,18 @@ class SubmissionServiceClass {
     return this.updateDraft(id, targetSnapshot.values, targetSnapshot.dynamicRows, user);
   }
 
+  public getAuthorizedSubmission(id: string, user: UserSession): ReportSubmission {
+    const sub = this.submissions.get(id);
+    if (!sub) {
+      throw new Error(`Submission not found: ${id}`);
+    }
+    const evalResult = effectiveAccessEngine.evaluateSubmissionAccess(user, sub, 'VIEW');
+    if (!evalResult.allowed) {
+      throw new Error(`Forbidden: ${evalResult.reason}`);
+    }
+    return sub;
+  }
+
   public deleteSubmission(id: string, user: UserSession): boolean {
     const sub = this.submissions.get(id);
     if (!sub) {
@@ -1655,12 +2171,12 @@ class SubmissionServiceClass {
     }
 
     // Evaluate effective access engine rules
-    const evalResult = effectiveAccessEngine.evaluateAccess(user, sub.reportKey, 'DELETE_DRAFT', sub);
+    const evalResult = effectiveAccessEngine.evaluateSubmissionAccess(user, sub, 'DELETE_DRAFT');
     if (!evalResult.allowed) {
       throw new Error(`Forbidden: ${evalResult.reason}`);
     }
 
-    // Absolute prohibition: Submitted records must never be deleted under any circumstances
+    // Absolute prohibition: Submitted records must never be hard-deleted under any circumstances (Requirement 6, 7)
     const isSubmitted =
       isFinalSubmittedStatus(sub.status) ||
       sub.status === 'PENDING_CHECKER' ||
@@ -1689,9 +2205,359 @@ class SubmissionServiceClass {
   }
 
   /**
-   * Authoritative Library Query Engine (Requirement 1, 2, 7, 10)
-   * Enforces backend server-side permission filtering across ownership, departments,
-   * report types, and special access grants.
+   * Phase 26: Calculates administrative removal impact and generates regulatory warning.
+   * Enforces Requirement 8: "Any destructive Admin action requires authorization, impact warning, explicit confirmation and audit logging."
+   */
+  public getRemovalImpactAssessment(id: string, user: UserSession): RemovalImpactAssessment {
+    const sub = this.submissions.get(id);
+    if (!sub) {
+      throw new Error(`Submission not found: ${id}`);
+    }
+    if (user.role !== 'ADMIN') {
+      throw new Error('Forbidden: Only Administrators can assess regulatory removal impact.');
+    }
+
+    const report = getReportByKey(sub.reportKey);
+    const reportTitle = report?.Title || sub.reportKey;
+    const lState = deriveLibraryLifecycleState(sub);
+    const isSubmitted =
+      isFinalSubmittedStatus(sub.status) ||
+      sub.status === 'PENDING_CHECKER' ||
+      sub.status === 'APPROVED' ||
+      sub.status === 'SENT';
+
+    const snapshotsCount = (sub.historicalSnapshots || []).length;
+    const relatedAudit = auditService.query({ entityId: id });
+    const auditCount = relatedAudit.length;
+
+    const regulatoryWarning = isSubmitted
+      ? `REGULATORY RETENTION NOTICE: Return ${sub.reportKey} (v${sub.version}, status: ${sub.status}) is a submitted statutory dossier. Under NBE Directive BSD/03/2020 and Banking Supervision Record Retention Mandates, submitted regulatory records CANNOT be destroyed. Governed archiving or voiding will retain all ${snapshotsCount} historical snapshots, formulas, data rows, and audit trails while retiring the dossier from active operational workflows.`
+      : `UNCOMMITTED DRAFT WARNING: Return ${sub.reportKey} is an unsubmitted draft. Permanent deletion will discard all uncommitted form fields and dynamic rows. An authoritative audit entry will be logged.`;
+
+    return {
+      submissionId: sub.id,
+      reportKey: sub.reportKey,
+      reportTitle,
+      department: sub.department || 'Prudential Reporting',
+      status: sub.status,
+      lifecycleState: lState,
+      version: sub.version,
+      nbeReferenceNumber: sub.nbeReferenceNumber,
+      isSubmittedRecord: isSubmitted,
+      canHardDelete: !isSubmitted,
+      governedActionRequired: isSubmitted ? 'GOVERNED_ARCHIVE_VOID' : 'HARD_DELETE_DRAFT',
+      regulatoryWarning,
+      affectedSnapshotsCount: snapshotsCount,
+      affectedAuditEntriesCount: auditCount,
+      confirmedRequired: true,
+      minReasonLength: 10,
+    };
+  }
+
+  /**
+   * Phase 26: Governed Administrative Record Removal & Archiving Engine
+   * Requirements 7 & 8:
+   * "If Admin is authorized to remove submitted records, prefer archive/void/soft-delete where regulatory retention requires it. Never silently destroy regulatory history."
+   * "Any destructive Admin action requires authorization, impact warning, explicit confirmation and audit logging."
+   */
+  public adminGovernedRemoveSubmission(
+    id: string,
+    user: UserSession,
+    options: { action: 'ARCHIVE' | 'VOID' | 'DELETE_DRAFT'; reason: string; confirmed: boolean }
+  ): GovernedRemovalResult {
+    const sub = this.submissions.get(id);
+    if (!sub) {
+      throw new Error(`Submission not found: ${id}`);
+    }
+
+    // Role verification
+    if (user.role !== 'ADMIN') {
+      throw new Error('Forbidden: Only Administrator can perform governed removal or archiving.');
+    }
+
+    // Confirmation verification
+    if (!options.confirmed) {
+      throw new Error('Explicit confirmation is required for governed administrative removal.');
+    }
+
+    // Justification verification (min 10 chars)
+    if (!options.reason || options.reason.trim().length < 10) {
+      throw new Error(
+        'A detailed regulatory justification of at least 10 characters is mandatory for administrative removal.'
+      );
+    }
+
+    const isSubmitted =
+      isFinalSubmittedStatus(sub.status) ||
+      sub.status === 'PENDING_CHECKER' ||
+      sub.status === 'APPROVED' ||
+      sub.status === 'SENT';
+
+    const now = new Date().toISOString();
+    const reasonText = options.reason.trim();
+
+    // If submitted record, HARD DELETE is strictly forbidden
+    if (isSubmitted) {
+      if (options.action === 'DELETE_DRAFT') {
+        throw new Error(
+          `Cannot hard-delete submitted regulatory submission ${id}. Under NBE Directive BSD/03/2020, submitted reports are permanent immutable records. Governed archiving or voiding must be used to preserve regulatory history.`
+        );
+      }
+
+      const targetStatus: SubmissionStatus = options.action === 'ARCHIVE' ? 'ARCHIVED' : 'VOIDED';
+      const prevStatus = sub.status;
+
+      // Capture archival snapshot
+      const valuesSnapshot = JSON.parse(JSON.stringify(sub.values || {}));
+      const dynamicSnapshot = JSON.parse(JSON.stringify(sub.dynamicRows || {}));
+      const tmpl =
+        sub.templateSnapshot || this.createTemplateSnapshot(this.getEffectiveTemplate(sub));
+      const integrityHash = this.computeIntegrityHash({
+        id: sub.id,
+        reportKey: sub.reportKey,
+        version: sub.version,
+        templateVersion: sub.templateVersion || 1,
+        values: valuesSnapshot,
+        status: targetStatus,
+      });
+
+      const archiveSnapshot: SubmissionSnapshot = {
+        snapshotId: `snap_${sub.id}_v${sub.version}_${targetStatus.toLowerCase()}_${Date.now()}`,
+        version: sub.version,
+        templateVersion: sub.templateVersion || 1,
+        dataVersion: sub.dataVersion || sub.version,
+        timestamp: now,
+        status: targetStatus,
+        capturedBy: user.name,
+        capturedByRole: user.role,
+        reason: `${targetStatus} by Administrator: ${reasonText}`,
+        values: valuesSnapshot,
+        dynamicRows: dynamicSnapshot,
+        templateSnapshot: tmpl,
+        structuralHash: sub.structuralHash,
+        integrityHash,
+      };
+
+      const updatedSub: ReportSubmission = {
+        ...sub,
+        status: targetStatus,
+        updatedAt: now,
+        isArchived: options.action === 'ARCHIVE',
+        archivedAt: options.action === 'ARCHIVE' ? now : sub.archivedAt,
+        archivedBy: options.action === 'ARCHIVE' ? user.id : sub.archivedBy,
+        archivedByName: options.action === 'ARCHIVE' ? user.name : sub.archivedByName,
+        archiveReason: options.action === 'ARCHIVE' ? reasonText : sub.archiveReason,
+        isVoided: options.action === 'VOID',
+        voidedAt: options.action === 'VOID' ? now : sub.voidedAt,
+        voidedBy: options.action === 'VOID' ? user.id : sub.voidedBy,
+        voidReason: options.action === 'VOID' ? reasonText : sub.voidReason,
+        historicalSnapshots: [...(sub.historicalSnapshots || []), archiveSnapshot],
+        comments: [
+          ...(sub.comments || []),
+          {
+            id: 'comm_' + Date.now(),
+            userId: user.id,
+            userName: user.name,
+            userRole: user.role as any,
+            comment: `Governed administrative action: ${targetStatus} (Previous status: ${prevStatus}). Justification: ${reasonText}`,
+            action: targetStatus as any,
+            timestamp: now,
+          },
+        ],
+      };
+
+      this.submissions.set(id, updatedSub);
+      indexedDbStorage.saveDraft(updatedSub).catch(() => {});
+
+      const auditAction =
+        options.action === 'ARCHIVE' ? 'ADMIN_ARCHIVE_SUBMISSION' : 'ADMIN_VOID_SUBMISSION';
+      const auditLog = auditService.log({
+        actorId: user.id,
+        actorName: user.name,
+        actorRole: 'ADMIN',
+        action: auditAction as any,
+        entityType: 'REPORT_SUBMISSION',
+        entityId: id,
+        correlationId: 'corr_gov_rem_' + id,
+        details: `Administrator ${user.name} governed ${options.action.toLowerCase()} on submitted report ${sub.reportKey} (v${sub.version}, NBE Ref: ${sub.nbeReferenceNumber || 'N/A'}). Justification: ${reasonText}`,
+      });
+
+      try {
+        realtimeSsotEngine.publishEvent({
+          eventType: 'WORKFLOW_STATUS_CHANGED',
+          action: targetStatus,
+          domain: 'WORKFLOW',
+          entityId: id,
+          topic: 'WORKFLOWS',
+          actor: { id: user.id, name: user.name, role: user.role },
+          summary: `Report ${sub.reportKey} ${targetStatus} by Administrator ${user.name}`,
+          payload: {
+            submissionId: id,
+            reportKey: sub.reportKey,
+            status: targetStatus,
+            reason: reasonText,
+          },
+        });
+      } catch (_) {}
+
+      return {
+        success: true,
+        action: options.action,
+        submissionId: id,
+        reportKey: sub.reportKey,
+        status: targetStatus,
+        message: `Submission ${id} successfully marked as ${targetStatus}. Full regulatory history and snapshots permanently retained.`,
+        regulatoryAuditId: auditLog.id,
+        preservedSnapshotsCount: (updatedSub.historicalSnapshots || []).length,
+      };
+    } else {
+      // Unsubmitted draft deletion
+      this.submissions.delete(id);
+      indexedDbStorage.deleteDraft(id).catch(() => {});
+
+      const auditLog = auditService.log({
+        actorId: user.id,
+        actorName: user.name,
+        actorRole: 'ADMIN',
+        action: 'ADMIN_DELETE_DRAFT' as any,
+        entityType: 'REPORT_SUBMISSION',
+        entityId: id,
+        correlationId: 'corr_del_draft_' + id,
+        details: `Administrator ${user.name} removed unsubmitted draft ${sub.reportKey} (v${sub.version}). Justification: ${reasonText}`,
+      });
+
+      return {
+        success: true,
+        action: 'DELETE_DRAFT',
+        submissionId: id,
+        reportKey: sub.reportKey,
+        status: 'DRAFT',
+        message: `Unsubmitted draft ${id} permanently removed by Administrator.`,
+        regulatoryAuditId: auditLog.id,
+        preservedSnapshotsCount: 0,
+      };
+    }
+  }
+
+  /**
+   * Phase 26: Flag/Unflag review record with comment and audit logging.
+   * Requirement 1: "Checker Library: show only authorized review records and provide view/review/comment/flag/request-correction/approve actions"
+   */
+  public flagSubmission(
+    id: string,
+    user: UserSession,
+    reason: string,
+    flag: boolean = true
+  ): ReportSubmission {
+    const sub = this.submissions.get(id);
+    if (!sub) throw new Error(`Submission not found: ${id}`);
+
+    // Access check: Checker (within review scope), Auditor, Admin
+    const evalResult = effectiveAccessEngine.evaluateSubmissionAccess(user, sub, 'FLAG');
+    if (!evalResult.allowed) {
+      throw new Error(`Flag denied: ${evalResult.reason}`);
+    }
+
+    const now = new Date().toISOString();
+    const updatedSub: ReportSubmission = {
+      ...sub,
+      flagged: flag,
+      flagReason: flag ? reason : undefined,
+      flaggedBy: flag ? user.name : undefined,
+      flaggedAt: flag ? now : undefined,
+      comments: [
+        ...(sub.comments || []),
+        {
+          id: 'comm_' + Date.now(),
+          userId: user.id,
+          userName: user.name,
+          userRole: user.role as any,
+          comment: flag
+            ? `[FLAGGED FOR ATTENTION] Reason: ${reason}`
+            : `[FLAG CLEARED] Reason: ${reason}`,
+          action: 'FLAG' as any,
+          timestamp: now,
+        },
+      ],
+      updatedAt: now,
+    };
+
+    this.submissions.set(id, updatedSub);
+    indexedDbStorage.saveDraft(updatedSub).catch(() => {});
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: (flag ? 'FLAG_SUBMISSION' : 'UNFLAG_SUBMISSION') as any,
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_flag_' + id,
+      details: `${user.role} ${user.name} ${flag ? 'flagged' : 'unflagged'} submission ${sub.reportKey}. Notes: ${reason}`,
+    });
+
+    return updatedSub;
+  }
+
+  /**
+   * Phase 26: Add review/audit comment to submission.
+   */
+  public addSubmissionComment(
+    id: string,
+    user: UserSession,
+    commentText: string,
+    category: 'GENERAL' | 'AUDIT' | 'CHECKER_QUERY' | 'CORRECTION_NOTE' = 'GENERAL'
+  ): ReportSubmission {
+    const sub = this.submissions.get(id);
+    if (!sub) throw new Error(`Submission not found: ${id}`);
+
+    const evalResult = effectiveAccessEngine.evaluateSubmissionAccess(user, sub, 'COMMENT');
+    if (!evalResult.allowed) {
+      throw new Error(`Comment denied: ${evalResult.reason}`);
+    }
+
+    const now = new Date().toISOString();
+    const updatedSub: ReportSubmission = {
+      ...sub,
+      comments: [
+        ...(sub.comments || []),
+        {
+          id: 'comm_' + Date.now(),
+          userId: user.id,
+          userName: user.name,
+          userRole: user.role as any,
+          comment: `[${category}] ${commentText}`,
+          action: 'COMMENT' as any,
+          timestamp: now,
+        },
+      ],
+      updatedAt: now,
+    };
+
+    this.submissions.set(id, updatedSub);
+    indexedDbStorage.saveDraft(updatedSub).catch(() => {});
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'ADD_COMMENT' as any,
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_comment_' + id,
+      details: `${user.role} ${user.name} commented on ${sub.reportKey} [${category}]: ${commentText}`,
+    });
+
+    return updatedSub;
+  }
+
+  /**
+   * Authoritative Library Query Engine (Requirement 1, 2, 4, 5, 7, 9, 10)
+   * Enforces backend server-side permission filtering across all 4 roles:
+   * - MAKER: ownership, department boundary, report types, special access grants
+   * - CHECKER: authorized review records, department matching, linked depts, special access
+   * - AUDITOR: institutional read-only inspection visibility
+   * - ADMIN: comprehensive institutional monitoring & governed lifecycle oversight
    */
   public queryLibrary(user: UserSession, options: LibraryFilterOptions = {}): LibraryQueryResult {
     const {
@@ -1708,7 +2574,7 @@ class SubmissionServiceClass {
       pageSize = 10,
     } = options;
 
-    // 1. Authoritative Backend Access Control (Requirement 10)
+    // 1. Authoritative Backend Access Control (Requirement 4, 5, 10)
     // Never fetch all records and hide unauthorized records only in the frontend.
     const all = this.getAll();
     let authorized: ReportSubmission[] = [];
@@ -1718,27 +2584,100 @@ class SubmissionServiceClass {
       authorized = all;
     } else if (user.role === 'MAKER') {
       // Maker ONLY sees records within their authorized scope:
-      // Allowed report types (home dept + M:N linked + special access)
+      // Allowed report types (home dept + M:N linked + direct assignment + special access)
       const allowedKeys = new Set(userService.getAllowedReportKeysForUser(user));
-      const userDept = (user.department || '').toLowerCase();
+      const userDept = (user.department || '').trim().toLowerCase();
 
       authorized = all.filter((s) => {
         // Must be an authorized report type
         if (!allowedKeys.has(s.reportKey)) return false;
-        // Must either be owned by the user, or belong to user's department, or covered by special access
+        // Must either be owned by the user, or belong to user's department, or covered by active special access
         const isOwner = s.makerId === user.id;
-        const isDept = s.department && s.department.toLowerCase() === userDept;
-        const hasSpecial = user.specialAccessGrants?.some(
-          (g) =>
-            g.reportKey === s.reportKey ||
-            (g.department && g.department.toLowerCase() === s.department?.toLowerCase())
-        );
+        const isDept = s.department && s.department.trim().toLowerCase() === userDept;
+        const hasSpecial = user.specialAccessGrants?.some((g) => {
+          const { active } = effectiveAccessEngine.isGrantActive(g);
+          if (!active) return false;
+          if (g.scope === 'ALL_REPORTS') return true;
+          if (g.reportKey && g.reportKey.toLowerCase() === s.reportKey.toLowerCase()) return true;
+          if (
+            g.department &&
+            s.department &&
+            g.department.toLowerCase() === s.department.toLowerCase()
+          )
+            return true;
+          if (
+            Array.isArray(g.departments) &&
+            s.department &&
+            g.departments.some((d) => d.toLowerCase() === s.department!.toLowerCase())
+          )
+            return true;
+          return false;
+        });
         return isOwner || isDept || hasSpecial;
       });
     } else if (user.role === 'CHECKER') {
-      const userDept = (user.department || '').toLowerCase();
+      // Checker ONLY sees authorized review records within Checker's authorized scope
+      const userDept = (user.department || '').trim().toLowerCase();
+
       authorized = all.filter((s) => {
-        return (s.department && s.department.toLowerCase() === userDept) || user.role === 'ADMIN';
+        const report = getReportByKey(s.reportKey);
+        const ssotReport = configService.getReportDefinition(s.reportKey);
+        const defaultDept = ssotReport?.defaultDepartmentId
+          ? configService.getDepartmentById(ssotReport.defaultDepartmentId)
+          : null;
+        const reportPrimaryDept = (
+          s.department ||
+          report?.department ||
+          defaultDept?.name ||
+          getDepartmentForReport(s.reportKey) ||
+          ''
+        )
+          .trim()
+          .toLowerCase();
+
+        const linkedDepts = departmentService.getDepartmentsForReport(s.reportKey);
+        const configLinkedDepts = (ssotReport?.departmentIds || []).map((id) => {
+          const d = configService.getDepartmentById(id);
+          return (d ? d.name : id).trim().toLowerCase();
+        });
+        const isHomeDept = Boolean(
+          userDept &&
+            (userDept === reportPrimaryDept ||
+              (s.department && userDept === s.department.toLowerCase()))
+        );
+        const isLinkedDept = Boolean(
+          userDept &&
+            (linkedDepts.some((d) => d.toLowerCase() === userDept) ||
+              configLinkedDepts.includes(userDept))
+        );
+        const directAssignments = effectiveAccessEngine.getUserDirectReportAssignments(user.id);
+        const isDirectAssignment = directAssignments.includes(s.reportKey);
+
+        const hasSpecial = user.specialAccessGrants?.some((g) => {
+          const { active } = effectiveAccessEngine.isGrantActive(g);
+          if (!active) return false;
+          if (g.scope === 'ALL_REPORTS') return true;
+          if (g.reportKey && g.reportKey.toLowerCase() === s.reportKey.toLowerCase()) return true;
+          if (
+            g.department &&
+            (g.department.toLowerCase() === reportPrimaryDept ||
+              (s.department && g.department.toLowerCase() === s.department.toLowerCase()))
+          )
+            return true;
+          if (
+            Array.isArray(g.departments) &&
+            g.departments.some(
+              (d) =>
+                d.toLowerCase() === reportPrimaryDept ||
+                (s.department && d.toLowerCase() === s.department.toLowerCase())
+            )
+          )
+            return true;
+          return false;
+        });
+
+        const hasAuthority = isHomeDept || isLinkedDept || isDirectAssignment || hasSpecial;
+        return hasAuthority;
       });
     } else {
       authorized = [];
@@ -1752,6 +2691,8 @@ class SubmissionServiceClass {
       returned: 0,
       submitted: 0,
       reusedCopy: 0,
+      archived: 0,
+      voided: 0,
     };
 
     for (const sub of authorized) {
@@ -1761,9 +2702,11 @@ class SubmissionServiceClass {
       else if (lState === 'RETURNED') stats.returned++;
       else if (lState === 'SUBMITTED') stats.submitted++;
       else if (lState === 'REUSED_COPY') stats.reusedCopy++;
+      else if (lState === 'ARCHIVED') stats.archived++;
+      else if (lState === 'VOIDED') stats.voided++;
     }
 
-    // 3. Filter by search query
+    // 3. Filter by search query (server-side, operates strictly on authorized records)
     let filtered = authorized;
     const q = search.trim().toLowerCase();
     if (q) {
@@ -1776,8 +2719,10 @@ class SubmissionServiceClass {
         const maker = (s.makerName || '').toLowerCase();
         const nbeRef = (s.nbeReferenceNumber || '').toLowerCase();
         const dept = (s.department || '').toLowerCase();
+        const subId = s.id.toLowerCase();
 
         return (
+          subId.includes(q) ||
           rKey.includes(q) ||
           title.includes(q) ||
           desc.includes(q) ||

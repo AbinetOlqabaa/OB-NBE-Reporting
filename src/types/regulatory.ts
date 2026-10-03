@@ -15,7 +15,9 @@ export type SubmissionStatus =
   | "APPROVED"
   | "SENDING"
   | "SENT"
-  | "FAILED";
+  | "FAILED"
+  | "ARCHIVED"
+  | "VOIDED";
 
 export interface ReportItemDefinition {
   Code: string;
@@ -105,6 +107,7 @@ export interface ReportMetadata {
   SourceFilename: string;
   SourceHash: string;
   isCustom?: boolean;
+  integrationConfig?: any;
 }
 
 export interface ReportValueRecord {
@@ -135,6 +138,19 @@ export interface SubmissionSnapshot {
   structuralHash?: string;
   integrityHash?: string;
   nbeReferenceNumber?: string;
+}
+
+export interface ReviewerAssignment {
+  checkerId: string;
+  checkerName: string;
+  checkerEmail?: string;
+  checkerDepartment?: string;
+  assignedAt: string;
+  isPrimary?: boolean;
+  status?: 'PENDING' | 'ACCEPTED' | 'REVIEWED' | 'SUPERSEDED';
+  openedAt?: string;
+  reviewedAt?: string;
+  notes?: string;
 }
 
 export interface ReportSubmission {
@@ -177,6 +193,9 @@ export interface ReportSubmission {
   checkerName?: string;
   checkerEmail?: string;
   checkerDepartment?: string;
+  assignedCheckerIds?: string[];
+  reviewerAssignments?: ReviewerAssignment[];
+  primaryCheckerId?: string;
   comments: SubmissionComment[];
   deliveryAttempts: DeliveryAttempt[];
   createdAt: string;
@@ -195,6 +214,19 @@ export interface ReportSubmission {
   reusedFromVersion?: number;
   sourceReportId?: string;
   sourceVersion?: number;
+  isArchived?: boolean;
+  archivedAt?: string;
+  archivedBy?: string;
+  archivedByName?: string;
+  archiveReason?: string;
+  isVoided?: boolean;
+  voidedAt?: string;
+  voidedBy?: string;
+  voidReason?: string;
+  flagged?: boolean;
+  flagReason?: string;
+  flaggedBy?: string;
+  flaggedAt?: string;
 }
 
 export function normalizeSubmissionStatus(status: string): SubmissionStatus {
@@ -204,6 +236,8 @@ export function normalizeSubmissionStatus(status: string): SubmissionStatus {
   if (upper === 'READY_FOR_SUBMISSION') return 'DRAFT';
   if (upper === 'SUBMITTED') return 'PENDING_CHECKER';
   if (upper === 'ACCEPTED') return 'APPROVED';
+  if (upper === 'ARCHIVED') return 'ARCHIVED';
+  if (upper === 'VOIDED') return 'VOIDED';
   return (status as SubmissionStatus) || 'DRAFT';
 }
 
@@ -214,7 +248,7 @@ export function isMakerEditableStatus(status: SubmissionStatus | string): boolea
 
 export function isFinalSubmittedStatus(status: SubmissionStatus | string): boolean {
   const s = (status || '').toUpperCase();
-  return s === 'SENT' || s === 'APPROVED' || s === 'SENDING';
+  return s === 'SENT' || s === 'APPROVED' || s === 'SENDING' || s === 'ARCHIVED' || s === 'VOIDED';
 }
 
 export type LibraryLifecycleState =
@@ -222,9 +256,17 @@ export type LibraryLifecycleState =
   | 'IN_PROGRESS'
   | 'RETURNED'
   | 'SUBMITTED'
-  | 'REUSED_COPY';
+  | 'REUSED_COPY'
+  | 'ARCHIVED'
+  | 'VOIDED';
 
 export function deriveLibraryLifecycleState(sub: Partial<ReportSubmission>): LibraryLifecycleState {
+  if (sub.isVoided || sub.status === 'VOIDED') {
+    return 'VOIDED';
+  }
+  if (sub.isArchived || sub.status === 'ARCHIVED') {
+    return 'ARCHIVED';
+  }
   if (sub.reusedFromSubmissionId && (sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED')) {
     return 'REUSED_COPY';
   }
@@ -271,7 +313,39 @@ export interface LibraryQueryResult {
     returned: number;
     submitted: number;
     reusedCopy: number;
+    archived: number;
+    voided: number;
   };
+}
+
+export interface RemovalImpactAssessment {
+  submissionId: string;
+  reportKey: string;
+  reportTitle: string;
+  department: string;
+  status: SubmissionStatus;
+  lifecycleState: LibraryLifecycleState;
+  version: number;
+  nbeReferenceNumber?: string;
+  isSubmittedRecord: boolean;
+  canHardDelete: boolean;
+  governedActionRequired: 'HARD_DELETE_DRAFT' | 'GOVERNED_ARCHIVE_VOID';
+  regulatoryWarning: string;
+  affectedSnapshotsCount: number;
+  affectedAuditEntriesCount: number;
+  confirmedRequired: boolean;
+  minReasonLength: number;
+}
+
+export interface GovernedRemovalResult {
+  success: boolean;
+  action: 'ARCHIVE' | 'VOID' | 'DELETE_DRAFT';
+  submissionId: string;
+  reportKey: string;
+  status: SubmissionStatus;
+  message: string;
+  regulatoryAuditId: string;
+  preservedSnapshotsCount: number;
 }
 
 export type OfflineSyncStatus = "SYNCED" | "PENDING_SYNC" | "LOCAL_DRAFT";
@@ -291,10 +365,11 @@ export interface SubmissionComment {
   id: string;
   userId: string;
   userName: string;
-  userRole: "MAKER" | "CHECKER" | "ADMIN";
+  userRole: "MAKER" | "CHECKER" | "ADMIN" | "AUDITOR";
   comment: string;
-  action: "SUBMIT" | "APPROVE" | "REJECT" | "REQUEST_CORRECTION" | "SAVE_DRAFT" | "NOTE";
+  action: "SUBMIT" | "APPROVE" | "REJECT" | "REQUEST_CORRECTION" | "SAVE_DRAFT" | "NOTE" | "COMMENT" | "FLAG" | "ARCHIVED" | "VOIDED" | "ASSIGN_CHECKER" | "ACCEPT_REVIEW";
   timestamp: string;
+  category?: 'GENERAL' | 'AUDIT' | 'CHECKER_QUERY' | 'CORRECTION_NOTE' | 'ASSIGNMENT_NOTE';
 }
 
 export interface DeliveryAttempt {

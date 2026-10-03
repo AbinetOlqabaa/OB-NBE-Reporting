@@ -52,16 +52,13 @@ export const HardwareDiagnosticsModal: React.FC<HardwareDiagnosticsModalProps> =
   const [cameraTestError, setCameraTestError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Clean up camera diagnostic testing upon modal close / unmount
   useEffect(() => {
-    return () => {
-      if (isCameraTesting) {
-        stopCameraStream();
-      }
+    if (!isOpen) {
+      stopCameraStream();
       setIsCameraTesting(false);
       setProbeResult(null);
-    };
-  }, [isCameraTesting, stopCameraStream]);
+    }
+  }, [isOpen, stopCameraStream]);
 
   if (!isOpen) return null;
 

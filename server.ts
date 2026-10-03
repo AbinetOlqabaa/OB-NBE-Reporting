@@ -32,6 +32,11 @@ import { realtimeSsotEngine } from './src/services/realtimeSsotEngine.ts';
 import { configurationGovernanceService } from './src/services/configurationGovernanceService.ts';
 import { biometricService } from './src/services/biometricService.ts';
 import { ValidationRemediationService } from './src/services/validationRemediationService.ts';
+import { sessionService } from './src/services/sessionService.ts';
+import { nbeReportPackageService } from './src/services/nbeReportPackageNormalizer.ts';
+import { nbeEndpointRegistry } from './src/services/nbeEndpointRegistry.ts';
+import { notificationService } from './src/services/notificationService.ts';
+import type { UserSession } from './src/types/regulatory.ts';
 
 dotenv.config();
 
@@ -39,13 +44,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-// In AI Studio / Cloud Run architecture, the container reverse-proxy (Nginx) listens on port 8080
-// and forwards internal application traffic to localhost:3000.
-// Therefore, if PORT is 8080 or unset, the Node backend must strictly listen on port 3000.
-const PORT = parseInt(
-  process.env.APP_PORT || (process.env.PORT === '8080' ? '3000' : process.env.PORT || '3000'),
-  10
-);
+
+function resolveServerPort(): number {
+  if (process.env.APP_PORT) {
+    const parsed = parseInt(process.env.APP_PORT, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+
+  const portArgIndex = process.argv.indexOf('--port');
+  if (portArgIndex !== -1 && process.argv[portArgIndex + 1]) {
+    const parsed = parseInt(process.argv[portArgIndex + 1], 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+
+  if (process.env.DEFAULT_APP_PORT) {
+    const parsed = parseInt(process.env.DEFAULT_APP_PORT, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+
+  // AI Studio environment (both development and deployed preview revisions) uses Nginx on port 8080
+  // proxying to localhost:3000. The Node application must always bind to port 3000.
+  return 3000;
+}
+
+const PORT = resolveServerPort();
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -94,6 +116,8 @@ function getAuthOrClientStatusCode(errMessage: string): number {
     m.includes('review denied') ||
     m.includes('forbidden') ||
     m.includes('cannot delete') ||
+    m.includes('report_definition_immutable') ||
+    m.includes('immutable') ||
     m.includes('denied')
   ) {
     return 403;
@@ -237,7 +261,7 @@ app.post('/api/config/reports/:key/versions', (req, res) => {
     const newVersion = configService.createReportVersion(req.params.key, req.body, actor);
     res.status(201).json(newVersion);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -252,7 +276,7 @@ app.post('/api/config/reports', (req, res) => {
     const result = configService.createReportDefinition(req.body, actor);
     res.status(201).json(result);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -263,7 +287,7 @@ app.put('/api/config/reports/:key', (req, res) => {
     const updated = configService.updateReportDefinition(req.params.key, req.body, actor);
     res.json(updated);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -274,7 +298,7 @@ app.post('/api/config/reports/:key/retire', (req, res) => {
     const retired = configService.retireReport(req.params.key, actor, req.body.reason);
     res.json(retired);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -285,7 +309,7 @@ app.post('/api/config/reports/:key/versions/draft', (req, res) => {
     const draft = configService.createDraftVersion(req.params.key, req.body, actor);
     res.status(201).json(draft);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -297,7 +321,7 @@ app.put('/api/config/reports/:key/versions/:version', (req, res) => {
     const updated = configService.updateDraftVersion(req.params.key, vNum, req.body, actor);
     res.json(updated);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -308,7 +332,7 @@ app.post('/api/config/reports/:key/versions/:version/validate', (req, res) => {
     const result = configService.validateReportVersion(req.params.key, vNum);
     res.json(result);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -319,7 +343,7 @@ app.get('/api/config/reports/:key/versions/:version/preview', (req, res) => {
     const preview = configService.previewReportVersion(req.params.key, vNum);
     res.json(preview);
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
   }
 });
 
@@ -331,7 +355,121 @@ app.post('/api/config/reports/:key/versions/:version/publish', (req, res) => {
     const published = configService.publishReportVersion(req.params.key, vNum, actor, req.body.changelogSummary);
     res.json(published);
   } catch (err: any) {
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
+  }
+});
+
+// ============================================================================
+// NBE JSON REPORT PACKAGE IMPORT & SCHEMA NORMALIZATION (Phase 31)
+// ============================================================================
+
+// Validate NBE report JSON package without mutating configuration
+app.post('/api/config/nbe-package/validate', (req, res) => {
+  try {
+    const payload = req.body.package !== undefined ? req.body.package : req.body;
+    const result = nbeReportPackageService.validatePackage(payload);
+    res.json(result);
+  } catch (err: any) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin imports NBE report JSON package and creates governed DRAFT configuration
+app.post('/api/config/nbe-package/import', (req, res) => {
+  const actor = req.body.actor || { id: 'usr_admin', name: 'Compliance Administrator', role: 'ADMIN' };
+  if (!actor || actor.role !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: Administrator role is strictly required to import NBE report JSON packages.',
+      code: 'UNAUTHORIZED_ACCESS',
+    });
+    return;
+  }
+
+  try {
+    const payload = req.body.package !== undefined ? req.body.package : req.body;
+    const imported = nbeReportPackageService.importPackageAsDraft(payload, actor);
+    res.status(201).json(imported);
+  } catch (err: any) {
+    const statusCode = err.message?.includes('Unauthorized') ? 403 : 400;
+    res.status(statusCode).json({ error: err.message });
+  }
+});
+
+// List all auditable imported source artifacts
+app.get('/api/config/nbe-package/artifacts', (req, res) => {
+  try {
+    const artifacts = nbeReportPackageService.getAllArtifacts();
+    res.json(artifacts);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Retrieve specific imported source artifact by hash
+app.get('/api/config/nbe-package/artifacts/:hash', (req, res) => {
+  try {
+    const artifact = nbeReportPackageService.getArtifactByHash(req.params.hash);
+    if (!artifact) {
+      res.status(404).json({ error: `NBE package artifact with hash '${req.params.hash}' not found.` });
+      return;
+    }
+    res.json(artifact);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================================
+// DYNAMIC NBE API ENDPOINT REGISTRY (Phase 32)
+// ============================================================================
+
+// List all configured report endpoints
+app.get('/api/config/nbe-endpoints', (req, res) => {
+  try {
+    const activeOnly = req.query.activeOnly === 'true';
+    const endpoints = nbeEndpointRegistry.getAllEndpoints({ activeOnly });
+    res.json(endpoints);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get endpoint configuration for a specific report
+app.get('/api/config/nbe-endpoints/:key', (req, res) => {
+  try {
+    const endpoint = nbeEndpointRegistry.getEndpointForReport(req.params.key);
+    res.json(endpoint);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin updates endpoint configuration for a report
+app.put('/api/config/nbe-endpoints/:key', (req, res) => {
+  const actor = req.body.actor || { id: 'usr_admin', name: 'Compliance Administrator', role: 'ADMIN' };
+  if (!actor || actor.role !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: Administrator role is required to modify NBE API integration endpoint.',
+      code: 'UNAUTHORIZED_ACCESS',
+    });
+    return;
+  }
+
+  try {
+    const updated = nbeEndpointRegistry.updateReportEndpoint(req.params.key, req.body.integration || req.body, actor);
+    res.json(updated);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// List managed authentication profile references (zero secret material exposed)
+app.get('/api/config/nbe-auth-profiles', (req, res) => {
+  try {
+    const profiles = nbeEndpointRegistry.getAuthProfiles();
+    res.json(profiles);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -571,18 +709,68 @@ app.get('/api/governance/proposals/:id/explain', (req, res) => {
   }
 });
 
-// Get user notifications
-app.get('/api/governance/notifications', (req, res) => {
-  const userId = req.query.userId as string;
-  if (userId) {
-    res.json(configurationGovernanceService.getNotificationsForUser(userId));
-  } else {
-    res.json(configurationGovernanceService.getAllNotifications());
+// Helper to resolve requesting user for notifications
+function resolveRequestingUser(req: express.Request) {
+  const userId = (req.query.userId || req.headers['x-actor-id'] || req.body?.userId) as string;
+  const userEmail = (req.query.userEmail || req.headers['x-actor-email'] || req.body?.userEmail) as string;
+  const headerRole = (req.headers['x-actor-role'] || req.query.role || req.body?.role) as string;
+  const headerDept = (req.headers['x-actor-department'] || req.query.department || req.body?.department) as string;
+
+  let user: any = null;
+  if (userEmail) {
+    user = userService.getByEmail(userEmail);
   }
+  if (!user && userId) {
+    user = userService.getById(userId);
+  }
+  if (!user) {
+    user = {
+      id: userId || 'anonymous',
+      email: userEmail || '',
+      role: headerRole || 'MAKER',
+      department: headerDept || 'Credit Operations & Portfolio Management',
+      allowedReportKeys: [],
+    };
+  } else {
+    if (headerRole) user.role = headerRole;
+    if (headerDept) user.department = headerDept;
+  }
+  if (!user.allowedReportKeys || user.allowedReportKeys.length === 0) {
+    user.allowedReportKeys = userService.getAllowedReportKeysForUser(user);
+  }
+  return user;
+}
+
+// Authoritative Notification Center API (Phase 35)
+app.get('/api/notifications', (req, res) => {
+  const user = resolveRequestingUser(req);
+  const result = notificationService.getNotificationsForUser(user);
+  res.json(result);
+});
+
+// Mark single notification as read
+app.post('/api/notifications/:id/read', (req, res) => {
+  const success = notificationService.markAsRead(req.params.id);
+  res.json({ success });
+});
+
+// Mark all notifications as read for current user
+app.post('/api/notifications/read-all', (req, res) => {
+  const user = resolveRequestingUser(req);
+  const count = notificationService.markAllAsReadForUser(user);
+  res.json({ success: true, count });
+});
+
+// Get user governance notifications (backward compatibility with server-side filtering)
+app.get('/api/governance/notifications', (req, res) => {
+  const user = resolveRequestingUser(req);
+  const result = notificationService.getNotificationsForUser(user);
+  res.json(result.notifications);
 });
 
 // Mark notification as read
 app.post('/api/governance/notifications/:id/read', (req, res) => {
+  notificationService.markAsRead(req.params.id);
   configurationGovernanceService.markNotificationAsRead(req.params.id);
   res.json({ success: true });
 });
@@ -702,14 +890,167 @@ app.delete('/api/regulatory/submissions/:id', (req, res) => {
   }
 });
 
-// Get submission by ID
+// Get submission by ID (with authoritative cross-department isolation)
 app.get('/api/regulatory/submissions/:id', (req, res) => {
-  const sub = submissionService.getById(req.params.id);
-  if (!sub) {
-    res.status(404).json({ error: 'Submission not found' });
+  const { userEmail, userId } = req.query as any;
+  let activeUser = req.body && req.body.user ? req.body.user : null;
+  if (!activeUser) {
+    if (userEmail) activeUser = userService.getByEmail(userEmail as string);
+    else if (userId) activeUser = userService.getById(userId as string);
+  }
+  if (!activeUser) activeUser = DEMO_USERS[0];
+
+  try {
+    const sub = submissionService.getAuthorizedSubmission(req.params.id, activeUser);
+    res.json(sub);
+  } catch (err: any) {
+    const status = err.message.includes('not found') ? 404 : 403;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// Phase 26: Removal Impact Assessment for Admin (Requirement 8)
+app.get('/api/regulatory/submissions/:id/removal-impact', (req, res) => {
+  const { userEmail, userId } = req.query as any;
+  let activeUser = req.body && req.body.user ? req.body.user : null;
+  if (!activeUser) {
+    if (userEmail) activeUser = userService.getByEmail(userEmail as string);
+    else if (userId) activeUser = userService.getById(userId as string);
+  }
+  if (!activeUser) activeUser = DEMO_USERS[0];
+
+  try {
+    const assessment = submissionService.getRemovalImpactAssessment(req.params.id, activeUser);
+    res.json(assessment);
+  } catch (err: any) {
+    const status = err.message.includes('not found')
+      ? 404
+      : getAuthOrClientStatusCode(err.message);
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// Phase 26: Admin Governed Removal / Archiving / Voiding (Requirements 7 & 8)
+app.post('/api/regulatory/submissions/:id/admin-remove', (req, res) => {
+  const { action, reason, confirmed, user } = req.body || {};
+  const queryUser = req.query.userEmail
+    ? userService.getByEmail(req.query.userEmail as string)
+    : req.query.userId
+    ? userService.getById(req.query.userId as string)
+    : null;
+  const activeUser = user || queryUser || DEMO_USERS[0];
+
+  try {
+    const result = submissionService.adminGovernedRemoveSubmission(req.params.id, activeUser, {
+      action,
+      reason,
+      confirmed: Boolean(confirmed),
+    });
+    res.json(result);
+  } catch (err: any) {
+    const status = err.message.includes('not found')
+      ? 404
+      : getAuthOrClientStatusCode(err.message);
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// Phase 26: Flag Submission for Review (Requirement 1)
+app.post('/api/regulatory/submissions/:id/flag', (req, res) => {
+  const { reason, flag, user } = req.body || {};
+  const queryUser = req.query.userEmail
+    ? userService.getByEmail(req.query.userEmail as string)
+    : req.query.userId
+    ? userService.getById(req.query.userId as string)
+    : null;
+  const activeUser = user || queryUser || DEMO_USERS[0];
+
+  try {
+    const updated = submissionService.flagSubmission(
+      req.params.id,
+      activeUser,
+      reason || 'Flagged for compliance review',
+      flag !== undefined ? Boolean(flag) : true
+    );
+    res.json(updated);
+  } catch (err: any) {
+    const status = err.message.includes('not found')
+      ? 404
+      : getAuthOrClientStatusCode(err.message);
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// Phase 26: Add Review/Audit Comment (Requirements 1 & 2)
+app.post('/api/regulatory/submissions/:id/comment', (req, res) => {
+  const { text, category, user } = req.body || {};
+  const queryUser = req.query.userEmail
+    ? userService.getByEmail(req.query.userEmail as string)
+    : req.query.userId
+    ? userService.getById(req.query.userId as string)
+    : null;
+  const activeUser = user || queryUser || DEMO_USERS[0];
+
+  if (!text || !text.trim()) {
+    res.status(400).json({ error: 'Comment text is required.' });
     return;
   }
-  res.json(sub);
+
+  try {
+    const updated = submissionService.addSubmissionComment(
+      req.params.id,
+      activeUser,
+      text.trim(),
+      category || 'GENERAL'
+    );
+    res.json(updated);
+  } catch (err: any) {
+    const status = err.message.includes('not found')
+      ? 404
+      : getAuthOrClientStatusCode(err.message);
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// Phase 33: Reset Draft to Template Defaults (Requirement 10)
+app.post('/api/regulatory/submissions/:id/reset-defaults', (req, res) => {
+  const { user } = req.body || {};
+  const queryUser = req.query.userEmail
+    ? userService.getByEmail(req.query.userEmail as string)
+    : req.query.userId
+    ? userService.getById(req.query.userId as string)
+    : null;
+  const activeUser = user || queryUser || DEMO_USERS[0];
+
+  try {
+    const updated = submissionService.resetToTemplateDefaults(req.params.id, activeUser);
+    res.json(updated);
+  } catch (err: any) {
+    const status = err.message.includes('not found')
+      ? 404
+      : getAuthOrClientStatusCode(err.message);
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// Phase 26: Dossier Audit Events Inspection (Requirement 2)
+app.get('/api/regulatory/submissions/:id/audit-events', (req, res) => {
+  const { userEmail, userId } = req.query as any;
+  let activeUser = req.body && req.body.user ? req.body.user : null;
+  if (!activeUser) {
+    if (userEmail) activeUser = userService.getByEmail(userEmail as string);
+    else if (userId) activeUser = userService.getById(userId as string);
+  }
+  if (!activeUser) activeUser = DEMO_USERS[0];
+
+  try {
+    submissionService.getAuthorizedSubmission(req.params.id, activeUser);
+    const events = auditService.query({ entityId: req.params.id });
+    res.json({ events });
+  } catch (err: any) {
+    const status = err.message.includes('not found') ? 404 : 403;
+    res.status(status).json({ error: err.message });
+  }
 });
 
 // Create new report draft
@@ -732,6 +1073,40 @@ app.post('/api/regulatory/submissions', (req, res) => {
 app.put('/api/regulatory/submissions/:id', (req, res) => {
   const { values, dynamicRows, user, expectedVersion } = req.body;
   const activeUser = user || DEMO_USERS[0];
+
+  // Phase 34: Maker Template Governance & Immutability Enforcement
+  // Maker enters and edits report values only. Maker cannot change report title,
+  // subtitle, section title, row title, column title, field code, formula definition,
+  // NBE mapping, API endpoint or validation rule.
+  const forbiddenDefinitionKeys = [
+    'title',
+    'name',
+    'subtitle',
+    'templateSnapshot',
+    'reportKey',
+    'formulas',
+    'validationRules',
+    'nbeMapping',
+    'endpointMetadata',
+    'apiEndpoint',
+    'sections',
+    'rows',
+    'columns',
+    'fieldCodes',
+    'fields',
+    'returnItemsList',
+    'dynamicItemsList',
+  ];
+
+  const presentForbidden = forbiddenDefinitionKeys.filter((k) => req.body[k] !== undefined);
+  if (presentForbidden.length > 0 && activeUser.role === 'MAKER') {
+    res.status(403).json({
+      error: `REPORT_DEFINITION_IMMUTABLE: Maker cannot change report definition metadata ('${presentForbidden.join(', ')}'). Only business values and schedule data entry are allowed.`,
+      code: 'REPORT_DEFINITION_IMMUTABLE',
+    });
+    return;
+  }
+
   try {
     const updated = submissionService.updateDraft(
       req.params.id,
@@ -818,17 +1193,60 @@ app.post('/api/regulatory/validate-payload', (req, res) => {
   }
 });
 
-// Maker submit to Checker
+// Phase 36: Server-side query for eligible Checkers for a given report
+app.get('/api/regulatory/reports/:reportKey/eligible-checkers', (req, res) => {
+  const { makerId, department } = req.query;
+  const makerUser = makerId ? userService.getById(String(makerId)) : DEMO_USERS[0];
+  const userSession: UserSession = makerUser
+    ? {
+        id: makerUser.id,
+        name: makerUser.name,
+        email: makerUser.email,
+        role: makerUser.role,
+        institutionCode: makerUser.institutionCode,
+        department: (department as string) || makerUser.department,
+        employeeId: makerUser.employeeId,
+        specialAccessGrants: makerUser.specialAccessGrants || [],
+      }
+    : DEMO_USERS[0];
+
+  try {
+    const eligible = effectiveAccessEngine.getEligibleCheckersForReport(req.params.reportKey, userSession);
+    res.json({
+      reportKey: req.params.reportKey,
+      department: userSession.department,
+      count: eligible.length,
+      checkers: eligible,
+    });
+  } catch (err: any) {
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
+  }
+});
+
+// Maker submit to Checker (Phase 36: supports selectedCheckerIds)
 app.post('/api/regulatory/submissions/:id/submit', (req, res) => {
-  const { user, comment, expectedVersion } = req.body;
+  const { user, comment, expectedVersion, selectedCheckerIds } = req.body;
   const activeUser = user || DEMO_USERS[0];
   try {
     const updated = submissionService.submitToChecker(
       req.params.id,
       activeUser,
       comment,
-      expectedVersion !== undefined ? Number(expectedVersion) : undefined
+      expectedVersion !== undefined ? Number(expectedVersion) : undefined,
+      Array.isArray(selectedCheckerIds) ? selectedCheckerIds : undefined
     );
+    res.json(updated);
+  } catch (err: any) {
+    res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
+  }
+});
+
+// Phase 36: Checker accepts/opens review
+app.post('/api/regulatory/submissions/:id/accept-review', (req, res) => {
+  const { user } = req.body;
+  const activeUser = user || DEMO_USERS[1];
+  try {
+    const updated = submissionService.acceptReview(req.params.id, activeUser);
     res.json(updated);
   } catch (err: any) {
     res.status(getAuthOrClientStatusCode(err.message)).json({ error: err.message });
@@ -930,13 +1348,23 @@ app.get('/api/regulatory/submissions/:id/export/xlsx', (req, res) => {
 // -------------------------------------------------------------
 
 app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
   if (!email || !password) {
     res.status(400).json({ success: false, message: 'Corporate email and password are required to sign in.' });
     return;
   }
-  const result = userService.login(email, password);
+  const deviceInfo = (req.headers['user-agent'] as string) || 'Institutional Workstation';
+  const result = userService.login(email, password, Boolean(rememberMe), deviceInfo);
+
   if (result.success && result.user) {
+    // If Remember Me was requested, set secure HttpOnly cookie
+    if (result.rememberMe && result.persistentSession) {
+      res.setHeader('Set-Cookie', result.persistentSession.cookieHeader);
+    } else {
+      // If unchecked, ensure any leftover persistent cookie is cleared
+      res.setHeader('Set-Cookie', sessionService.formatClearedCookieHeader());
+    }
+
     auditService.log({
       actorId: result.user.id,
       actorName: result.user.name,
@@ -945,12 +1373,119 @@ app.post('/api/auth/login', (req, res) => {
       entityType: 'AUTH',
       entityId: result.user.id,
       correlationId: `corr_auth_${Date.now()}`,
-      details: `User logged in successfully as ${result.user.role}`,
+      details: `User logged in successfully as ${result.user.role}. Remember Me: ${Boolean(rememberMe)}. (Req 1, 4)`,
     });
     res.json(result);
   } else {
     res.status(401).json(result);
   }
+});
+
+// Phase 29: Persistent Session Verification Endpoint (Req 4, 6, 7, 8, 9, 10, 12)
+app.get('/api/auth/session', (req, res) => {
+  const cookieHeader = req.headers.cookie;
+  let token = sessionService.extractTokenFromCookieHeader(cookieHeader);
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.slice(7).trim();
+  }
+  if (!token && req.headers['x-remember-token']) {
+    token = String(req.headers['x-remember-token']).trim();
+  }
+
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      code: 'NO_SESSION',
+      message: 'No active persistent session found.',
+    });
+    return;
+  }
+
+  const ver = sessionService.verifyToken(token, { updateLastUsed: true });
+  if (!ver.valid || !ver.user || !ver.session) {
+    res.setHeader('Set-Cookie', sessionService.formatClearedCookieHeader());
+    res.status(401).json({
+      success: false,
+      code: ver.code || 'TOKEN_INVALID',
+      message: ver.message || 'Session verification failed.',
+    });
+    return;
+  }
+
+  // Session is valid
+  res.json({
+    success: true,
+    user: ver.user,
+    session: {
+      id: ver.session.id,
+      expiresAt: ver.session.expiresAt,
+      lastUsedAt: ver.session.lastUsedAt,
+      createdAt: ver.session.createdAt,
+      deviceInfo: ver.session.deviceInfo,
+    },
+    requiresBiometricVerification: ver.requiresBiometricVerification,
+  });
+});
+
+// Phase 29: Explicit Logout Endpoint (Req 8)
+app.post('/api/auth/logout', (req, res) => {
+  const cookieHeader = req.headers.cookie;
+  let token = sessionService.extractTokenFromCookieHeader(cookieHeader);
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.slice(7).trim();
+  }
+  if (!token && req.headers['x-remember-token']) {
+    token = String(req.headers['x-remember-token']).trim();
+  }
+  const sessionId = req.body?.sessionId || token;
+
+  if (sessionId) {
+    sessionService.revokeSession(sessionId, 'EXPLICIT_LOGOUT');
+  }
+
+  res.setHeader('Set-Cookie', sessionService.formatClearedCookieHeader());
+  res.json({
+    success: true,
+    message: 'Explicit portal sign out complete. Persistent session permanently invalidated. (Req 8)',
+  });
+});
+
+// Phase 29: List Active Sessions for User (Req 7, 11)
+app.get('/api/auth/sessions', (req, res) => {
+  const email = (req.query.email as string) || '';
+  if (!email) {
+    res.status(400).json({ success: false, message: 'Email query parameter required.' });
+    return;
+  }
+  const activeSessions = sessionService.getUserActiveSessions(email);
+  res.json({
+    success: true,
+    sessions: activeSessions.map((s) => ({
+      id: s.id,
+      deviceInfo: s.deviceInfo,
+      createdAt: s.createdAt,
+      lastUsedAt: s.lastUsedAt,
+      expiresAt: s.expiresAt,
+      isRevoked: s.isRevoked,
+    })),
+  });
+});
+
+// Phase 29: Revoke Session Endpoint (Req 7, 11)
+app.post('/api/auth/sessions/revoke', (req, res) => {
+  const { sessionId, email, revokeAll } = req.body;
+  if (revokeAll && email) {
+    const result = sessionService.revokeAllUserSessions(email, 'ADMIN_REVOCATION');
+    res.json({ success: true, message: `All ${result.revokedCount} active sessions revoked.` });
+    return;
+  }
+  if (sessionId) {
+    const rev = sessionService.revokeSession(sessionId, 'ADMIN_REVOCATION');
+    res.setHeader('Set-Cookie', rev.clearedCookieHeader);
+    res.json({ success: true, message: rev.message });
+    return;
+  }
+  res.status(400).json({ success: false, message: 'sessionId or email with revokeAll required.' });
 });
 
 // Development Seed Data Reset Endpoint
@@ -2154,7 +2689,75 @@ app.post(['/api/audit/reports/export', '/api/v1/audit/reports/export'], (req, re
 
 const DJANGO_SIMULATOR_URL = process.env.NBE_SIMULATOR_URL || 'http://127.0.0.1:8001/api/v1/nbe-simulator';
 
+// Dynamic Report Discovery for NBE Simulator (Phase 32)
+// Discovers all active and draft reports dynamically from SSOT, filtering retired reports
+app.get('/api/nbe-simulator/reports', (req, res) => {
+  const actorRole = (req.headers['x-actor-role'] || req.query.role || 'ADMIN') as string;
+  if (actorRole && actorRole !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: NBE Simulator access is strictly restricted to Administrators.',
+      code: 'UNAUTHORIZED_SIMULATOR_ACCESS',
+    });
+    return;
+  }
+  try {
+    const reports = nbeSimulator.getAvailableReports();
+    res.json(reports);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Build canonical simulated payload from active/draft template
+app.get('/api/nbe-simulator/reports/:key/payload', (req, res) => {
+  const actorRole = (req.headers['x-actor-role'] || req.query.role || 'ADMIN') as string;
+  if (actorRole && actorRole !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: NBE Simulator access is strictly restricted to Administrators.',
+      code: 'UNAUTHORIZED_SIMULATOR_ACCESS',
+    });
+    return;
+  }
+  try {
+    const versionNum = req.query.version ? parseInt(req.query.version as string, 10) : undefined;
+    const payload = nbeSimulator.buildSimulatedPayload(req.params.key, versionNum);
+    res.json(payload);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Dynamic simulated transmission for any report
+app.post('/api/nbe-simulator/reports/:key/transmit', async (req, res) => {
+  const actorRole = (req.headers['x-actor-role'] || req.body.role || req.body.actor?.role || 'ADMIN') as string;
+  if (actorRole && actorRole !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: NBE Simulator transmission is strictly restricted to Administrators.',
+      code: 'UNAUTHORIZED_SIMULATOR_ACCESS',
+    });
+    return;
+  }
+  try {
+    const result = await nbeSimulator.simulateReportTransmission(req.params.key, {
+      customPayload: req.body.payload,
+      scenarioOverride: req.body.scenario,
+      idempotencyKey: req.body.idempotencyKey,
+    });
+    res.status(result.statusCode).json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get('/api/nbe-simulator/submissions', async (req, res) => {
+  const actorRole = (req.headers['x-actor-role'] || req.query.role || 'ADMIN') as string;
+  if (actorRole && actorRole !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: NBE Simulator access is strictly restricted to Administrators.',
+      code: 'UNAUTHORIZED_SIMULATOR_ACCESS',
+    });
+    return;
+  }
   const { page, page_size, limit } = req.query as any;
   let submissions: any[] = [];
   try {
@@ -2177,6 +2780,14 @@ app.get('/api/nbe-simulator/submissions', async (req, res) => {
 });
 
 app.get('/api/nbe-simulator/logs', async (req, res) => {
+  const actorRole = (req.headers['x-actor-role'] || req.query.role || 'ADMIN') as string;
+  if (actorRole && actorRole !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: NBE Simulator access is strictly restricted to Administrators.',
+      code: 'UNAUTHORIZED_SIMULATOR_ACCESS',
+    });
+    return;
+  }
   const { page, page_size, limit } = req.query as any;
   let logs: any[] = [];
   try {
@@ -2248,6 +2859,14 @@ app.get('/api/nbe-simulator/gateway-health', async (req, res) => {
 });
 
 app.get('/api/nbe-simulator/scenario', async (req, res) => {
+  const actorRole = (req.headers['x-actor-role'] || req.query.role || 'ADMIN') as string;
+  if (actorRole && actorRole !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: NBE Simulator access is strictly restricted to Administrators.',
+      code: 'UNAUTHORIZED_SIMULATOR_ACCESS',
+    });
+    return;
+  }
   try {
     const response = await fetch(`${DJANGO_SIMULATOR_URL}/scenario`);
     if (response.ok) {
@@ -2262,6 +2881,14 @@ app.get('/api/nbe-simulator/scenario', async (req, res) => {
 });
 
 app.post('/api/nbe-simulator/scenario', async (req, res) => {
+  const actorRole = (req.headers['x-actor-role'] || req.query.role || req.body?.role || 'ADMIN') as string;
+  if (actorRole && actorRole !== 'ADMIN') {
+    res.status(403).json({
+      error: 'Forbidden: NBE Simulator access is strictly restricted to Administrators.',
+      code: 'UNAUTHORIZED_SIMULATOR_ACCESS',
+    });
+    return;
+  }
   const updatedLocal = nbeSimulator.setScenario(req.body);
   try {
     const response = await fetch(`${DJANGO_SIMULATOR_URL}/scenario`, {
@@ -2549,7 +3176,7 @@ app.post('/api/bulk/export', (req, res) => {
 });
 
 // System Health
-app.get(['/api/health', '/healthz', '/_ah/health'], (req, res) => {
+const healthHandler = (_req: express.Request, res: express.Response) => {
   res.json({
     status: 'ONLINE',
     service: 'Oromia Bank NBE Platform',
@@ -2559,13 +3186,17 @@ app.get(['/api/health', '/healthz', '/_ah/health'], (req, res) => {
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get(['/api/health', '/health', '/healthz', '/_ah/health', '/healthcheck'], healthHandler);
 
 // -------------------------------------------------------------
 // DEV / PROD SERVER BOOTSTRAP
 // -------------------------------------------------------------
 
 function ensureDjangoSimulatorRunning() {
+  if (process.env.NODE_ENV === 'production' || process.env.K_SERVICE) {
+    return;
+  }
   const checkUrl = 'http://127.0.0.1:8001/api/v1/nbe-simulator/gateway-health';
   fetch(checkUrl, { signal: AbortSignal.timeout(1500) })
     .then((r) => {
@@ -2592,27 +3223,26 @@ function ensureDjangoSimulatorRunning() {
 }
 
 async function startServer() {
-  const distDir = path.resolve(__dirname, 'dist');
-  const distIndexHtml = path.join(distDir, 'index.html');
-  const isProduction =
-    process.env.NODE_ENV === 'production' ||
-    Boolean(process.env.K_SERVICE) ||
-    Boolean(process.env.K_REVISION) ||
-    (fs.existsSync(distIndexHtml) && process.env.NODE_ENV !== 'development');
+  ensureDjangoSimulatorRunning();
 
-  if (isProduction) {
-    console.log('[Oromia Bank NBE Platform] Running in PRODUCTION mode (serving dist/ assets)');
-    app.use(express.static(distDir));
-    app.get('*', (req, res) => {
-      if (fs.existsSync(distIndexHtml)) {
-        res.sendFile(distIndexHtml);
-      } else {
-        res.status(200).send('<!doctype html><html><body><h1>Oromia Bank NBE Platform</h1><p>Application ready.</p></body></html>');
+  const isCloudRun = Boolean(process.env.K_SERVICE);
+  const distIndexHtml = path.resolve(__dirname, 'dist', 'index.html');
+  const distExists = fs.existsSync(distIndexHtml);
+
+  if (distExists) {
+    // Production / pre-built static serving
+    app.use(express.static(path.resolve(__dirname, 'dist')));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/') || req.path.startsWith('/ws/')) {
+        return next();
       }
+      if (fs.existsSync(distIndexHtml)) {
+        return res.sendFile(distIndexHtml);
+      }
+      return next();
     });
   } else {
-    console.log('[Oromia Bank NBE Platform] Running in DEVELOPMENT mode with Vite middleware');
-    ensureDjangoSimulatorRunning();
+    // Vite middleware mode for development or when dist not yet built
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -2622,15 +3252,43 @@ async function startServer() {
   }
 
   const server = http.createServer(app);
+  let isListening = false;
+
   server.on('error', (err: any) => {
-    console.error('[Server Fatal Error]', err);
+    console.error('[Server Error]', err);
+    if (err.code === 'EADDRINUSE' && !isListening && PORT !== 3000) {
+      console.warn(`[Server Warning] Port ${PORT} already bound; falling back to port 3000...`);
+      server.listen(3000, '0.0.0.0', () => {
+        isListening = true;
+        console.log(`[Oromia Bank NBE Platform] Server listening on fallback port 3000`);
+      });
+    }
   });
 
   realtimeSsotEngine.attachServer(server, '/ws/ssot');
 
   server.listen(PORT, '0.0.0.0', () => {
+    isListening = true;
     console.log(`[Oromia Bank NBE Platform] Server listening on port ${PORT}`);
   });
+
+  // Graceful shutdown handling for Cloud Run container lifecycle
+  const handleShutdown = (signal: string) => {
+    console.log(`[Server] Received ${signal}, closing HTTP server...`);
+    server.close(() => {
+      console.log('[Server] HTTP server closed cleanly.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      process.exit(0);
+    }, 5000).unref();
+  };
+
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('[Server Fatal Error on Startup]', err);
+  process.exit(1);
+});

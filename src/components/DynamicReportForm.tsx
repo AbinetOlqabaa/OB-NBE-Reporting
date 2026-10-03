@@ -28,6 +28,7 @@ import { FieldAuditHoverTool } from './FieldAuditHoverTool.tsx';
 import { InputAccessoryView } from './InputAccessoryView.tsx';
 import { vibrate, haptics } from '../utils/haptics.ts';
 import { indexedDbStorage } from '../services/indexedDbStorage.ts';
+import { submissionService } from '../services/submissionService.ts';
 import { ValidationRemediationService } from '../services/validationRemediationService.ts';
 import { ValidationRemediationAssistant } from './ValidationRemediationAssistant.tsx';
 import type {
@@ -56,7 +57,23 @@ import {
   ExternalLink,
   Sparkles,
   Wand2,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  Lock,
 } from 'lucide-react';
+import { templateInitializationService } from '../services/templateInitializationService.ts';
+import { CheckerSelector } from './CheckerSelector.tsx';
+import { effectiveAccessEngine } from '../services/effectiveAccessEngine.ts';
+
+export interface NavigationGuardHandler {
+  hasUnsavedChanges: () => boolean;
+  flush: () => Promise<boolean>;
+}
+
+export type AutosaveStatus = 'SAVED' | 'SAVING' | 'UNSAVED' | 'FAILED' | 'CONFLICT';
 
 interface DynamicReportFormProps {
   metadata: ReportMetadata;
@@ -64,9 +81,14 @@ interface DynamicReportFormProps {
   currentUser: UserSession;
   readOnly?: boolean;
   onBack: () => void;
-  onSave: (values: Record<string, string | number>, dynamicRows: Record<number, DynamicRowRecord[]>, expectedVersion?: number) => void;
-  onSubmitToChecker: (comment: string, expectedVersion?: number) => void;
+  onSave: (
+    values: Record<string, string | number>,
+    dynamicRows: Record<number, DynamicRowRecord[]>,
+    expectedVersion?: number
+  ) => Promise<ReportSubmission> | ReportSubmission;
+  onSubmitToChecker: (comment: string, expectedVersion?: number, selectedCheckerIds?: string[]) => void;
   onReuseSubmission?: (submissionId: string) => void;
+  onRegisterNavigationGuard?: (guard: NavigationGuardHandler | null) => void;
 }
 
 export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
@@ -78,6 +100,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   onSave,
   onSubmitToChecker,
   onReuseSubmission,
+  onRegisterNavigationGuard,
 }) => {
   // Use immutable template snapshot if present to maintain regulatory integrity
   const metadata = submission.templateSnapshot || passedMetadata;
@@ -92,6 +115,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [submitModalOpen, setSubmitModalOpen] = useState<boolean>(false);
+  const [selectedCheckerIds, setSelectedCheckerIds] = useState<string[]>([]);
   const [submitComment, setSubmitComment] = useState<string>('');
   const [filterQuery, setFilterQuery] = useState<string>('');
   const [itemTypeFilter, setItemTypeFilter] = useState<string>('ALL');
@@ -102,10 +126,45 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     Record<string, Array<{ timestamp: string; value: string | number; modifiedBy: string; modifiedByRole?: string }>>
   >({});
 
-  // 30-Second Periodic IndexedDB Auto-Save State
+  // Phase 27 SSOT Autosave Status & Persistence States
+  const [saveStatus, setSaveStatus] = useState<AutosaveStatus>('SAVED');
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(
+    submission.updatedAt ? new Date(submission.updatedAt).toLocaleTimeString() : null
+  );
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [currentVersion, setCurrentVersion] = useState<number>(submission.version || 1);
+  const currentVersionRef = useRef<number>(submission.version || 1);
+  useEffect(() => {
+    currentVersionRef.current = currentVersion;
+  }, [currentVersion]);
+
+  // Subordinate Local Recovery State (Requirement 8)
+  const [subordinateRecoveryDraft, setSubordinateRecoveryDraft] = useState<ReportSubmission | null>(null);
+
+  // Leave-Page Safety Modal State (Requirement 5)
+  const [leaveSafetyModalOpen, setLeaveSafetyModalOpen] = useState<boolean>(false);
+  const [leaveSafetyError, setLeaveSafetyError] = useState<string | null>(null);
+  const [isFlushing, setIsFlushing] = useState<boolean>(false);
+
+  // Phase 33: Data Entry Ergonomics, Touch Tracking & Reset to Template Defaults
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [submissionAttempted, setSubmissionAttempted] = useState<boolean>(false);
+  const [resetModalOpen, setResetModalOpen] = useState<boolean>(false);
+  const [isResetting, setIsResetting] = useState<boolean>(false);
+
+  // Optimistic Concurrency Conflict Resolution State (Requirement 7)
+  const [conflictModalOpen, setConflictModalOpen] = useState<boolean>(false);
+  const [serverConflictSub, setServerConflictSub] = useState<ReportSubmission | null>(null);
+  const [mergeFieldDecisions, setMergeFieldDecisions] = useState<Record<string, 'LOCAL' | 'SERVER'>>({});
+
+  // Controlled debounced & throttled autosave timers (Requirement 1 & 2)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef<boolean>(false);
+
+  // Periodic fallback countdown
   const AUTO_SAVE_INTERVAL_SECONDS = 30;
   const [autoSaveCountdown, setAutoSaveCountdown] = useState<number>(AUTO_SAVE_INTERVAL_SECONDS);
-  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<string | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState<boolean>(false);
 
   const valuesRef = useRef(values);
@@ -295,6 +354,158 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     setTimeout(() => setHighlightedFieldCode(null), 3500);
   };
 
+  // Phase 27: Authoritative Server SSOT Persistence Engine (Requirements 1, 2, 3, 4, 7)
+  const performSave = async (
+    reason: 'AUTOSAVE' | 'MANUAL' | 'FLUSH' | 'RETRY' | 'FORCE_OVERWRITE' | 'RECONCILE' | 'AUTO_FIX',
+    overrideExpectedVersion?: number
+  ): Promise<ReportSubmission> => {
+    if (isEffectiveReadOnly) {
+      throw new Error('Read-only submission cannot be modified.');
+    }
+
+    // Cancel pending debounce/throttle timers
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+
+    isSavingRef.current = true;
+    setIsAutoSaving(true);
+    setSaveStatus('SAVING');
+    setSaveError(null);
+
+    const calculated = recalculateAndValidate(valuesRef.current, dynamicRowsRef.current);
+    const expectedVer = overrideExpectedVersion !== undefined ? overrideExpectedVersion : currentVersionRef.current;
+
+    try {
+      // Authoritative persistence call to server SSOT
+      const result = await Promise.resolve(onSave(calculated, dynamicRowsRef.current, expectedVer));
+      const confirmedSub = (result as ReportSubmission) || submission;
+      const nextVer = confirmedSub.version || expectedVer + 1;
+      const timeStr = new Date().toLocaleTimeString();
+
+      setCurrentVersion(nextVer);
+      currentVersionRef.current = nextVer;
+      setValues(calculated);
+      valuesRef.current = calculated;
+      setHasUnsavedChanges(false);
+      hasUnsavedChangesRef.current = false;
+      setSaveStatus('SAVED');
+      setLastSavedTime(timeStr);
+      setSaveError(null);
+      setConflictModalOpen(false);
+
+      // Subordinate IndexedDB cache update for offline resilience
+      await indexedDbStorage.saveDraft(
+        {
+          ...confirmedSub,
+          version: nextVer,
+          values: calculated,
+          dynamicRows: dynamicRowsRef.current,
+          updatedAt: new Date().toISOString(),
+          offlineSavedAt: new Date().toISOString(),
+          syncStatus: 'SYNCED',
+          isOfflineDraft: false,
+        },
+        { syncStatus: 'SYNCED', isOffline: false }
+      ).catch(() => {});
+
+      return confirmedSub;
+    } catch (err: any) {
+      const errMsg = err?.message || 'Save failed';
+      console.warn('[DynamicReportForm] Save rejected by backend SSOT:', errMsg);
+
+      if (
+        errMsg.includes('CONCURRENT_MODIFICATION_CONFLICT') ||
+        errMsg.includes('409') ||
+        errMsg.includes('concurrency') ||
+        errMsg.includes('modified concurrently')
+      ) {
+        setSaveStatus('CONFLICT');
+        setSaveError(errMsg);
+        // Load latest authoritative server state for interactive resolution
+        const latestServer = submissionService.getById(submission.id);
+        if (latestServer) {
+          setServerConflictSub(latestServer);
+        }
+        setConflictModalOpen(true);
+      } else {
+        setSaveStatus('FAILED');
+        setSaveError(errMsg);
+      }
+      throw err;
+    } finally {
+      isSavingRef.current = false;
+      setIsAutoSaving(false);
+    }
+  };
+
+  // Controlled Debounced Autosave Trigger (Requirement 1: 1500ms debounce, 15s throttle)
+  const triggerDebouncedAutosave = () => {
+    if (isEffectiveReadOnly) return;
+    setHasUnsavedChanges(true);
+    hasUnsavedChangesRef.current = true;
+    setSaveStatus('UNSAVED');
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      performSave('AUTOSAVE').catch(() => {});
+    }, 1500);
+
+    if (!throttleTimerRef.current) {
+      throttleTimerRef.current = setTimeout(() => {
+        performSave('AUTOSAVE').catch(() => {});
+      }, 15000);
+    }
+  };
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+    };
+  }, []);
+
+  // Register Navigation Guard with parent application (Requirement 5 & 6)
+  useEffect(() => {
+    if (onRegisterNavigationGuard) {
+      onRegisterNavigationGuard({
+        hasUnsavedChanges: () => hasUnsavedChangesRef.current,
+        flush: async () => {
+          try {
+            await performSave('FLUSH');
+            return true;
+          } catch (e) {
+            return false;
+          }
+        },
+      });
+      return () => {
+        onRegisterNavigationGuard(null);
+      };
+    }
+  }, [onRegisterNavigationGuard]);
+
+  // Window beforeunload listener for browser close/refresh safety (Requirement 5 & 10)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChangesRef.current) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes in this regulatory report. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   // Phase 24 Requirements 6, 8 & 9: Safe Auto-Fix, Save & Authoritative Rerun
   const handleApplyFix = async (proposedFix: ProposedFix) => {
     try {
@@ -310,7 +521,9 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
         );
 
       setValues(updatedValues);
+      valuesRef.current = updatedValues;
       setDynamicRows(updatedDynamicRows);
+      dynamicRowsRef.current = updatedDynamicRows;
       setRemediationSummary(revalidationSummary);
 
       // Re-run Zod state in sync
@@ -321,7 +534,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
       hasUnsavedChangesRef.current = true;
 
       // Authoritative Save (Requirement 9)
-      onSave(updatedValues, updatedDynamicRows, submission.version);
+      await performSave('AUTO_FIX', currentVersionRef.current);
 
       setSaveFeedback(`Auto-Fix Applied: ${proposedFix.description}`);
       vibrate(25);
@@ -339,86 +552,80 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     recalculateAndValidate(values, dynamicRows);
   }, [metadata.ReturnKey]);
 
-  // Check for newer draft in IndexedDB on mount to prevent data loss
+  // Phase 27 Requirement 8: Subordinate Local Recovery State Reconciliation
+  // Local recovery state is strictly subordinate to server SSOT. It must never become an alternate SSOT.
   useEffect(() => {
     let isMounted = true;
-    const restoreDraftFromIndexedDB = async () => {
+    const checkSubordinateRecoveryDraft = async () => {
       try {
         const storedDraft = await indexedDbStorage.getDraft(submission.id);
-        if (storedDraft && storedDraft.offlineSavedAt && isMounted) {
-          const storedTime = new Date(storedDraft.offlineSavedAt).getTime();
-          const subTime = new Date(submission.updatedAt || submission.createdAt || 0).getTime();
-          if (storedTime > subTime && storedDraft.values && Object.keys(storedDraft.values).length > 0) {
-            const calculated = recalculateAndValidate(storedDraft.values, storedDraft.dynamicRows || {});
-            setValues(calculated);
-            setDynamicRows(storedDraft.dynamicRows || {});
-            const timeStr = new Date(storedDraft.offlineSavedAt).toLocaleTimeString();
-            setLastAutoSavedAt(timeStr);
-            setSaveFeedback(`Restored offline auto-saved draft from IndexedDB (${timeStr})`);
-            setTimeout(() => setSaveFeedback(null), 5000);
+        if (!storedDraft || !isMounted) return;
+
+        const serverVersion = submission.version || 1;
+        const localVersion = storedDraft.version || 1;
+        const storedTime = new Date(storedDraft.offlineSavedAt || storedDraft.updatedAt || 0).getTime();
+        const serverTime = new Date(submission.updatedAt || submission.createdAt || 0).getTime();
+
+        // 1. If server is newer, server SSOT wins unconditionally. Discard obsolete local cache.
+        if (serverVersion > localVersion) {
+          await indexedDbStorage.deleteDraft(submission.id);
+          return;
+        }
+
+        // 2. If local subordinate draft has offline edits timestamped after server:
+        if (
+          storedTime > serverTime &&
+          localVersion >= serverVersion &&
+          storedDraft.values &&
+          Object.keys(storedDraft.values).length > 0
+        ) {
+          const valuesDiffer = JSON.stringify(storedDraft.values) !== JSON.stringify(submission.values);
+          if (valuesDiffer) {
+            setSubordinateRecoveryDraft(storedDraft);
           }
         }
       } catch (err) {
-        console.warn('[IndexedDB] Auto-save restoration check warning:', err);
+        console.warn('[IndexedDB] Subordinate recovery check warning:', err);
       }
     };
-    restoreDraftFromIndexedDB();
+    checkSubordinateRecoveryDraft();
     return () => {
       isMounted = false;
     };
   }, [submission.id]);
 
-  // Periodic Auto-Save every 30 seconds to IndexedDB
-  const performAutoSaveToIndexedDB = async () => {
-    if (isEffectiveReadOnly || !hasUnsavedChangesRef.current) return;
+  const handleReconcileLocalRecovery = async () => {
+    if (!subordinateRecoveryDraft) return;
     try {
-      setIsAutoSaving(true);
-      const calculated = FormulaEngine.calculateReport(metadata, valuesRef.current, dynamicRowsRef.current);
-      const draftRecord: ReportSubmission = {
-        ...submission,
-        values: calculated,
-        dynamicRows: dynamicRowsRef.current,
-        updatedAt: new Date().toISOString(),
-        offlineSavedAt: new Date().toISOString(),
-        syncStatus: 'LOCAL_DRAFT',
-        isOfflineDraft: true,
-      };
+      const recoveredValues = subordinateRecoveryDraft.values || {};
+      const recoveredDynamic = subordinateRecoveryDraft.dynamicRows || {};
+      const calculated = recalculateAndValidate(recoveredValues, recoveredDynamic);
+      setValues(calculated);
+      valuesRef.current = calculated;
+      setDynamicRows(recoveredDynamic);
+      dynamicRowsRef.current = recoveredDynamic;
 
-      await indexedDbStorage.saveDraft(draftRecord, {
-        syncStatus: 'LOCAL_DRAFT',
-        isOffline: true,
-      });
-
-      onSave(calculated, dynamicRowsRef.current, submission.version);
-      setHasUnsavedChanges(false);
-      hasUnsavedChangesRef.current = false;
-      const savedTime = new Date().toLocaleTimeString();
-      setLastAutoSavedAt(savedTime);
-      setAutoSaveCountdown(AUTO_SAVE_INTERVAL_SECONDS);
-    } catch (err) {
-      console.warn('[IndexedDB] Auto-save failed:', err);
-    } finally {
-      setIsAutoSaving(false);
+      // Persist to server SSOT immediately to reconcile
+      await performSave('RECONCILE', submission.version);
+      setSubordinateRecoveryDraft(null);
+      setSaveFeedback('Subordinate local recovery draft reconciled and persisted to server SSOT.');
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (err: any) {
+      setSaveFeedback(`Reconciliation failed: ${err.message}`);
+      setTimeout(() => setSaveFeedback(null), 4000);
     }
   };
 
-  useEffect(() => {
-    if (isEffectiveReadOnly) return;
-
-    const timer = setInterval(() => {
-      setAutoSaveCountdown((prev) => {
-        if (prev <= 1) {
-          if (hasUnsavedChangesRef.current) {
-            performAutoSaveToIndexedDB();
-          }
-          return AUTO_SAVE_INTERVAL_SECONDS;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isEffectiveReadOnly, metadata.ReturnKey, submission.id]);
+  const handleDiscardLocalRecovery = async () => {
+    try {
+      await indexedDbStorage.deleteDraft(submission.id);
+      setSubordinateRecoveryDraft(null);
+      setSaveFeedback('Subordinate local cache discarded. Authoritative server copy retained.');
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (err) {
+      setSubordinateRecoveryDraft(null);
+    }
+  };
 
   // Listen for Ctrl+S or Cmd+S to save draft
   useEffect(() => {
@@ -434,12 +641,48 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [values, dynamicRows, isEffectiveReadOnly]);
 
+  // Phase 33: Reset unsubmitted draft to template defaults without modifying definition
+  const handleResetToDefaults = async () => {
+    try {
+      setIsResetting(true);
+      const resetSub = submissionService.resetToTemplateDefaults(submission.id, currentUser);
+      setValues(resetSub.values || {});
+      valuesRef.current = resetSub.values || {};
+      setDynamicRows(resetSub.dynamicRows || {});
+      dynamicRowsRef.current = resetSub.dynamicRows || {};
+      setCurrentVersion(resetSub.version);
+      currentVersionRef.current = resetSub.version;
+      setTouchedFields(new Set());
+      setSubmissionAttempted(false);
+      setHasUnsavedChanges(false);
+      hasUnsavedChangesRef.current = false;
+      setSaveStatus('SAVED');
+      setLastSavedTime(new Date().toLocaleTimeString());
+      recalculateAndValidate(resetSub.values || {}, resetSub.dynamicRows || {});
+      setResetModalOpen(false);
+      setSaveFeedback(`Draft reset to clean template defaults (v${resetSub.version}). Report definition preserved intact.`);
+      vibrate(30);
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (err: any) {
+      setSaveFeedback(`Reset failed: ${err.message}`);
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const handleFieldChange = (code: string, value: string | number) => {
     if (isEffectiveReadOnly) return;
+    setTouchedFields((prev) => {
+      const next = new Set(prev);
+      next.add(code);
+      return next;
+    });
     const nextValues = { ...values, [code]: value };
     const calculated = recalculateAndValidate(nextValues, dynamicRows);
     setValues(calculated);
-    setHasUnsavedChanges(true);
+    valuesRef.current = calculated;
+    triggerDebouncedAutosave();
 
     // Record session edit history for cell-level audit trail
     setSessionEditsHistory((prev) => {
@@ -476,9 +719,11 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     const currentAreaRows = dynamicRows[areaId] || [];
     const nextDynamic = { ...dynamicRows, [areaId]: [...currentAreaRows, newRow] };
     setDynamicRows(nextDynamic);
-    setHasUnsavedChanges(true);
+    dynamicRowsRef.current = nextDynamic;
     const calculated = recalculateAndValidate(values, nextDynamic);
     setValues(calculated);
+    valuesRef.current = calculated;
+    triggerDebouncedAutosave();
   };
 
   const handleUpdateDynamicCell = (
@@ -500,9 +745,11 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
 
     const nextDynamic = { ...dynamicRows, [areaId]: updatedRows };
     setDynamicRows(nextDynamic);
-    setHasUnsavedChanges(true);
+    dynamicRowsRef.current = nextDynamic;
     const calculated = recalculateAndValidate(values, nextDynamic);
     setValues(calculated);
+    valuesRef.current = calculated;
+    triggerDebouncedAutosave();
   };
 
   const handleDeleteDynamicRow = (areaId: number, rowId: string) => {
@@ -511,51 +758,96 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
     const updatedRows = currentAreaRows.filter((r) => r.id !== rowId);
     const nextDynamic = { ...dynamicRows, [areaId]: updatedRows };
     setDynamicRows(nextDynamic);
-    setHasUnsavedChanges(true);
+    dynamicRowsRef.current = nextDynamic;
     const calculated = recalculateAndValidate(values, nextDynamic);
     setValues(calculated);
+    valuesRef.current = calculated;
+    triggerDebouncedAutosave();
   };
 
   const handleManualSave = async () => {
     vibrate(30);
-    const calculated = recalculateAndValidate(values, dynamicRows);
-    setValues(calculated);
-    onSave(calculated, dynamicRows, submission.version);
+    try {
+      await performSave('MANUAL');
+      setSaveFeedback(`Draft persisted to server SSOT at ${new Date().toLocaleTimeString()}`);
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (err: any) {
+      setSaveFeedback(`Save failed: ${err.message}`);
+      setTimeout(() => setSaveFeedback(null), 4000);
+    }
+  };
+
+  // Phase 27 Requirement 5: Route Change & Leave-Page Safety with Flush
+  const handleBackWithSafety = async () => {
+    if (hasUnsavedChangesRef.current && !isEffectiveReadOnly) {
+      try {
+        setIsFlushing(true);
+        await performSave('FLUSH');
+        onBack();
+      } catch (err: any) {
+        setLeaveSafetyError(err?.message || 'Server persistence failed');
+        setLeaveSafetyModalOpen(true);
+      } finally {
+        setIsFlushing(false);
+      }
+    } else {
+      onBack();
+    }
+  };
+
+  // Phase 27 Requirement 7: Conflict Resolution Action Handlers
+  const handleAcceptServerConflict = () => {
+    if (!serverConflictSub) return;
+    setValues(serverConflictSub.values || {});
+    valuesRef.current = serverConflictSub.values || {};
+    setDynamicRows(serverConflictSub.dynamicRows || {});
+    dynamicRowsRef.current = serverConflictSub.dynamicRows || {};
+    setCurrentVersion(serverConflictSub.version);
+    currentVersionRef.current = serverConflictSub.version;
+    recalculateAndValidate(serverConflictSub.values || {}, serverConflictSub.dynamicRows || {});
     setHasUnsavedChanges(false);
     hasUnsavedChangesRef.current = false;
-    setAutoSaveCountdown(AUTO_SAVE_INTERVAL_SECONDS);
-    const savedTime = new Date().toLocaleTimeString();
-    setLastAutoSavedAt(savedTime);
-
-    try {
-      await indexedDbStorage.saveDraft(
-        {
-          ...submission,
-          values: calculated,
-          dynamicRows,
-          updatedAt: new Date().toISOString(),
-          offlineSavedAt: new Date().toISOString(),
-          syncStatus: 'LOCAL_DRAFT',
-          isOfflineDraft: true,
-        },
-        { syncStatus: 'LOCAL_DRAFT', isOffline: true }
-      );
-    } catch (err) {
-      console.warn('[IndexedDB] Manual save to IndexedDB warning:', err);
-    }
-
-    setSaveFeedback(
-      `Draft persisted to local IndexedDB (Protected for remote NBE site visits) at ${savedTime}`
-    );
+    setSaveStatus('SAVED');
+    setLastSavedTime(new Date(serverConflictSub.updatedAt).toLocaleTimeString());
+    setConflictModalOpen(false);
+    setSaveFeedback(`Authoritative server version v${serverConflictSub.version} loaded.`);
     setTimeout(() => setSaveFeedback(null), 4000);
   };
 
-  const handleBackWithSafety = () => {
-    if (hasUnsavedChanges && !isEffectiveReadOnly) {
-      const calculated = recalculateAndValidate(values, dynamicRows);
-      onSave(calculated, dynamicRows, submission.version);
+  const handleOverwriteConflict = async () => {
+    if (!serverConflictSub) return;
+    try {
+      await performSave('FORCE_OVERWRITE', serverConflictSub.version);
+      setConflictModalOpen(false);
+      setSaveFeedback(`Server overwritten with your changes (bumped to v${serverConflictSub.version + 1}).`);
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (err: any) {
+      setSaveError(err.message);
     }
-    onBack();
+  };
+
+  const handleMergeConflict = async () => {
+    if (!serverConflictSub) return;
+    try {
+      const mergedVals: Record<string, string | number> = { ...(serverConflictSub.values || {}) };
+      for (const item of metadata.ReturnItemsList) {
+        const choice = mergeFieldDecisions[item.Code] || 'LOCAL';
+        if (choice === 'LOCAL') {
+          mergedVals[item.Code] = values[item.Code] ?? '';
+        } else {
+          mergedVals[item.Code] = serverConflictSub.values?.[item.Code] ?? '';
+        }
+      }
+      const calculated = recalculateAndValidate(mergedVals, dynamicRowsRef.current);
+      setValues(calculated);
+      valuesRef.current = calculated;
+      await performSave('FORCE_OVERWRITE', serverConflictSub.version);
+      setConflictModalOpen(false);
+      setSaveFeedback('Merged return draft saved to server SSOT.');
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (err: any) {
+      setSaveError(err.message);
+    }
   };
 
   const handleExportExcel = () => {
@@ -649,22 +941,67 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
               <h1 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-tight truncate max-w-md sm:max-w-xl">
                 {metadata.Title}
               </h1>
+              {/* Phase 34: Visible Version & Governance Immutability Indicator */}
               <div
-                className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 shrink-0 transition-all"
-                title="Draft data is periodically auto-saved to local IndexedDB every 30 seconds to prevent data loss"
+                className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md border border-ob-indigo-200 dark:border-ob-indigo-800 bg-ob-indigo-50/80 dark:bg-ob-indigo-950/60 text-ob-indigo-800 dark:text-ob-indigo-300 font-semibold shrink-0"
+                title="Report definition (title, sections, fields, formulas, and NBE mapping) is governed by Compliance Administration. Maker enters report values only."
               >
-                <Database className={`w-3 h-3 ${isAutoSaving ? 'animate-spin text-ob-indigo-600' : 'text-emerald-600 dark:text-emerald-400'}`} />
-                {isAutoSaving ? (
-                  <span className="font-bold text-ob-indigo-600 dark:text-ob-indigo-400">Saving to IndexedDB...</span>
-                ) : lastAutoSavedAt ? (
-                  <span>Auto-saved {lastAutoSavedAt} (every 30s)</span>
+                <ShieldCheck className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400 shrink-0" />
+                <span>Template v{submission.templateVersion || 1} • Governed</span>
+              </div>
+              <div
+                className={`inline-flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-0.5 rounded-full border shrink-0 transition-all ${
+                  saveStatus === 'SAVED'
+                    ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                    : saveStatus === 'SAVING'
+                    ? 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold'
+                    : saveStatus === 'UNSAVED'
+                    ? 'border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'
+                    : saveStatus === 'CONFLICT'
+                    ? 'border-rose-400 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 font-bold animate-pulse'
+                    : 'border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
+                }`}
+                title="Authoritative Single Source of Truth (SSOT) persistence status"
+              >
+                {saveStatus === 'SAVING' ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin text-amber-600 dark:text-amber-400" />
+                    <span>Saving to Server…</span>
+                  </>
+                ) : saveStatus === 'SAVED' ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    <span>{lastSavedTime ? `Saved at ${lastSavedTime}` : 'Saved just now'}</span>
+                  </>
+                ) : saveStatus === 'UNSAVED' ? (
+                  <>
+                    <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                    <span>Unsaved changes</span>
+                  </>
+                ) : saveStatus === 'CONFLICT' ? (
+                  <>
+                    <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                    <span>Conflict detected —</span>
+                    <button
+                      type="button"
+                      onClick={() => setConflictModalOpen(true)}
+                      className="underline font-bold text-rose-800 dark:text-rose-200 hover:text-rose-950 cursor-pointer ml-0.5"
+                    >
+                      Resolve
+                    </button>
+                  </>
                 ) : (
-                  <span>IndexedDB Active • Auto-save (30s)</span>
-                )}
-                {hasUnsavedChanges && !isAutoSaving && (
-                  <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold ml-0.5">
-                    (in {autoSaveCountdown}s)
-                  </span>
+                  <>
+                    <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                    <span>Save failed —</span>
+                    <button
+                      type="button"
+                      onClick={() => performSave('RETRY').catch(() => {})}
+                      className="underline font-bold text-rose-800 dark:text-rose-200 hover:text-rose-950 cursor-pointer ml-0.5"
+                    >
+                      Retry
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -718,11 +1055,10 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 ? 'bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 hover:bg-amber-100'
                 : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100'
             }`}
-            title="Open Unified Validation & Remediation Assistant (NBE BSD/03/2020)"
+            title="Open Help & Validation Guidance (NBE BSD/03/2020)"
           >
             <Wand2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
-            <span className="hidden sm:inline">Remediation Assistant</span>
-            <span className="sm:hidden">Assistant</span>
+            <span>Help</span>
             {remediationSummary && (
               <span
                 className={`px-1.5 py-0.2 text-[10px] font-bold rounded-full font-mono ${
@@ -763,7 +1099,19 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
 
               <button
                 type="button"
+                onClick={() => setResetModalOpen(true)}
+                disabled={isResetting || isAutoSaving}
+                className="min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl sm:rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-2xs touch-manipulation touch-press cursor-pointer"
+                title="Reset unsubmitted draft to clean template defaults without modifying definition"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span>Reset to Defaults</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleManualSave}
+                disabled={isAutoSaving}
                 className={`min-h-[44px] sm:min-h-[34px] flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl sm:rounded-lg transition-colors cursor-pointer touch-manipulation touch-press ${
                   hasUnsavedChanges
                     ? 'bg-slate-900 dark:bg-ob-indigo-600 text-white hover:bg-slate-800 dark:hover:bg-ob-indigo-700 shadow-2xs'
@@ -771,8 +1119,12 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 }`}
                 title={`Save Changes (${modKey}+S)`}
               >
-                <Save className="w-4 h-4 sm:w-3 sm:h-3" />
-                <span>{hasUnsavedChanges ? 'Save Changes' : 'Saved'}</span>
+                {isAutoSaving ? (
+                  <Loader2 className="w-4 h-4 sm:w-3 sm:h-3 animate-spin text-ob-indigo-400" />
+                ) : (
+                  <Save className="w-4 h-4 sm:w-3 sm:h-3" />
+                )}
+                <span>{isAutoSaving ? 'Saving…' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}</span>
                 <kbd className={`hidden sm:inline px-1 py-0.2 text-[9px] font-mono rounded border ${
                   hasUnsavedChanges ? 'bg-slate-800 dark:bg-ob-indigo-800 border-slate-700 dark:border-ob-indigo-700 text-slate-300 dark:text-ob-indigo-200' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'
                 }`}>
@@ -782,8 +1134,19 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
 
               <button
                 type="button"
-                onClick={() => setSubmitModalOpen(true)}
-                disabled={!validation?.isValid}
+                onClick={() => {
+                  setSubmissionAttempted(true);
+                  const fullVal = ZodValidationService.validateReport(metadata, values, dynamicRows);
+                  if (fullVal.isValid) {
+                    setSubmitModalOpen(true);
+                  } else {
+                    setSaveFeedback(`Submission blocked: ${fullVal.errorsCount} mandatory field(s) or constraint(s) must be satisfied.`);
+                    setAssistantOpen(true);
+                    vibrate(40);
+                    setTimeout(() => setSaveFeedback(null), 4000);
+                  }
+                }}
+                disabled={submissionAttempted && !validation?.isValid}
                 title={
                   validation?.isValid
                     ? 'Submit prepared regulatory return for Checker 4-eyes review'
@@ -792,7 +1155,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 className={`min-h-[44px] sm:min-h-[34px] flex items-center gap-1 px-3.5 py-1.5 text-xs font-bold rounded-xl sm:rounded-lg transition-colors shadow-2xs touch-manipulation touch-press ${
                   validation?.isValid
                     ? 'bg-ob-indigo-600 text-white hover:bg-ob-indigo-700 cursor-pointer'
-                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-pointer'
                 }`}
               >
                 <Send className="w-4 h-4 sm:w-3 sm:h-3" />
@@ -802,6 +1165,40 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
           )}
         </div>
       </div>
+
+      {/* Phase 27 Requirement 8: Subordinate Local Recovery Reconciliation Banner */}
+      {subordinateRecoveryDraft && (
+        <div className="p-3 bg-amber-50 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-amber-900 dark:text-amber-200 shadow-xs animate-in fade-in shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="font-bold">Subordinate Local Recovery Draft Detected</span>
+              <span className="ml-1 text-[11px] text-amber-700 dark:text-amber-300">
+                (Offline edits from {new Date(subordinateRecoveryDraft.offlineSavedAt || subordinateRecoveryDraft.updatedAt).toLocaleTimeString()} • Server is v{submission.version})
+              </span>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5 truncate">
+                Local offline recovery drafts are subordinate to the backend server. Reconcile to maintain backend as Single Source of Truth (SSOT).
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={handleReconcileLocalRecovery}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+            >
+              Reconcile to Server SSOT
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscardLocalRecovery}
+              className="px-2.5 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs transition-colors cursor-pointer"
+            >
+              Discard Local Draft
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Maker Lifecycle Indicator Bar */}
       <div className="bg-slate-50 dark:bg-slate-850 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-[10px] font-medium flex items-center justify-between gap-2 overflow-x-auto select-none shrink-0">
@@ -823,7 +1220,17 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="font-mono text-slate-500">Return: <strong>{metadata.Code}</strong></span>
-          <span className="font-mono text-slate-500">v{submission.version}</span>
+          <span
+            className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-700 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-700/80 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-bold"
+            title={submission.templateSnapshot ? 'Historically frozen template snapshot sealed at draft initiation' : 'Active authoritative report definition template'}
+          >
+            <Layers className="w-3 h-3 text-ob-indigo-500" />
+            <span>Tmpl v{submission.templateVersion || 1}</span>
+            {submission.templateSnapshot && (
+              <span className="text-[9px] text-ob-indigo-600 dark:text-ob-indigo-400 font-medium">(Snapshot)</span>
+            )}
+          </span>
+          <span className="font-mono text-slate-500 text-[10px]">Data v{currentVersion}</span>
         </div>
       </div>
 
@@ -918,6 +1325,11 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>Zod Validated: All Constraints Passed (100%)</span>
               </span>
+            ) : !submissionAttempted && touchedFields.size === 0 ? (
+              <span className="text-ob-indigo-700 dark:text-ob-indigo-300 font-bold flex items-center gap-1.5 bg-ob-indigo-50 dark:bg-ob-indigo-950/60 border border-ob-indigo-200 dark:border-ob-indigo-800/80 px-2.5 py-0.5 rounded-md">
+                <Layers className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400 shrink-0" />
+                <span>Clean Template Initialized • {metadata.ReturnItemsList.filter((i) => i._required).length} Mandatory Field(s)</span>
+              </span>
             ) : (
               <span className="text-rose-700 dark:text-rose-300 font-bold flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 px-2 py-0.5 rounded-md">
                 <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
@@ -929,7 +1341,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
       </div>
 
       {/* 3.5 Real-Time Zod Validation Error Banner */}
-      {validation && !validation.isValid && (
+      {validation && !validation.isValid && (submissionAttempted || touchedFields.size > 0) && (
         <div className="bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-900 rounded-xl px-3.5 py-2.5 text-xs flex flex-col gap-2 shadow-2xs shrink-0 animate-in fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -950,7 +1362,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 className="px-3 py-1 bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
               >
                 <Wand2 className="w-3.5 h-3.5" />
-                <span>Open Remediation Assistant</span>
+                <span>Help</span>
               </button>
               <button
                 type="button"
@@ -1096,6 +1508,13 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                   const hasError = !!fieldError && fieldError.severity === 'ERROR';
                   const hasWarning = !!fieldError && fieldError.severity === 'WARNING';
 
+                  const isSupplied = templateInitializationService.isFieldSupplied(currentVal);
+                  const isTouched = touchedFields.has(item.Code) || submissionAttempted;
+                  const isMandatoryMissing = item._required && !isSupplied;
+                  // In DRAFT_ENTRY before touch/submission, suppress premature error noise on untouched missing mandatory fields
+                  const showActiveError = hasError && (isTouched || !isMandatoryMissing);
+                  const showActiveWarning = hasWarning && (isTouched || !isMandatoryMissing);
+
                   const isHighlighted = highlightedFieldCode === item.Code;
                   const remediationItem = remediationSummary?.items.find((i) => i.fieldCode === item.Code);
 
@@ -1105,9 +1524,9 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                       className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
                         isHighlighted
                           ? 'ring-2 ring-amber-500 bg-amber-100/70 dark:bg-amber-950/60 animate-pulse'
-                          : hasError
+                          : showActiveError
                           ? 'bg-rose-50/40 dark:bg-rose-950/20'
-                          : hasWarning
+                          : showActiveWarning
                           ? 'bg-amber-50/30 dark:bg-amber-950/15'
                           : item.isTotal
                           ? 'bg-slate-50/70 dark:bg-slate-800/40 font-semibold'
@@ -1116,7 +1535,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                     >
                       <td className="py-2 px-3 font-mono text-slate-600 dark:text-slate-400 select-all font-medium text-[11px] sm:text-xs align-top">
                         <div className="flex items-center gap-1">
-                          {hasError && <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />}
+                          {showActiveError && <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />}
                           <span>{item.Code}</span>
                         </div>
                       </td>
@@ -1125,7 +1544,18 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5">
                             <span className="leading-snug">{item._description}</span>
                             <div className="flex items-center gap-1 shrink-0">
-                              {item._required && <span className="text-rose-500 font-bold text-xs" title="Mandatory regulatory field">*</span>}
+                              {item._required && (
+                                <span
+                                  className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.2 rounded ${
+                                    isSupplied
+                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                  }`}
+                                  title={isSupplied ? 'Mandatory regulatory field supplied' : 'Mandatory regulatory field: not yet supplied'}
+                                >
+                                  {isSupplied ? 'Required ✓' : '* Required'}
+                                </span>
+                              )}
                               {isFormula && (
                                 <span
                                   className="inline-flex items-center gap-0.5 text-[10px] text-ob-indigo-700 dark:text-ob-indigo-300 bg-ob-indigo-50 dark:bg-ob-indigo-950 px-1 py-0.2 rounded border border-ob-indigo-200 dark:border-ob-indigo-800"
@@ -1139,7 +1569,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                           </div>
 
                           {/* Real-time field validation error message & inline auto-fix */}
-                          {fieldError && (
+                          {fieldError && (showActiveError || showActiveWarning) && (
                             <div
                               id={`error-${item.Code}`}
                               className={`flex flex-col gap-1.5 text-[11px] font-medium p-2 rounded-md border animate-in fade-in duration-150 ${
@@ -1187,10 +1617,16 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                             </div>
                           )}
 
-                          {!fieldError && item._required && currentVal !== '' && currentVal !== undefined && (
+                          {!fieldError && item._required && isSupplied && (
                             <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                               <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
                               <span>Mandatory field compliant</span>
+                            </div>
+                          )}
+
+                          {!isTouched && item._required && !isSupplied && (
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                              <span>Not yet supplied • Enter {item._dataType.toLowerCase()} figure before submission</span>
                             </div>
                           )}
                         </div>
@@ -1224,7 +1660,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                                 inputMode={item._dataType === 'NUMERIC' ? 'decimal' : undefined}
                                 value={currentVal}
                                 readOnly={isFormula}
-                                placeholder={isFormula ? 'Auto' : '0.00'}
+                                placeholder={templateInitializationService.getSchemaAwarePlaceholder(item, isFormula)}
                                 onFocus={() => {
                                   if (!isFormula) {
                                     setFocusedFieldCode(item.Code);
@@ -1246,12 +1682,12 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                                 className={`w-full min-h-[44px] sm:min-h-[32px] px-2.5 py-1.5 text-xs border rounded-lg transition-colors touch-manipulation ${
                                   isFormula
                                     ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 cursor-not-allowed text-right font-mono tabular-nums font-semibold'
-                                    : hasError
+                                    : showActiveError
                                     ? 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-400 dark:border-rose-600 text-slate-900 dark:text-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none text-right font-mono tabular-nums font-semibold'
-                                    : hasWarning
+                                    : showActiveWarning
                                     ? 'bg-amber-50/50 dark:bg-amber-950/30 border-amber-400 dark:border-amber-600 text-slate-900 dark:text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none text-right font-mono tabular-nums font-medium'
                                     : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:border-ob-indigo-500 focus:outline-none text-right font-mono tabular-nums font-medium'
-                                }`}
+                                  }`}
                               />
                             )}
                           </div>
@@ -1344,15 +1780,24 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
       {/* 6. Maker Submit to Checker Modal */}
       {submitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-5 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 transition-colors">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-5 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 transition-colors max-h-[90vh] overflow-y-auto">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                Submit Report to Checker
+                Submit Report to Checker Queue
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 You are submitting <span className="font-semibold text-slate-900 dark:text-white">{metadata.Title}</span> for formal 4-eyes Checker review and authorization.
               </p>
             </div>
+
+            {/* Phase 36: Server-side Checker selector */}
+            <CheckerSelector
+              reportKey={submission.reportKey || metadata.ReturnKey || metadata.Code}
+              currentUser={currentUser}
+              selectedCheckerIds={selectedCheckerIds}
+              onChangeSelectedCheckers={setSelectedCheckerIds}
+              submission={submission}
+            />
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
@@ -1380,7 +1825,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
                 onClick={() => {
                   vibrate([30, 45, 40]);
                   handleManualSave();
-                  onSubmitToChecker(submitComment);
+                  onSubmitToChecker(submitComment, submission?.version, selectedCheckerIds);
                   setSubmitModalOpen(false);
                 }}
                 className="px-4 py-1.5 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
@@ -1419,6 +1864,256 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
         readOnly={isEffectiveReadOnly}
         isFixing={isFixing}
       />
+
+      {/* Phase 27: Concurrency Conflict Resolution Modal (Requirement 7) */}
+      {conflictModalOpen && serverConflictSub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border-2 border-rose-300 dark:border-rose-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-start gap-3 border-b border-rose-100 dark:border-rose-950 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-950 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Concurrent Modification Conflict Detected</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 font-bold">
+                    HTTP 409
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  Another user or process has updated return <strong className="font-mono">{metadata.Code}</strong> on the server while you were editing. Your draft expected <strong>v{currentVersion}</strong>, but the server state is now at <strong>v{serverConflictSub.version}</strong> (last modified by {serverConflictSub.makerName} at {new Date(serverConflictSub.updatedAt).toLocaleTimeString()}).
+                </p>
+              </div>
+            </div>
+
+            {/* Conflicting Fields Diff Table */}
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-2 text-xs">
+              <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Field Differences Comparison:
+              </div>
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 dark:bg-slate-800 text-[10px] font-bold font-mono text-slate-600 dark:text-slate-300 uppercase">
+                    <tr>
+                      <th className="px-3 py-2">Field</th>
+                      <th className="px-3 py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">Your Local Value</th>
+                      <th className="px-3 py-2 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300">Server Value (v{serverConflictSub.version})</th>
+                      <th className="px-3 py-2 text-center">Merge Choice</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {metadata.ReturnItemsList.filter((item) => {
+                      const localV = values[item.Code] ?? '';
+                      const serverV = serverConflictSub.values?.[item.Code] ?? '';
+                      return String(localV) !== String(serverV);
+                    }).length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-4 text-center text-slate-500 italic">
+                          No direct return item conflicts found (dynamic schedules or metadata updated).
+                        </td>
+                      </tr>
+                    ) : (
+                      metadata.ReturnItemsList.filter((item) => {
+                        const localV = values[item.Code] ?? '';
+                        const serverV = serverConflictSub.values?.[item.Code] ?? '';
+                        return String(localV) !== String(serverV);
+                      }).map((item) => {
+                        const localV = values[item.Code] ?? '';
+                        const serverV = serverConflictSub.values?.[item.Code] ?? '';
+                        const choice = mergeFieldDecisions[item.Code] || 'LOCAL';
+                        return (
+                          <tr key={item.Code} className="hover:bg-slate-50 dark:hover:bg-slate-850">
+                            <td className="px-3 py-2 font-mono">
+                              <span className="font-bold text-slate-900 dark:text-white">{item.Code}</span>
+                              <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{item._description}</div>
+                            </td>
+                            <td className="px-3 py-2 font-mono bg-amber-50/60 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200">
+                              {String(localV) || '—'}
+                            </td>
+                            <td className="px-3 py-2 font-mono bg-blue-50/60 dark:bg-blue-950/20 text-blue-900 dark:text-blue-200">
+                              {String(serverV) || '—'}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[10px]">
+                                <button
+                                  type="button"
+                                  onClick={() => setMergeFieldDecisions((prev) => ({ ...prev, [item.Code]: 'LOCAL' }))}
+                                  className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                                    choice === 'LOCAL' ? 'bg-amber-600 text-white shadow-2xs' : 'text-slate-600 dark:text-slate-400'
+                                  }`}
+                                >
+                                  Mine
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setMergeFieldDecisions((prev) => ({ ...prev, [item.Code]: 'SERVER' }))}
+                                  className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                                    choice === 'SERVER' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 dark:text-slate-400'
+                                  }`}
+                                >
+                                  Server
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Resolution Action Paths */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+              <span className="text-[11px] text-slate-500">Choose conflict resolution path:</span>
+              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={handleAcceptServerConflict}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                  title="Discard local unsaved changes and load the latest authoritative server version"
+                >
+                  Discard Mine & Load Server (v{serverConflictSub.version})
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMergeConflict}
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                  title="Apply field-level choices and save merged result"
+                >
+                  Merge & Save
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOverwriteConflict}
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                  title="Force overwrite server with all your local changes (bumping to v{serverConflictSub.version + 1})"
+                >
+                  Overwrite Server (Keep All Mine)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 27: Leave-Page Safety Modal (Requirement 5) */}
+      {leaveSafetyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border-2 border-amber-300 dark:border-amber-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Unsaved Regulatory Return Changes
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  Your pending changes for return <strong className="font-mono">{metadata.Code}</strong> could not be persisted to the server:
+                </p>
+                {leaveSafetyError && (
+                  <div className="mt-2 p-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-[11px] font-mono break-words">
+                    {leaveSafetyError}
+                  </div>
+                )}
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                  If you leave without saving, newly entered report data will be discarded.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setLeaveSafetyModalOpen(false)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              >
+                Stay on Page
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLeaveSafetyModalOpen(false);
+                  onBack();
+                }}
+                className="px-3.5 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 dark:hover:bg-rose-900 border border-rose-300 dark:border-rose-800 rounded-lg transition-colors cursor-pointer"
+              >
+                Discard & Leave
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await performSave('FLUSH');
+                    setLeaveSafetyModalOpen(false);
+                    onBack();
+                  } catch (err: any) {
+                    setLeaveSafetyError(err.message || 'Retry failed');
+                  }
+                }}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-ob-indigo-600 hover:bg-ob-indigo-700 rounded-lg transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Phase 33: Reset to Template Defaults Confirmation Modal */}
+      {resetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Reset Draft to Template Defaults
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Return: {metadata.Code} • v{currentVersion}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to reset all input fields in this draft to their clean template defaults?
+              All unsubmitted figures and rows will be cleared. The underlying NBE statutory report definition will remain permanently intact and unmodified.
+            </p>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+              <div className="font-semibold text-slate-800 dark:text-slate-200">Regulatory Integrity Note:</div>
+              <div>• Structural titles, subtitles, row/column labels are 100% preserved.</div>
+              <div>• Editable fields are reset to clean schema-aware initial states without inventing figures.</div>
+              <div>• Version will be incremented to v{currentVersion + 1} and recorded in the audit trail.</div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setResetModalOpen(false)}
+                disabled={isResetting}
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleResetToDefaults}
+                disabled={isResetting}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+              >
+                {isResetting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Confirm Reset to Defaults</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
