@@ -49,6 +49,8 @@ import {
   Upload,
   BarChart3,
   TrendingUp,
+  Flame,
+  CalendarDays,
 } from 'lucide-react';
 import { UserAccount, UserRole, UserStatus, userService } from '../services/userService.ts';
 import { ReportMetadata, ReportSubmission, SpecialAccessGrant, UserSession } from '../types/regulatory.ts';
@@ -69,6 +71,8 @@ import { bulkOperationsEngine, type BulkTargetType } from '../services/bulkOpera
 import { ConfigurationGovernanceView } from './ConfigurationGovernanceView.tsx';
 import { BiometricSecurityCenter } from './BiometricSecurityCenter.tsx';
 import { ReportingPerformanceAnalytics } from './ReportingPerformanceAnalytics.tsx';
+import { RegulatoryCalendarCard } from './RegulatoryCalendarCard.tsx';
+import { DataQualityHeatmap } from './DataQualityHeatmap.tsx';
 
 interface AdminDashboardProps {
   currentUser: UserSession;
@@ -76,7 +80,16 @@ interface AdminDashboardProps {
   onUserStatusChanged?: () => void;
 }
 
-type AdminSubTab = 'REPORTS_OVERSIGHT' | 'ANALYTICS' | 'SPECIAL_ACCESS' | 'PENDING' | 'ALL_USERS' | 'DEPARTMENTS' | 'GOVERNANCE';
+type AdminSubTab =
+  | 'REPORTS_OVERSIGHT'
+  | 'CALENDAR'
+  | 'DATA_QUALITY'
+  | 'ANALYTICS'
+  | 'SPECIAL_ACCESS'
+  | 'PENDING'
+  | 'ALL_USERS'
+  | 'DEPARTMENTS'
+  | 'GOVERNANCE';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
@@ -92,6 +105,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [studioReportKey, setStudioReportKey] = useState<string | undefined>(undefined);
   const [isNbeImportOpen, setIsNbeImportOpen] = useState(false);
   const [showAnalyticsWidget, setShowAnalyticsWidget] = useState<boolean>(true);
+  const [showCalendarWidget, setShowCalendarWidget] = useState<boolean>(false);
+  const [showHeatmapWidget, setShowHeatmapWidget] = useState<boolean>(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -1232,6 +1247,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveSubTab('CALENDAR')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
+              activeSubTab === 'CALENDAR'
+                ? 'bg-ob-indigo-600 text-white shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="Regulatory Calendar: Upcoming NBE statutory filing deadlines with chronological timeline visualization"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Regulatory Calendar</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('DATA_QUALITY')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
+              activeSubTab === 'DATA_QUALITY'
+                ? 'bg-rose-600 text-white shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="Data Quality Heatmap: Recharts visualization highlighting departments with recurring validation errors"
+          >
+            <Flame className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
+            <span>Data Quality Heatmap</span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('ANALYTICS')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
               activeSubTab === 'ANALYTICS'
@@ -1394,6 +1435,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 type="button"
+                onClick={() => setShowCalendarWidget(!showCalendarWidget)}
+                className={`text-xs border rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
+                  showCalendarWidget
+                    ? 'bg-ob-indigo-600 text-white border-ob-indigo-700 shadow-2xs'
+                    : 'bg-ob-indigo-50 dark:bg-ob-indigo-950/70 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900 border-ob-indigo-200 dark:border-ob-indigo-800 text-ob-indigo-700 dark:text-ob-indigo-300'
+                }`}
+                title={showCalendarWidget ? 'Hide Regulatory Calendar' : 'Show Regulatory Calendar Timeline'}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{showCalendarWidget ? 'Calendar (On)' : 'Calendar'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowHeatmapWidget(!showHeatmapWidget)}
+                className={`text-xs border rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
+                  showHeatmapWidget
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-2xs'
+                    : 'bg-rose-50 dark:bg-rose-950/70 hover:bg-rose-100 dark:hover:bg-rose-900 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+                }`}
+                title={showHeatmapWidget ? 'Hide Quality Heatmap' : 'Show Data Quality Heatmap'}
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>{showHeatmapWidget ? 'Quality Heatmap (On)' : 'Quality Heatmap'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowAnalyticsWidget(!showAnalyticsWidget)}
                 className={`text-xs border rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
                   showAnalyticsWidget
@@ -1403,7 +1472,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 title={showAnalyticsWidget ? 'Hide Regulatory Performance Widget' : 'Show Regulatory Performance Widget'}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
-                <span>{showAnalyticsWidget ? 'Regulatory Performance (On)' : 'Regulatory Performance'}</span>
+                <span>{showAnalyticsWidget ? 'Performance (On)' : 'Performance'}</span>
               </button>
 
               <button
@@ -1417,6 +1486,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Embedded Regulatory Calendar Widget */}
+          {showCalendarWidget && (
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 shrink-0">
+              <RegulatoryCalendarCard
+                currentUser={currentUser}
+                onInspectSubmission={(sub) => setInspectingSub(sub)}
+                onViewAllSubmissions={() => {
+                  setShowCalendarWidget(false);
+                  setReportsPage(1);
+                }}
+                onOpenReport={(rk) => {
+                  setStudioReportKey(rk);
+                  setIsStudioOpen(true);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Embedded Data Quality Heatmap Widget */}
+          {showHeatmapWidget && (
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 shrink-0">
+              <DataQualityHeatmap
+                currentUser={currentUser}
+                onInspectReport={(rk) => {
+                  setStudioReportKey(rk);
+                  setIsStudioOpen(true);
+                }}
+                onNavigateToSubmissions={() => {
+                  setShowHeatmapWidget(false);
+                  setReportsPage(1);
+                }}
+              />
+            </div>
+          )}
 
           {/* Embedded Regulatory Performance Widget */}
           {showAnalyticsWidget && (
@@ -1510,6 +1614,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               pageSizeOptions={[6, 9, 12, 24]}
             />
           </div>
+        </div>
+      )}
+
+      {/* Tab Content: REGULATORY CALENDAR DASHBOARD CARD & TIMELINE */}
+      {activeSubTab === 'CALENDAR' && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <RegulatoryCalendarCard
+            currentUser={currentUser}
+            onInspectSubmission={(sub) => setInspectingSub(sub)}
+            onViewAllSubmissions={() => setActiveSubTab('REPORTS_OVERSIGHT')}
+            onOpenReport={(rk) => {
+              setStudioReportKey(rk);
+              setIsStudioOpen(true);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Tab Content: DATA QUALITY HEATMAP & RECURRING VALIDATION ERRORS */}
+      {activeSubTab === 'DATA_QUALITY' && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <DataQualityHeatmap
+            currentUser={currentUser}
+            onInspectReport={(rk) => {
+              setStudioReportKey(rk);
+              setIsStudioOpen(true);
+            }}
+            onNavigateToSubmissions={() => setActiveSubTab('REPORTS_OVERSIGHT')}
+          />
         </div>
       )}
 

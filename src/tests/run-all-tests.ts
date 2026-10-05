@@ -387,6 +387,7 @@ import { runPhase36MakerSelectedCheckerAssignmentTests } from './phase36-maker-s
 import { runPhase37CrossPhaseIntegrationSecurityRegressionAndAcceptanceTests } from './phase37-cross-phase-integration-security-regression-and-acceptance.test.ts';
 import { runReportingPerformanceAnalyticsTests } from './reporting-performance-analytics.test.ts';
 import { runXlsxExportAndDynamicValidationTests } from './xlsx-export-and-dynamic-validation.test.ts';
+import { runDataQualityHeatmapAndRegulatoryCalendarTests } from './data-quality-heatmap-and-regulatory-calendar.test.ts';
 
 async function runFullApplicationTestSuite() {
   runRegulatoryCoreTests();
@@ -444,6 +445,7 @@ async function runFullApplicationTestSuite() {
   runConfigurationGovernanceVersioningTests();
   await runPhase9PlatformHardeningAcceptanceTests();
   await runReportingPerformanceAnalyticsTests();
+  await runDataQualityHeatmapAndRegulatoryCalendarTests();
 
   console.log('\n========================================================================');
   console.log('✅ ALL COMPREHENSIVE AUTOMATED TEST SUITES PASSED CLEANLY (100% SUCCESS)');

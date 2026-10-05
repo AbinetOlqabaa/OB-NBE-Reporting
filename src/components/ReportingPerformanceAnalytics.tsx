@@ -24,6 +24,7 @@ import {
   Filter,
   BarChart3,
   PieChart as PieChartIcon,
+  Flame,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -50,6 +51,7 @@ import {
 } from '../services/reportingAnalyticsService.ts';
 import { departmentService } from '../services/departmentService.ts';
 import type { UserSession } from '../types/regulatory.ts';
+import { DataQualityHeatmap } from './DataQualityHeatmap.tsx';
 
 interface ReportingPerformanceAnalyticsProps {
   currentUser: UserSession;
@@ -71,7 +73,7 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
     reportingAnalyticsService.getAnalytics({ timeRangeDays: 30 })
   );
   const [activeChartTab, setActiveChartTab] = useState<
-    'VOLUME' | 'ACCEPTANCE' | 'TURNAROUND' | 'AGING' | 'STATUS' | 'DEPARTMENTS'
+    'VOLUME' | 'ACCEPTANCE' | 'TURNAROUND' | 'AGING' | 'STATUS' | 'DEPARTMENTS' | 'DATA_QUALITY_HEATMAP'
   >('VOLUME');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [departments, setDepartments] = useState(() => departmentService.getAll());
@@ -242,6 +244,18 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
                 }`}
               >
                 Pipeline
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveChartTab('DATA_QUALITY_HEATMAP')}
+                className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+                  activeChartTab === 'DATA_QUALITY_HEATMAP'
+                    ? 'bg-rose-600 text-white shadow-2xs font-bold'
+                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50'
+                }`}
+              >
+                <Flame className="w-3 h-3" />
+                <span>Data Quality Heatmap</span>
               </button>
             </div>
 
@@ -1073,12 +1087,33 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
               >
                 Volume Flow
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveChartTab('DATA_QUALITY_HEATMAP')}
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1 ${
+                  activeChartTab === 'DATA_QUALITY_HEATMAP'
+                    ? 'bg-rose-600 text-white shadow-2xs font-bold'
+                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50'
+                }`}
+              >
+                <Flame className="w-3 h-3" />
+                <span>Quality Heatmap</span>
+              </button>
             </div>
           </div>
 
           {/* Chart Display Area with Recharts */}
-          <div className="h-64 sm:h-72 w-full min-h-[256px]">
-            {/* Chart 1: Submission Acceptance Rate */}
+          {activeChartTab === 'DATA_QUALITY_HEATMAP' ? (
+            <div className="pt-2">
+              <DataQualityHeatmap
+                currentUser={currentUser}
+                onInspectReport={onOpenReport}
+                onNavigateToSubmissions={onViewAllSubmissions}
+              />
+            </div>
+          ) : (
+            <div className="h-64 sm:h-72 w-full min-h-[256px]">
+              {/* Chart 1: Submission Acceptance Rate */}
             {activeChartTab === 'ACCEPTANCE' && (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
@@ -1325,6 +1360,7 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
               </ResponsiveContainer>
             )}
           </div>
+          )}
 
           {/* Quick Subtext Footnote */}
           <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2">
