@@ -36,6 +36,7 @@ import { sessionService } from './src/services/sessionService.ts';
 import { nbeReportPackageService } from './src/services/nbeReportPackageNormalizer.ts';
 import { nbeEndpointRegistry } from './src/services/nbeEndpointRegistry.ts';
 import { notificationService } from './src/services/notificationService.ts';
+import { reportingAnalyticsService } from './src/services/reportingAnalyticsService.ts';
 import type { UserSession } from './src/types/regulatory.ts';
 
 dotenv.config();
@@ -57,14 +58,25 @@ function resolveServerPort(): number {
     if (!isNaN(parsed) && parsed > 0) return parsed;
   }
 
+  // If running inside the AI Studio development container where Nginx is on port 8080:
+  // (In that dev container, Nginx reverse-proxies from 8080 to 3000, so Node must bind to 3000)
+  if (process.env.NGINX_PORT || process.env.CONTROL_PLANE_PORT) {
+    const devPort = process.env.DEFAULT_APP_PORT ? parseInt(process.env.DEFAULT_APP_PORT, 10) : 3000;
+    return !isNaN(devPort) && devPort > 0 ? devPort : 3000;
+  }
+
+  // In production Cloud Run deployment (where there is no Nginx and Cloud Run probes $PORT directly):
+  if (process.env.PORT) {
+    const parsed = parseInt(process.env.PORT, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+
   if (process.env.DEFAULT_APP_PORT) {
     const parsed = parseInt(process.env.DEFAULT_APP_PORT, 10);
     if (!isNaN(parsed) && parsed > 0) return parsed;
   }
 
-  // AI Studio environment (both development and deployed preview revisions) uses Nginx on port 8080
-  // proxying to localhost:3000. The Node application must always bind to port 3000.
-  return 3000;
+  return 8080;
 }
 
 const PORT = resolveServerPort();
@@ -866,6 +878,42 @@ app.get('/api/regulatory/library', (req, res) => {
   });
 
   res.json(result);
+});
+
+// Reporting Performance Analytics Endpoint (Dual-Control & Submission Trends)
+app.get('/api/analytics/reporting-performance', (req, res) => {
+  const { timeRangeDays, department, frequency } = req.query as any;
+  try {
+    const analytics = reportingAnalyticsService.getAnalytics({
+      timeRangeDays: timeRangeDays ? parseInt(timeRangeDays, 10) : 30,
+      department: department ? String(department) : 'ALL',
+      frequency: frequency ? String(frequency) : 'ALL',
+    });
+    res.json(analytics);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Reporting Performance Analytics CSV Export
+app.get('/api/analytics/reporting-performance/export', (req, res) => {
+  const { timeRangeDays, department, frequency } = req.query as any;
+  try {
+    const analytics = reportingAnalyticsService.getAnalytics({
+      timeRangeDays: timeRangeDays ? parseInt(timeRangeDays, 10) : 30,
+      department: department ? String(department) : 'ALL',
+      frequency: frequency ? String(frequency) : 'ALL',
+    });
+    const csvContent = reportingAnalyticsService.generateCsvExport(analytics);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="oromia-bank-reporting-performance-analytics-${Date.now()}.csv"`
+    );
+    res.send(csvContent);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Delete Draft Submission Endpoint (Requirements 5, 6, 9, 10)
@@ -3256,11 +3304,12 @@ async function startServer() {
 
   server.on('error', (err: any) => {
     console.error('[Server Error]', err);
-    if (err.code === 'EADDRINUSE' && !isListening && PORT !== 3000) {
-      console.warn(`[Server Warning] Port ${PORT} already bound; falling back to port 3000...`);
-      server.listen(3000, '0.0.0.0', () => {
+    if (err.code === 'EADDRINUSE' && !isListening) {
+      const fallbackPort = PORT === 8080 ? 3000 : 8080;
+      console.warn(`[Server Warning] Port ${PORT} already bound; falling back to port ${fallbackPort}...`);
+      server.listen(fallbackPort, '0.0.0.0', () => {
         isListening = true;
-        console.log(`[Oromia Bank NBE Platform] Server listening on fallback port 3000`);
+        console.log(`[Oromia Bank NBE Platform] Server listening on fallback port ${fallbackPort}`);
       });
     }
   });
@@ -3271,6 +3320,21 @@ async function startServer() {
     isListening = true;
     console.log(`[Oromia Bank NBE Platform] Server listening on port ${PORT}`);
   });
+
+  // When listening on port 8080 in production Cloud Run, also bind port 3000 for internal subservices/compatibility
+  if (PORT === 8080 && !process.env.NGINX_PORT) {
+    try {
+      const auxServer = http.createServer(app);
+      auxServer.on('error', (err: any) => {
+        console.log(`[Server Aux Notice] Secondary listener on port 3000 skipped: ${err.message}`);
+      });
+      auxServer.listen(3000, '0.0.0.0', () => {
+        console.log('[Oromia Bank NBE Platform] Secondary listener active on port 3000');
+      });
+    } catch {
+      // Ignored
+    }
+  }
 
   // Graceful shutdown handling for Cloud Run container lifecycle
   const handleShutdown = (signal: string) => {

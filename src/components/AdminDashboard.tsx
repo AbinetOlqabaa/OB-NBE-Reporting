@@ -47,6 +47,8 @@ import {
   ChevronDown,
   Info,
   Upload,
+  BarChart3,
+  TrendingUp,
 } from 'lucide-react';
 import { UserAccount, UserRole, UserStatus, userService } from '../services/userService.ts';
 import { ReportMetadata, ReportSubmission, SpecialAccessGrant, UserSession } from '../types/regulatory.ts';
@@ -66,6 +68,7 @@ import { BulkOperationsModal } from './BulkOperationsModal.tsx';
 import { bulkOperationsEngine, type BulkTargetType } from '../services/bulkOperationsEngine.ts';
 import { ConfigurationGovernanceView } from './ConfigurationGovernanceView.tsx';
 import { BiometricSecurityCenter } from './BiometricSecurityCenter.tsx';
+import { ReportingPerformanceAnalytics } from './ReportingPerformanceAnalytics.tsx';
 
 interface AdminDashboardProps {
   currentUser: UserSession;
@@ -73,7 +76,7 @@ interface AdminDashboardProps {
   onUserStatusChanged?: () => void;
 }
 
-type AdminSubTab = 'REPORTS_OVERSIGHT' | 'SPECIAL_ACCESS' | 'PENDING' | 'ALL_USERS' | 'DEPARTMENTS' | 'GOVERNANCE';
+type AdminSubTab = 'REPORTS_OVERSIGHT' | 'ANALYTICS' | 'SPECIAL_ACCESS' | 'PENDING' | 'ALL_USERS' | 'DEPARTMENTS' | 'GOVERNANCE';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
@@ -88,6 +91,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [studioReportKey, setStudioReportKey] = useState<string | undefined>(undefined);
   const [isNbeImportOpen, setIsNbeImportOpen] = useState(false);
+  const [showAnalyticsWidget, setShowAnalyticsWidget] = useState<boolean>(true);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -1228,6 +1232,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveSubTab('ANALYTICS')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
+              activeSubTab === 'ANALYTICS'
+                ? 'bg-ob-indigo-600 text-white shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="30-day reporting performance analytics, submission trends, and dual-control turnaround charts"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Performance Analytics</span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('SPECIAL_ACCESS')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
               activeSubTab === 'SPECIAL_ACCESS'
@@ -1374,8 +1391,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <option value="APPROVED">Approved</option>
                 <option value="SENT">Delivered to NBE</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => setShowAnalyticsWidget(!showAnalyticsWidget)}
+                className={`text-xs border rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
+                  showAnalyticsWidget
+                    ? 'bg-ob-indigo-600 text-white border-ob-indigo-700 shadow-2xs'
+                    : 'bg-ob-indigo-50 dark:bg-ob-indigo-950/70 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900 border-ob-indigo-200 dark:border-ob-indigo-800 text-ob-indigo-700 dark:text-ob-indigo-300'
+                }`}
+                title={showAnalyticsWidget ? 'Hide Reporting Performance Analytics Widget' : 'Show Reporting Performance Analytics Widget'}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>{showAnalyticsWidget ? 'Analytics Widget (On)' : 'Analytics Widget'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('ANALYTICS')}
+                className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="Open Full Reporting Performance Analytics Suite & SLA Deep Dive"
+              >
+                <span>Full Suite</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
+
+          {/* Embedded Reporting Performance Analytics Widget */}
+          {showAnalyticsWidget && (
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 shrink-0">
+              <ReportingPerformanceAnalytics
+                currentUser={currentUser}
+                compact={true}
+                onViewAllSubmissions={() => setActiveSubTab('ANALYTICS')}
+              />
+            </div>
+          )}
 
           <div className="flex-1 min-h-0 overflow-y-auto">
             {paginatedReports.length === 0 ? (
@@ -1458,6 +1510,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               pageSizeOptions={[6, 9, 12, 24]}
             />
           </div>
+        </div>
+      )}
+
+      {/* Tab Content: REPORTING PERFORMANCE ANALYTICS WIDGET & CHARTS */}
+      {activeSubTab === 'ANALYTICS' && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <ReportingPerformanceAnalytics
+            currentUser={currentUser}
+            onViewAllSubmissions={() => setActiveSubTab('REPORTS_OVERSIGHT')}
+          />
         </div>
       )}
 
