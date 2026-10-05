@@ -1238,10 +1238,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ? 'bg-ob-indigo-600 text-white shadow-2xs'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="30-day reporting performance analytics, submission trends, and dual-control turnaround charts"
+            title="Regulatory Performance: Submission Acceptance Rate, Average Turnaround Time, and Pending Review Aging"
           >
             <BarChart3 className="w-3.5 h-3.5" />
-            <span>Performance Analytics</span>
+            <span>Regulatory Performance</span>
           </button>
 
           <button
@@ -1400,25 +1400,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     ? 'bg-ob-indigo-600 text-white border-ob-indigo-700 shadow-2xs'
                     : 'bg-ob-indigo-50 dark:bg-ob-indigo-950/70 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900 border-ob-indigo-200 dark:border-ob-indigo-800 text-ob-indigo-700 dark:text-ob-indigo-300'
                 }`}
-                title={showAnalyticsWidget ? 'Hide Reporting Performance Analytics Widget' : 'Show Reporting Performance Analytics Widget'}
+                title={showAnalyticsWidget ? 'Hide Regulatory Performance Widget' : 'Show Regulatory Performance Widget'}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
-                <span>{showAnalyticsWidget ? 'Analytics Widget (On)' : 'Analytics Widget'}</span>
+                <span>{showAnalyticsWidget ? 'Regulatory Performance (On)' : 'Regulatory Performance'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveSubTab('ANALYTICS')}
                 className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
-                title="Open Full Reporting Performance Analytics Suite & SLA Deep Dive"
+                title="Open Full Regulatory Performance Suite & SLA Deep Dive"
               >
-                <span>Full Suite</span>
+                <span>Regulatory Suite</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
-          {/* Embedded Reporting Performance Analytics Widget */}
+          {/* Embedded Regulatory Performance Widget */}
           {showAnalyticsWidget && (
             <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 shrink-0">
               <ReportingPerformanceAnalytics

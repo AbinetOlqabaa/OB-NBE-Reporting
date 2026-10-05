@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   TrendingUp,
+  TrendingDown,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -69,7 +70,9 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
   const [data, setData] = useState<ReportingAnalyticsData>(() =>
     reportingAnalyticsService.getAnalytics({ timeRangeDays: 30 })
   );
-  const [activeChartTab, setActiveChartTab] = useState<'VOLUME' | 'TURNAROUND' | 'STATUS' | 'DEPARTMENTS'>('VOLUME');
+  const [activeChartTab, setActiveChartTab] = useState<
+    'VOLUME' | 'ACCEPTANCE' | 'TURNAROUND' | 'AGING' | 'STATUS' | 'DEPARTMENTS'
+  >('VOLUME');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [departments, setDepartments] = useState(() => departmentService.getAll());
 
@@ -171,12 +174,12 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                  Reporting Performance Analytics
+                  Regulatory Performance
                 </h3>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400">· Last {timeRange} Days</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Statutory submission volume trends, 4-eyes approval turnaround & SLA compliance.
+                Key metrics: Submission Acceptance Rate, Average Turnaround Time & Pending Review Aging.
               </p>
             </div>
           </div>
@@ -187,14 +190,14 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
             <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-semibold">
               <button
                 type="button"
-                onClick={() => setActiveChartTab('VOLUME')}
+                onClick={() => setActiveChartTab('ACCEPTANCE')}
                 className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                  activeChartTab === 'VOLUME'
+                  activeChartTab === 'ACCEPTANCE'
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Volume Flow
+                Acceptance Rate
               </button>
               <button
                 type="button"
@@ -205,7 +208,29 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Approval Times
+                Turnaround Time
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveChartTab('AGING')}
+                className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                  activeChartTab === 'AGING'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Review Aging
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveChartTab('VOLUME')}
+                className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                  activeChartTab === 'VOLUME'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Volume Flow
               </button>
               <button
                 type="button"
@@ -278,44 +303,102 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
           </div>
         </div>
 
-        {/* Compact KPI Row */}
+        {/* Compact KPI Row: Submission Acceptance Rate, Average Turnaround Time, Pending Review Aging */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 my-3">
-          <div className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Total Volume</div>
-            <div className="text-base font-bold font-mono text-slate-900 dark:text-white mt-0.5">
-              {kpis.totalSubmissions30d}
+          <div className="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/60 rounded-lg p-2">
+            <div className="text-[10px] text-emerald-800 dark:text-emerald-300 font-semibold flex items-center justify-between">
+              <span>Acceptance Rate</span>
+              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="text-[9px] text-slate-400 mt-0.5">{kpis.totalDepartmentsReporting} Depts Active</div>
+            <div className="flex items-baseline justify-between gap-1 mt-0.5">
+              <div className="text-base font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                {kpis.submissionAcceptanceRate}%
+              </div>
+              <div
+                className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-bold font-mono ${
+                  kpis.acceptanceRateTrendPercentage >= 0
+                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/40'
+                    : 'text-rose-700 dark:text-rose-300 bg-rose-100/70 dark:bg-rose-900/40'
+                }`}
+                title={`Prior period: ${kpis.priorSubmissionAcceptanceRate}% (${kpis.acceptanceRateTrendPercentage >= 0 ? '+' : ''}${kpis.acceptanceRateTrendPercentage}% change)`}
+              >
+                {kpis.acceptanceRateTrendPercentage >= 0 ? (
+                  <TrendingUp className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <TrendingDown className="w-2.5 h-2.5 text-rose-600 dark:text-rose-400" />
+                )}
+                <span>
+                  {kpis.acceptanceRateTrendPercentage >= 0 ? '+' : ''}
+                  {kpis.acceptanceRateTrendPercentage}%
+                </span>
+              </div>
+            </div>
+            <div className="text-[9px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5 flex items-center justify-between">
+              <span>First-Pass: {kpis.firstPassRate}%</span>
+              <span className="text-slate-400 font-normal">prev: {kpis.priorSubmissionAcceptanceRate}%</span>
+            </div>
           </div>
 
           <div className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Avg Turnaround</div>
-            <div className="text-base font-bold font-mono text-slate-900 dark:text-white mt-0.5 flex items-baseline gap-0.5">
-              <span>{kpis.avgTurnaroundHours}</span>
-              <span className="text-[10px] font-normal text-slate-500">hrs</span>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center justify-between">
+              <span>Avg Turnaround Time</span>
+              <Clock className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
             </div>
-            <div className="text-[9px] text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5">Target: 24h SLA</div>
+            <div className="flex items-baseline justify-between gap-1 mt-0.5">
+              <div className="text-base font-bold font-mono text-slate-900 dark:text-white flex items-baseline gap-0.5">
+                <span>{kpis.avgTurnaroundHours}</span>
+                <span className="text-[10px] font-normal text-slate-500">hrs</span>
+              </div>
+              <div
+                className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-bold font-mono ${
+                  kpis.turnaroundTrendPercentage <= 0
+                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/40'
+                    : 'text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-900/40'
+                }`}
+                title={`Prior period: ${kpis.priorAvgTurnaroundHours}h (${kpis.turnaroundTrendPercentage <= 0 ? `${Math.abs(kpis.turnaroundTrendPercentage)}% faster` : `${kpis.turnaroundTrendPercentage}% slower`})`}
+              >
+                {kpis.turnaroundTrendPercentage <= 0 ? (
+                  <TrendingDown className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <TrendingUp className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                )}
+                <span>
+                  {kpis.turnaroundTrendPercentage > 0 ? '+' : ''}
+                  {kpis.turnaroundTrendPercentage}%
+                </span>
+              </div>
+            </div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
+              <span>Target: &le;24h SLA</span>
+              <span className="font-normal text-slate-400">prev: {kpis.priorAvgTurnaroundHours}h</span>
+            </div>
+          </div>
+
+          <div className="bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/60 rounded-lg p-2">
+            <div className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold flex items-center justify-between">
+              <span>Pending Review Aging</span>
+              <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="text-base font-bold font-mono text-amber-700 dark:text-amber-400 mt-0.5 flex items-baseline gap-0.5">
+              <span>{data.pendingReviewAging?.avgAgeHours ?? kpis.pendingReviewAgingHours}</span>
+              <span className="text-[10px] font-normal text-slate-500">hrs avg</span>
+            </div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {data.pendingReviewAging?.overdueCount ?? 0} Overdue SLA
+            </div>
           </div>
 
           <div className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 rounded-lg p-2">
             <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">SLA Compliance</div>
-            <div className="text-base font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-0.5">
+            <div className="text-base font-bold font-mono text-slate-900 dark:text-white mt-0.5">
               {kpis.slaComplianceRate}%
             </div>
-            <div className="text-[9px] text-slate-400 mt-0.5">&le; 24h Statutory Review</div>
-          </div>
-
-          <div className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 rounded-lg p-2">
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">First-Pass Rate</div>
-            <div className="text-base font-bold font-mono text-slate-900 dark:text-white mt-0.5">
-              {kpis.firstPassRate}%
-            </div>
-            <div className="text-[9px] text-slate-400 mt-0.5">Zero-Correction Ratio</div>
+            <div className="text-[9px] text-slate-400 mt-0.5">&le; 24h Statutory Target</div>
           </div>
 
           <div className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 rounded-lg p-2 col-span-2 sm:col-span-1">
             <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">In-Flight Queue</div>
-            <div className="text-base font-bold font-mono text-amber-700 dark:text-amber-400 mt-0.5">
+            <div className="text-base font-bold font-mono text-ob-indigo-700 dark:text-ob-indigo-400 mt-0.5">
               {kpis.activeInFlight}
             </div>
             <div className="text-[9px] text-slate-400 mt-0.5">{kpis.pendingCheckerCount} Pend · {kpis.needsCorrectionCount} Edit</div>
@@ -324,6 +407,112 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
 
         {/* Compact Chart Area */}
         <div className="h-60 sm:h-64 w-full">
+          {activeChartTab === 'ACCEPTANCE' && (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={data.dailyTrends}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="compactColorAcceptance" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.15} />
+                <XAxis
+                  dataKey="dayLabel"
+                  stroke="#94a3b8"
+                  fontSize={10}
+                  tickLine={false}
+                  interval={timeRange > 30 ? 6 : timeRange > 14 ? 3 : 1}
+                />
+                <YAxis
+                  stroke="#94a3b8"
+                  fontSize={10}
+                  tickLine={false}
+                  unit="%"
+                  domain={[0, 100]}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <ReferenceLine
+                  y={90}
+                  stroke="#059669"
+                  strokeDasharray="4 4"
+                  label={{
+                    value: '90% Target',
+                    position: 'top',
+                    fill: '#059669',
+                    fontSize: 9,
+                    fontWeight: 'bold',
+                  }}
+                />
+                <ReferenceLine
+                  y={kpis.priorSubmissionAcceptanceRate}
+                  stroke="#64748b"
+                  strokeDasharray="3 3"
+                  label={{
+                    value: `Prev: ${kpis.priorSubmissionAcceptanceRate}%`,
+                    position: 'insideBottomRight',
+                    fill: '#64748b',
+                    fontSize: 9,
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="acceptanceRate"
+                  name="Submission Acceptance Rate (%)"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#compactColorAcceptance)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+
+          {activeChartTab === 'AGING' && (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={data.pendingReviewAging?.buckets || []}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.15} />
+                <XAxis
+                  dataKey="bucket"
+                  stroke="#94a3b8"
+                  fontSize={10}
+                  tickLine={false}
+                />
+                <YAxis
+                  stroke="#94a3b8"
+                  fontSize={10}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  formatter={(val: any, name: any) => [`${val} Submissions`, 'Pending Count']}
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderColor: '#334155',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    color: '#fff',
+                  }}
+                />
+                <Bar
+                  dataKey="count"
+                  name="Pending Review Aging"
+                  radius={[4, 4, 0, 0]}
+                >
+                  {(data.pendingReviewAging?.buckets || []).map((entry, index) => (
+                    <Cell key={`compact-aging-cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+
           {activeChartTab === 'VOLUME' && (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
@@ -431,11 +620,22 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
                   stroke="#e11d48"
                   strokeDasharray="4 4"
                   label={{
-                    value: '24h Statutory SLA Target',
+                    value: '24h Target',
                     position: 'top',
                     fill: '#e11d48',
                     fontSize: 9,
                     fontWeight: 'bold',
+                  }}
+                />
+                <ReferenceLine
+                  y={kpis.priorAvgTurnaroundHours}
+                  stroke="#64748b"
+                  strokeDasharray="3 3"
+                  label={{
+                    value: `Prev: ${kpis.priorAvgTurnaroundHours}h`,
+                    position: 'insideBottomRight',
+                    fill: '#64748b',
+                    fontSize: 9,
                   }}
                 />
                 <Bar
@@ -535,12 +735,12 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  Reporting Performance Analytics
+                  Regulatory Performance & Compliance Analytics
                 </h2>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400">· 30-Day NBE Statutory Oversight</span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Institutional 4-eyes approval turnaround, submission volume trends, and SLA compliance metrics.
+                Key regulatory metrics: Submission Acceptance Rate, Average Turnaround Time, and Pending Review Aging.
               </p>
             </div>
           </div>
@@ -657,9 +857,125 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
         </div>
       </div>
 
-      {/* 2. Executive KPI Cards Row */}
+      {/* 2. Executive KPI Cards Row: Submission Acceptance Rate, Average Turnaround Time, Pending Review Aging */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        {/* Total Returns Processed */}
+        {/* 1. Submission Acceptance Rate */}
+        <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
+          <div className="flex items-center justify-between text-emerald-800 dark:text-emerald-300">
+            <span className="text-[11px] font-bold">Submission Acceptance Rate</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="mt-2">
+            <div className="flex items-baseline justify-between gap-1.5">
+              <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                {kpis.submissionAcceptanceRate}%
+              </div>
+              {/* Percentage-based Trend Indicator compared to previous reporting period */}
+              <div
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono ${
+                  kpis.acceptanceRateTrendPercentage >= 0
+                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
+                    : 'text-rose-700 dark:text-rose-300 bg-rose-100/90 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-800'
+                }`}
+                title={`Prior period: ${kpis.priorSubmissionAcceptanceRate}% (${kpis.acceptanceRateTrendPercentage >= 0 ? '+' : ''}${kpis.acceptanceRateTrendPercentage}% relative change)`}
+              >
+                {kpis.acceptanceRateTrendPercentage >= 0 ? (
+                  <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                )}
+                <span>
+                  {kpis.acceptanceRateTrendPercentage >= 0 ? '+' : ''}
+                  {kpis.acceptanceRateTrendPercentage}%
+                </span>
+              </div>
+            </div>
+            <div className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 mt-1 flex items-center justify-between">
+              <span>First-Pass: {kpis.firstPassRate}%</span>
+              <span className="text-slate-500 dark:text-slate-400 font-normal">
+                vs prev {timeRange}d ({kpis.priorSubmissionAcceptanceRate}%)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Average Review Turnaround Time */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold">Average Turnaround Time</span>
+            <Clock className="w-4 h-4 text-ob-indigo-600 dark:text-ob-indigo-400" />
+          </div>
+          <div className="mt-2">
+            <div className="flex items-baseline justify-between gap-1.5">
+              <div className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white flex items-baseline gap-1">
+                <span>{kpis.avgTurnaroundHours}</span>
+                <span className="text-xs font-normal text-slate-500">hrs</span>
+              </div>
+              {/* Percentage-based Trend Indicator compared to previous reporting period */}
+              <div
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold font-mono ${
+                  kpis.turnaroundTrendPercentage <= 0
+                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
+                    : 'text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-900/50 border border-amber-200 dark:border-amber-800'
+                }`}
+                title={`Prior period: ${kpis.priorAvgTurnaroundHours}h (${kpis.turnaroundTrendPercentage <= 0 ? `${Math.abs(kpis.turnaroundTrendPercentage)}% faster` : `${kpis.turnaroundTrendPercentage}% slower`})`}
+              >
+                {kpis.turnaroundTrendPercentage <= 0 ? (
+                  <TrendingDown className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                ) : (
+                  <TrendingUp className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                )}
+                <span>
+                  {kpis.turnaroundTrendPercentage > 0 ? '+' : ''}
+                  {kpis.turnaroundTrendPercentage}%
+                </span>
+              </div>
+            </div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+              <span>Target: &le;24h (Med: {kpis.medianTurnaroundHours}h)</span>
+              <span className="font-normal text-slate-400">
+                vs prev {timeRange}d ({kpis.priorAvgTurnaroundHours}h)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Pending Review Aging */}
+        <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/60 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
+          <div className="flex items-center justify-between text-amber-800 dark:text-amber-300">
+            <span className="text-[11px] font-bold">Pending Review Aging</span>
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="mt-2">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-amber-700 dark:text-amber-400 flex items-baseline gap-1">
+              <span>{data.pendingReviewAging?.avgAgeHours ?? kpis.pendingReviewAgingHours}</span>
+              <span className="text-xs font-normal text-slate-500">hrs avg</span>
+            </div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+              <span>{kpis.pendingCheckerCount} In Queue</span>
+              <span aria-hidden="true">·</span>
+              <span className="text-rose-600 dark:text-rose-400 font-semibold">{data.pendingReviewAging?.overdueCount ?? 0} Overdue SLA</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. SLA Compliance Rate */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold">SLA Compliance</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="mt-2">
+            <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400">
+              {kpis.slaComplianceRate}%
+            </div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <span>Reviewed in &le;24 Hours</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Total Returns Processed */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-semibold">Total Volume</span>
@@ -677,76 +993,7 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
           </div>
         </div>
 
-        {/* Average Review Turnaround Time */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-semibold">Avg Turnaround</span>
-            <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white flex items-baseline gap-1">
-              <span>{kpis.avgTurnaroundHours}</span>
-              <span className="text-xs font-normal text-slate-500">hrs</span>
-            </div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
-              <span>Target: 24h</span>
-              <span aria-hidden="true">·</span>
-              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Median: {kpis.medianTurnaroundHours}h</span>
-            </div>
-          </div>
-        </div>
-
-        {/* SLA Compliance Rate */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-semibold">SLA Compliance</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400">
-              {kpis.slaComplianceRate}%
-            </div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-              <span>Reviewed in &le;24 Hours</span>
-            </div>
-          </div>
-        </div>
-
-        {/* First-Pass Verification Rate */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-semibold">First-Pass Rate</span>
-            <CheckCircle2 className="w-4 h-4 text-ob-green-600 dark:text-ob-green-400" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
-              {kpis.firstPassRate}%
-            </div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-              <span>Zero-Correction Ratio</span>
-            </div>
-          </div>
-        </div>
-
-        {/* In-Flight Pipeline */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] font-semibold">In-Flight Queue</span>
-            <AlertCircle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-bold font-mono text-amber-700 dark:text-amber-400">
-              {kpis.activeInFlight}
-            </div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
-              <span>{kpis.pendingCheckerCount} Pending</span>
-              <span aria-hidden="true">·</span>
-              <span className="text-rose-600 dark:text-rose-400">{kpis.needsCorrectionCount} Needs Edit</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Direct NBE Transmission Rate */}
+        {/* 6. Direct NBE Transmission Rate */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-semibold">NBE Delivered</span>
@@ -781,7 +1028,40 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
             </div>
 
             {/* Chart Mode Switcher */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs">
+            <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveChartTab('ACCEPTANCE')}
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer text-xs font-semibold ${
+                  activeChartTab === 'ACCEPTANCE'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                Acceptance Rate
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveChartTab('TURNAROUND')}
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer text-xs font-semibold ${
+                  activeChartTab === 'TURNAROUND'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                Turnaround Time
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveChartTab('AGING')}
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer text-xs font-semibold ${
+                  activeChartTab === 'AGING'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                Review Aging
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveChartTab('VOLUME')}
@@ -793,23 +1073,178 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
               >
                 Volume Flow
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveChartTab('TURNAROUND')}
-                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer text-xs font-semibold ${
-                  activeChartTab === 'TURNAROUND'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                Approval Time Trend
-              </button>
             </div>
           </div>
 
-          {/* Chart Display Area */}
+          {/* Chart Display Area with Recharts */}
           <div className="h-64 sm:h-72 w-full min-h-[256px]">
-            {activeChartTab === 'VOLUME' ? (
+            {/* Chart 1: Submission Acceptance Rate */}
+            {activeChartTab === 'ACCEPTANCE' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={data.dailyTrends}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorAcceptanceRate" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.15} />
+                  <XAxis
+                    dataKey="dayLabel"
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    interval={timeRange > 30 ? 6 : timeRange > 14 ? 3 : 1}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    unit="%"
+                    domain={[0, 100]}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <ReferenceLine
+                    y={90}
+                    stroke="#059669"
+                    strokeDasharray="4 4"
+                    label={{
+                      value: '90% Target Benchmark',
+                      position: 'top',
+                      fill: '#059669',
+                      fontSize: 10,
+                      fontWeight: 'bold',
+                    }}
+                  />
+                  <ReferenceLine
+                    y={kpis.priorSubmissionAcceptanceRate}
+                    stroke="#64748b"
+                    strokeDasharray="3 3"
+                    label={{
+                      value: `Prior Period: ${kpis.priorSubmissionAcceptanceRate}% (${kpis.acceptanceRateTrendPercentage >= 0 ? '+' : ''}${kpis.acceptanceRateTrendPercentage}%)`,
+                      position: 'insideBottomRight',
+                      fill: '#64748b',
+                      fontSize: 10,
+                      fontWeight: 'bold',
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="acceptanceRate"
+                    name="Submission Acceptance Rate (%)"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorAcceptanceRate)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+
+            {/* Chart 2: Average Turnaround Time */}
+            {activeChartTab === 'TURNAROUND' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data.dailyTrends}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.15} />
+                  <XAxis
+                    dataKey="dayLabel"
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    interval={timeRange > 30 ? 6 : timeRange > 14 ? 3 : 1}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    unit="h"
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <ReferenceLine
+                    y={24}
+                    stroke="#e11d48"
+                    strokeDasharray="4 4"
+                    label={{
+                      value: '24h Statutory SLA Target',
+                      position: 'top',
+                      fill: '#e11d48',
+                      fontSize: 10,
+                      fontWeight: 'bold',
+                    }}
+                  />
+                  <ReferenceLine
+                    y={kpis.priorAvgTurnaroundHours}
+                    stroke="#64748b"
+                    strokeDasharray="3 3"
+                    label={{
+                      value: `Prior Period: ${kpis.priorAvgTurnaroundHours}h (${kpis.turnaroundTrendPercentage > 0 ? '+' : ''}${kpis.turnaroundTrendPercentage}%)`,
+                      position: 'insideBottomRight',
+                      fill: '#64748b',
+                      fontSize: 10,
+                      fontWeight: 'bold',
+                    }}
+                  />
+                  <Bar
+                    dataKey="avgTurnaroundHours"
+                    name="Average Turnaround Time (Hours)"
+                    fill="#3b82f6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+
+            {/* Chart 3: Pending Review Aging Distribution */}
+            {activeChartTab === 'AGING' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data.pendingReviewAging?.buckets || []}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.15} />
+                  <XAxis
+                    dataKey="bucket"
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    formatter={(val: any, name: any) => [`${val} Returns`, 'Pending In Queue']}
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      borderColor: '#334155',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      color: '#fff',
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    name="Pending Review Aging"
+                    radius={[4, 4, 0, 0]}
+                  >
+                    {(data.pendingReviewAging?.buckets || []).map((entry, index) => (
+                      <Cell key={`full-aging-cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+
+            {/* Chart 4: Volume Flow */}
+            {activeChartTab === 'VOLUME' && (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={data.dailyTrends}
@@ -887,47 +1322,6 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
                     fill="url(#colorTransmitted)"
                   />
                 </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.dailyTrends}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.15} />
-                  <XAxis
-                    dataKey="dayLabel"
-                    stroke="#94a3b8"
-                    fontSize={10}
-                    tickLine={false}
-                    interval={timeRange > 30 ? 6 : timeRange > 14 ? 3 : 1}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={10}
-                    tickLine={false}
-                    unit="h"
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <ReferenceLine
-                    y={24}
-                    stroke="#e11d48"
-                    strokeDasharray="4 4"
-                    label={{
-                      value: '24h Statutory SLA Target',
-                      position: 'top',
-                      fill: '#e11d48',
-                      fontSize: 10,
-                      fontWeight: 'bold',
-                    }}
-                  />
-                  <Bar
-                    dataKey="avgTurnaroundHours"
-                    name="Avg Approval Time (Hours)"
-                    fill="#3b82f6"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
               </ResponsiveContainer>
             )}
           </div>
@@ -1214,6 +1608,111 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
             </span>
             <span className="font-mono text-[10px] text-slate-400">NBE Institution #0000013</span>
           </div>
+        </div>
+      </div>
+
+      {/* 5. Pending Review Aging & Statutory Review Queue */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span>Pending Review Aging & Dual-Control Pipeline</span>
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Active statutory returns in 4-eyes review awaiting Checker authorization, classified by aging tier.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+              {data.pendingReviewAging?.items?.length || 0} Pending Reviews
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+              {data.pendingReviewAging?.overdueCount || 0} Breached SLA (&gt;24h)
+            </span>
+          </div>
+        </div>
+
+        {/* Aging Distribution Metrics Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+          {(data.pendingReviewAging?.buckets || []).map((b) => (
+            <div
+              key={b.bucket}
+              className={`p-2.5 rounded-lg border text-center ${
+                b.isBreached
+                  ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-800/60'
+                  : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200/70 dark:border-slate-800'
+              }`}
+            >
+              <div className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color }} />
+                <span>{b.bucket}</span>
+              </div>
+              <div className={`text-base font-bold font-mono mt-1 ${b.isBreached ? 'text-rose-700 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
+                {b.count}
+              </div>
+              <div className="text-[9px] text-slate-400 mt-0.5">{b.percentage}% of Queue</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pending Review Table */}
+        <div className="overflow-x-auto">
+          {(!data.pendingReviewAging?.items || data.pendingReviewAging.items.length === 0) ? (
+            <div className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-1.5" />
+              <div className="font-semibold text-slate-700 dark:text-slate-300">No Pending Reviews in Queue</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">All regulatory submissions have been verified and processed.</div>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 text-[11px]">
+                  <th className="py-2 pr-3 font-semibold">Report Return</th>
+                  <th className="py-2 px-3 font-semibold">Department</th>
+                  <th className="py-2 px-3 font-semibold">Maker</th>
+                  <th className="py-2 px-3 font-semibold text-center">Submitted</th>
+                  <th className="py-2 px-3 font-semibold text-center">Aging</th>
+                  <th className="py-2 pl-3 font-semibold text-right">SLA Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                {data.pendingReviewAging.items.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-2.5 pr-3">
+                      <div className="font-bold text-slate-900 dark:text-white">{item.reportTitle}</div>
+                      <div className="font-mono text-[10px] text-ob-indigo-600 dark:text-ob-indigo-400">{item.reportKey}</div>
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
+                      {item.department}
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
+                      {item.makerName}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-center text-slate-500 dark:text-slate-400">
+                      {new Date(item.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-center font-bold">
+                      <span className={item.slaStatus === 'BREACHED' ? 'text-rose-600 dark:text-rose-400' : item.slaStatus === 'WARNING' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                        {item.ageHours} hrs
+                      </span>
+                    </td>
+                    <td className="py-2.5 pl-3 text-right">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        item.slaStatus === 'BREACHED'
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                          : item.slaStatus === 'WARNING'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      }`}>
+                        {item.slaStatus === 'BREACHED' ? 'SLA Breached' : item.slaStatus === 'WARNING' ? 'Approaching SLA' : 'Within Target'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

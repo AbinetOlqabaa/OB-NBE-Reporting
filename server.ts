@@ -3299,50 +3299,74 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  const server = http.createServer(app);
-  let isListening = false;
+  const activeServers: http.Server[] = [];
 
-  server.on('error', (err: any) => {
-    console.error('[Server Error]', err);
-    if (err.code === 'EADDRINUSE' && !isListening) {
-      const fallbackPort = PORT === 8080 ? 3000 : 8080;
-      console.warn(`[Server Warning] Port ${PORT} already bound; falling back to port ${fallbackPort}...`);
-      server.listen(fallbackPort, '0.0.0.0', () => {
-        isListening = true;
-        console.log(`[Oromia Bank NBE Platform] Server listening on fallback port ${fallbackPort}`);
+  const bindPort = (port: number): Promise<http.Server | null> => {
+    return new Promise((resolve) => {
+      const srv = http.createServer(app);
+      srv.on('error', (err: any) => {
+        console.warn(`[Server Port Notice] Port ${port} bind skipped (${err.code || err.message}).`);
+        resolve(null);
       });
-    }
-  });
-
-  realtimeSsotEngine.attachServer(server, '/ws/ssot');
-
-  server.listen(PORT, '0.0.0.0', () => {
-    isListening = true;
-    console.log(`[Oromia Bank NBE Platform] Server listening on port ${PORT}`);
-  });
-
-  // When listening on port 8080 in production Cloud Run, also bind port 3000 for internal subservices/compatibility
-  if (PORT === 8080 && !process.env.NGINX_PORT) {
-    try {
-      const auxServer = http.createServer(app);
-      auxServer.on('error', (err: any) => {
-        console.log(`[Server Aux Notice] Secondary listener on port 3000 skipped: ${err.message}`);
+      srv.listen(port, '0.0.0.0', () => {
+        console.log(`[Oromia Bank NBE Platform] Server listening on port ${port}`);
+        realtimeSsotEngine.attachServer(srv, '/ws/ssot');
+        resolve(srv);
       });
-      auxServer.listen(3000, '0.0.0.0', () => {
-        console.log('[Oromia Bank NBE Platform] Secondary listener active on port 3000');
-      });
-    } catch {
-      // Ignored
+    });
+  };
+
+  // Determine candidate ports to bind
+  // 1. If explicit APP_PORT is given, prioritize it
+  // 2. In Cloud Run or standard container, process.env.PORT is usually 8080
+  // 3. Port 3000 is the required app port for AI Studio Nginx proxy and iframe preview
+  const candidatePorts: number[] = [];
+  if (process.env.APP_PORT) {
+    const p = parseInt(process.env.APP_PORT, 10);
+    if (!isNaN(p) && p > 0 && !candidatePorts.includes(p)) candidatePorts.push(p);
+  }
+  if (process.env.PORT) {
+    const p = parseInt(process.env.PORT, 10);
+    if (!isNaN(p) && p > 0 && !candidatePorts.includes(p)) candidatePorts.push(p);
+  }
+  if (!candidatePorts.includes(3000)) {
+    candidatePorts.push(3000);
+  }
+  if (!candidatePorts.includes(8080)) {
+    candidatePorts.push(8080);
+  }
+
+  // Attempt binding all candidate ports concurrently
+  for (const p of candidatePorts) {
+    const srv = await bindPort(p);
+    if (srv) {
+      activeServers.push(srv);
     }
   }
 
+  if (activeServers.length === 0) {
+    throw new Error(`Failed to bind server on any candidate ports: [${candidatePorts.join(', ')}]`);
+  }
+
   // Graceful shutdown handling for Cloud Run container lifecycle
+  let isShuttingDown = false;
   const handleShutdown = (signal: string) => {
-    console.log(`[Server] Received ${signal}, closing HTTP server...`);
-    server.close(() => {
-      console.log('[Server] HTTP server closed cleanly.');
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log(`[Server] Received ${signal}, closing active HTTP servers (${activeServers.length})...`);
+    let remaining = activeServers.length;
+    if (remaining === 0) {
       process.exit(0);
-    });
+    }
+    for (const srv of activeServers) {
+      srv.close(() => {
+        remaining--;
+        if (remaining <= 0) {
+          console.log('[Server] All HTTP servers closed cleanly.');
+          process.exit(0);
+        }
+      });
+    }
     setTimeout(() => {
       process.exit(0);
     }, 5000).unref();

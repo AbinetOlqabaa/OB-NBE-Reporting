@@ -33,6 +33,17 @@ export async function runReportingPerformanceAnalyticsTests() {
   assert(kpis.totalDepartmentsReporting >= 1, 'Multiple bank departments are represented in the reporting ledger.');
   console.log(`  ✓ Reporting bank departments count: ${kpis.totalDepartmentsReporting}`);
 
+  // Acceptance Rate Trend Indicators compared to previous reporting period
+  assert(typeof kpis.submissionAcceptanceRate === 'number' && kpis.submissionAcceptanceRate >= 0, 'Submission acceptance rate is valid.');
+  assert(typeof kpis.priorSubmissionAcceptanceRate === 'number' && kpis.priorSubmissionAcceptanceRate >= 0, 'Prior submission acceptance rate is valid.');
+  assert(typeof kpis.acceptanceRateTrendPercentage === 'number', 'Acceptance rate trend percentage is a valid number.');
+  console.log(`  ✓ Submission Acceptance Rate: ${kpis.submissionAcceptanceRate}% (Trend vs Prior Period: ${kpis.acceptanceRateTrendPercentage >= 0 ? '+' : ''}${kpis.acceptanceRateTrendPercentage}%, Prior: ${kpis.priorSubmissionAcceptanceRate}%)`);
+
+  // Average Turnaround Time Trend Indicators compared to previous reporting period
+  assert(typeof kpis.priorAvgTurnaroundHours === 'number' && kpis.priorAvgTurnaroundHours >= 0, 'Prior avg turnaround hours is valid.');
+  assert(typeof kpis.turnaroundTrendPercentage === 'number', 'Turnaround time trend percentage is a valid number.');
+  console.log(`  ✓ Average Turnaround Time: ${kpis.avgTurnaroundHours}h (Trend vs Prior Period: ${kpis.turnaroundTrendPercentage > 0 ? '+' : ''}${kpis.turnaroundTrendPercentage}%, Prior: ${kpis.priorAvgTurnaroundHours}h)`);
+
   console.log('\n--- 2. Chronological 30-Day Daily Volume Trend Verification ---');
   const dailyTrends = analytics30d.dailyTrends;
   assert.strictEqual(dailyTrends.length, 30, 'Daily trends array must contain exactly 30 chronological day buckets for a 30-day window.');
