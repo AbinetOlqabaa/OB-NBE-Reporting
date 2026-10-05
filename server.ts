@@ -43,7 +43,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '3000', 10) || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -3327,9 +3327,7 @@ const healthHandler = (_req: express.Request, res: express.Response) => {
     timestamp: new Date().toISOString(),
   });
 };
-app.get('/api/health', healthHandler);
-app.get('/health', healthHandler);
-app.get('/healthz', healthHandler);
+app.get(['/api/health', '/health', '/healthz', '/_ah/health', '/healthcheck'], healthHandler);
 
 // -------------------------------------------------------------
 // DEV / PROD SERVER BOOTSTRAP
@@ -3399,6 +3397,20 @@ async function startServer() {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[Oromia Bank NBE Platform] Server listening on port ${PORT}`);
   });
+
+  const gracefulShutdown = (signal: string) => {
+    console.log(`[Oromia Bank NBE Platform] Received ${signal}, closing server gracefully...`);
+    server.close(() => {
+      console.log('[Oromia Bank NBE Platform] HTTP & WebSocket servers closed.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('[Server Fatal Error on Startup]', err);
+  process.exit(1);
+});
