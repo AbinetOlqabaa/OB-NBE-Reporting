@@ -233,7 +233,7 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-8">
       {/* 1. Top Concept Banner (Compact, Fixed Height) */}
       <div className="bg-slate-900 text-white rounded-xl p-3 shadow-md border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
@@ -353,9 +353,9 @@ export const Phase2SSOTView: React.FC<Phase2SSOTViewProps> = ({
         </div>
       </div>
 
-      {/* 3. Main Data Tabs Area (Strict flex-1 min-h-0 overflow-hidden) */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+      {/* 3. Main Data Tabs Area */}
+      <div className="flex-1 min-h-[480px] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y p-4 space-y-4">
           {/* Notification if return auto-generated */}
           {generatedSuccessMsg && (
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-xl text-emerald-900 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 shadow-2xs animate-in fade-in">

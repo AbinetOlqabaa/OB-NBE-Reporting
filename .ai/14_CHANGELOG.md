@@ -4,6 +4,32 @@ All notable changes and engineering enhancements for the Oromia Bank NBE Regulat
 
 ---
 
+## [54.0.0-phase54-dashboard-page-expansion-and-scrolling-visibility-acceptance] - 2026-10-05
+
+### Added & Enhanced
+- **Phase 54: Dashboard Page Expansion, Vertical/Horizontal Scrolling & Bottom Visibility Acceptance**:
+  - **Maker Dashboard ("Authorized Department Returns" & "Department Submissions")**:
+    - Eliminated rigid `h-full overflow-hidden` height locks that caused page contents and bottom pagination controls to be cut off and covered by the copyright footer.
+    - Upgraded root container to `min-h-full flex flex-col space-y-3 font-sans pb-8`.
+    - Expanded return catalogue and submission ledger cards to `flex-1 min-h-[480px]` with dual vertical (`overflow-y-auto touch-scroll-y`) and horizontal (`overflow-x-auto touch-scroll-x`) scrollers.
+    - Preserved regulatory minimum table widths (`min-w-[650px]` and `min-w-[700px]`) and sticky headers (`sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-xs`).
+    - Styled pagination containers (`p-2.5 sm:p-3 border-t bg-slate-50/90 dark:bg-slate-800/90 shrink-0`) to maintain clear margins and separation from the footer.
+  - **Universal Dashboard Layout Hardening Across All Workspaces**:
+    - Upgraded `CheckerInbox.tsx` root container to `min-h-full pb-8` and submissions card to `min-h-[480px]` with dual scrolling.
+    - Upgraded `AuditorDashboard.tsx` root container from `min-h-screen` to `min-h-full flex flex-col space-y-3 font-sans pb-8`.
+    - Upgraded `AuditTrailView.tsx` to `min-h-full pb-8` and audit log card to `min-h-[480px]` with dual scrolling.
+    - Upgraded `Phase2SSOTView.tsx` to `min-h-full pb-8` and lakehouse card to `min-h-[480px]` with dual scrolling.
+    - Upgraded `NbeSimulatorView.tsx` to `min-h-full pb-8` and log/repository cards to `min-h-[480px]` with dual scrolling.
+    - Upgraded `DocumentationView.tsx` to `min-h-full pb-8` and content cards to `min-h-[480px]` with dual scrolling.
+    - Upgraded `DynamicReportForm.tsx` to `min-h-full pb-8` and fixed item/schedule cards to `min-h-[480px]` with dual scrolling.
+    - Upgraded `MakerLibraryView.tsx` to `min-h-full pb-8`.
+    - Enhanced `src/App.tsx` main viewport wrapper with `pb-6 sm:pb-8` bottom padding and increased footer top separation.
+  - **Automated Verification & Responsive Viewport Testing**:
+    - Created dedicated test suite `src/tests/dashboard-page-expansion-and-scrolling-visibility-acceptance.test.ts` integrated into `run-all-tests.ts`.
+    - Verified all 9 responsive viewports (320px, 390px, 430px, 844x390 landscape, 768px, 1024px, 1366px, 1440px, 1920px) with minimum touch targets (>=44px mobile, >=32px desktop) and zero clipping.
+
+---
+
 ## [53.0.0-phase53-auditor-feature-matrix-regression-and-acceptance] - 2026-10-05
 
 ### Added & Enhanced

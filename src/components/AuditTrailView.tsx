@@ -372,7 +372,7 @@ export const AuditTrailView: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-8">
       {/* 1. Header Banner (Compact, Fixed Height) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
@@ -566,9 +566,9 @@ export const AuditTrailView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Audit Logs Table (Strict flex-1 min-h-0 overflow-hidden) */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
-        <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* 3. Audit Logs Table */}
+      <div className="flex-1 min-h-[480px] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y">
           {paginatedLogs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <History className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
@@ -650,7 +650,7 @@ export const AuditTrailView: React.FC = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+        <div className="shrink-0 p-2.5 sm:p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/90">
           <Pagination
             currentPage={page}
             totalItems={filteredLogs.length}

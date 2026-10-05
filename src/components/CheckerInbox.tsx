@@ -283,7 +283,7 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-8">
       {/* 1. Department 4-Eyes Governance Banner */}
       <div className="bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 text-white rounded-xl p-3 shadow-sm border border-emerald-800/60 shrink-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -467,8 +467,8 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
       </div>
 
       {/* 4. Submissions Table */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors">
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x">
+      <div className="flex-1 min-h-[480px] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y">
           {paginatedSubmissions.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <Shield className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
@@ -671,7 +671,7 @@ export const CheckerInbox: React.FC<CheckerInboxProps> = ({
           )}
         </div>
 
-        <div className="p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
+        <div className="p-2.5 sm:p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/90 shrink-0">
           <Pagination
             currentPage={page}
             totalItems={filteredSubmissions.length}

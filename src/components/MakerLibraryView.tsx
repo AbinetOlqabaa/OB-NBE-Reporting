@@ -597,7 +597,7 @@ export const MakerLibraryView: React.FC<MakerLibraryViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 space-y-4">
+    <div className="min-h-full flex flex-col space-y-4 font-sans pb-8">
       {/* 1. Header Banner */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

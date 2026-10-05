@@ -916,7 +916,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
   ).length;
 
   return (
-    <div className="h-full flex flex-col overflow-hidden space-y-2 font-sans">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-8">
       {/* 1. Top Header & Action Controls (Strictly Fixed Height) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 rounded-xl shadow-2xs shrink-0 transition-colors">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -1429,9 +1429,9 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
         </div>
       )}
 
-      {/* 5. Main Form Items / Schedules (Strict flex-1 min-h-0 overflow-hidden) */}
+      {/* 5. Main Form Items / Schedules */}
       {activeFormTab === 'ITEMS' || metadata.DynamicItemsList.length === 0 ? (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors">
+        <div className="flex-1 min-h-[480px] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors overflow-hidden">
           {/* Search and item filter bar inside fixed return items */}
           <div className="px-3 py-2 bg-slate-50/70 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -1486,7 +1486,7 @@ export const DynamicReportForm: React.FC<DynamicReportFormProps> = ({
           </div>
 
           {/* Table Container */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y">
             <table className="w-full text-xs text-left border-collapse">
               <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
                 <tr>

@@ -942,7 +942,7 @@ export default function App() {
         <main
           ref={mainViewportRef as any}
           {...swipeTouchHandlers}
-          className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 pb-3 sm:pb-4 touch-scroll-y relative"
+          className="flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden flex flex-col p-2.5 sm:p-4 pb-6 sm:pb-8 touch-scroll-y relative"
         >
           {/* Subtle Mobile Drag/Swipe Navigation Direction Indicator */}
           {isSwiping && Math.abs(swipeOffset) > 25 && (

@@ -85,11 +85,8 @@ Pursuant to NBE Directive BSD/03/2020 and Oromia Bank software assurance protoco
 - **Static Type Check**: 0 errors (`tsc --noEmit`).
 - **Automated Test Runner**: All test suites passed with 100% green status (including `phase47`, `phase48-49-50`, `phase51`, `phase52-53`).
 - **Defects Fixed**:
-  - Eliminated clipping `overflow-hidden` height locks on `AdminDashboard` and `SPECIAL_ACCESS` subtab containers, resolving bottom cutoff on "Institutional Regulatory Reporting Ledger".
-  - Added bottom breathing room (`pb-8` on `DataQualityHeatmap`, `pb-6` on `RegulatoryCalendarCard`), preventing clipped maps and cut-off footers.
-  - Implemented standalone `MaximizeButton` and `MaximizedViewModal` full-screen inspectors in `DataQualityHeatmap` and `RegulatoryCalendarCard`.
-  - Added visual display map toggles (Calendar, Heatmap, Analytics) directly inside the maximized Reports Oversight view.
-  - Added `success`, `totalProcessed`, and `nbeReferenceNumber` properties to `BatchSubmissionResult` and `BatchSubmissionItemResult`.
-  - Added `ruleCode`, `explanation`, and `evidenceRef` properties to `RegulatoryAnomalyItem` in `auditorService.getAnomalyDetectionFeed`.
-  - Added `getInspectionData` method alias and `tamperHash` / `financialVarianceETB` support in `auditorService.createFinding`.
-  - Enforced `OB-SEAL-` prefix and multi-format single/bulk export filtering in `auditorService.exportAuditData`.
+  - Resolved page content cutoffs on Maker dashboard ("Authorized Department Returns" and "Department Submissions" tabs) caused by rigid `h-full overflow-hidden` trapping viewports and copyright footer overlap.
+  - Upgraded root dashboard wrappers across all dashboards (`MakerWorkspace`, `CheckerInbox`, `AuditorDashboard`, `AuditTrailView`, `Phase2SSOTView`, `NbeSimulatorView`, `DocumentationView`, `DynamicReportForm`, `MakerLibraryView`) to `min-h-full flex flex-col space-y-3 font-sans pb-8`.
+  - Added dual vertical (`overflow-y-auto touch-scroll-y`) and horizontal (`overflow-x-auto touch-scroll-x`) scrollers to all return catalogues, submission ledgers, and tabular schedules with `min-h-[480px]` card expansion.
+  - Enhanced App shell main viewport bottom padding (`pb-6 sm:pb-8`) and footer separation (`mt-auto pt-8 pb-3`), guaranteeing zero clipping across all 9 standard viewports.
+  - Added full automated acceptance test suite `dashboard-page-expansion-and-scrolling-visibility-acceptance.test.ts`.

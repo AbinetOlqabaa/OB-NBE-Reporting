@@ -53,7 +53,7 @@ export const DocumentationView: React.FC<DocumentationViewProps> = ({ templates 
   );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-8">
       {/* 1. Header (Compact, Fixed Height) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
@@ -97,10 +97,10 @@ export const DocumentationView: React.FC<DocumentationViewProps> = ({ templates 
         </div>
       </div>
 
-      {/* 2. Scrollable Content Area (Strict flex-1 min-h-0 overflow-hidden) */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
+      {/* 2. Scrollable Content Area */}
+      <div className="flex-1 min-h-[480px] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
         {docTab === 'OVERVIEW' && (
-          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y p-5 space-y-4 text-xs">
             <div className="bg-ob-indigo-50/70 dark:bg-ob-indigo-950/40 border border-ob-indigo-200 dark:border-ob-indigo-800/60 rounded-xl p-4">
               <h3 className="text-sm font-bold text-ob-indigo-950 dark:text-ob-indigo-200 mb-1">
                 Executive Purpose & Compliance Scope
@@ -201,7 +201,7 @@ export const DocumentationView: React.FC<DocumentationViewProps> = ({ templates 
             </div>
 
             {/* Catalog Table */}
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
@@ -233,7 +233,7 @@ export const DocumentationView: React.FC<DocumentationViewProps> = ({ templates 
             </div>
 
             {/* Pagination Footer */}
-            <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+            <div className="shrink-0 p-2.5 sm:p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/90">
               <Pagination
                 currentPage={catalogPage}
                 totalItems={filteredCatalog.length}
@@ -248,7 +248,7 @@ export const DocumentationView: React.FC<DocumentationViewProps> = ({ templates 
         )}
 
         {docTab === 'WORKFLOW' && (
-          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y p-5 space-y-4 text-xs">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
               4-Eyes Maker-Checker Architecture Specification
             </h3>

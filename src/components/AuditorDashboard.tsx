@@ -403,7 +403,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-200">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-8 text-slate-900 dark:text-white transition-colors duration-200">
       {/* Top Banner: Supervisory Status & Clearance */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

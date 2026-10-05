@@ -437,7 +437,7 @@ export const NbeSimulatorView: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden space-y-2 font-sans">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-8">
       {/* 1. Header Banner with Telemetry & Fast Actions (Strictly Fixed Height) */}
       <div className="bg-slate-900 text-white rounded-xl p-3 shadow-md border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
@@ -779,10 +779,10 @@ export const NbeSimulatorView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Tab 1: Detailed API Interaction Log Table (Strict flex-1 min-h-0 overflow-hidden) */}
+      {/* 4. Tab 1: Detailed API Interaction Log Table */}
       {activeTab === 'LOGS' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
-          <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-[480px] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y">
             {paginatedLogs.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
                 <Terminal className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
@@ -911,8 +911,8 @@ export const NbeSimulatorView: React.FC = () => {
 
       {/* 5. Tab 2: Ingested Returns Repository Table */}
       {activeTab === 'RECEIVED' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
-          <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-[480px] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto touch-scroll-x touch-scroll-y">
             {paginatedReceived.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
                 <Server className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />

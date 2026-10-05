@@ -106,5 +106,23 @@
       "deviceLabel": "HTTP Live Test Authenticator",
       "enrolledAt": "2026-10-05T15:29:58.911Z"
     }
+  ],
+  [
+    "usr_auditor_1791218361745_h2d0b_FINGERPRINT_http_cred_1791218361752",
+    {
+      "id": "bio_fp_ldj1ivo6",
+      "userId": "usr_auditor_1791218361745_h2d0b",
+      "email": "http_reg_1791218361743@oromiabank.com",
+      "institutionCode": "0000013",
+      "type": "FINGERPRINT",
+      "status": "ENROLLED",
+      "credentialId": "http_cred_1791218361752",
+      "counter": 0,
+      "transports": [
+        "internal"
+      ],
+      "deviceLabel": "HTTP Live Test Authenticator",
+      "enrolledAt": "2026-10-05T16:39:21.754Z"
+    }
   ]
 ]

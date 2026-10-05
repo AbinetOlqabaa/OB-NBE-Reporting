@@ -50,7 +50,7 @@
     "approvedAt": "2026-01-16T09:15:00Z",
     "approvedBy": "Dawit Bekele (ADMIN)",
     "biometricCredentials": [],
-    "lastLoginAt": "2026-10-05T15:29:57.239Z"
+    "lastLoginAt": "2026-10-05T16:39:20.137Z"
   },
   {
     "id": "usr_checker_credit_2",
@@ -371,6 +371,30 @@
         "credentialId": "http_cred_1791214198908",
         "deviceLabel": "HTTP Live Test Authenticator",
         "enrolledAt": "2026-10-05T15:29:58.911Z"
+      }
+    ]
+  },
+  {
+    "id": "usr_auditor_1791218361745_h2d0b",
+    "name": "Tsegaye Alemu",
+    "email": "http_reg_1791218361743@oromiabank.com",
+    "password": "SecureOromiaBank2026!",
+    "role": "AUDITOR",
+    "status": "ACTIVE",
+    "institutionCode": "0000013",
+    "department": "Internal Audit & Regulatory Control",
+    "employeeId": "OB-AUD-505",
+    "phoneNumber": "+251 91 555 1234",
+    "auditorJustification": "Regulatory inspection and audit mandate BSD/03/2020",
+    "auditScope": "ALL_DEPARTMENTS",
+    "specialAccessGrants": [],
+    "createdAt": "2026-10-05T16:39:21.745Z",
+    "biometricCredentials": [
+      {
+        "type": "FINGERPRINT",
+        "credentialId": "http_cred_1791218361752",
+        "deviceLabel": "HTTP Live Test Authenticator",
+        "enrolledAt": "2026-10-05T16:39:21.754Z"
       }
     ]
   }

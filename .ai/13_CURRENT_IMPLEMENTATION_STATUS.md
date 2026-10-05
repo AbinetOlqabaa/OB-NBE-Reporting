@@ -894,6 +894,13 @@ Phase 1 of the visual design system and color standardization cycle has been com
 - **Acceptance Gate**: 100% test pass across all 53 phases in `run-all-tests.ts`.
 - **Truthful Hardware Reporting**: Physical optical scanners and FIDO2 keys marked `HARDWARE_PENDING`; Samsung tablet on-glass execution marked `DEVICE-DEPENDENT`; software pipelines, encryption, and layout contracts marked `VERIFIED`.
 
+### Phase 54: Dashboard Page Expansion, Vertical/Horizontal Scrolling & Visibility Acceptance
+- **Status**: VERIFIED & ACCEPTED
+- **Maker Dashboard ("Authorized Department Returns" & "Department Submissions")**: Eliminated rigid `h-full overflow-hidden` height locks; upgraded root container to `min-h-full flex flex-col space-y-3 font-sans pb-8`; expanded cards to `flex-1 min-h-[480px]` with dual vertical (`overflow-y-auto touch-scroll-y`) and horizontal (`overflow-x-auto touch-scroll-x`) scrollers.
+- **Universal Dashboard Layout Hardening**: Upgraded `CheckerInbox`, `AuditorDashboard`, `AuditTrailView`, `Phase2SSOTView`, `NbeSimulatorView`, `DocumentationView`, `DynamicReportForm`, and `MakerLibraryView` to `min-h-full pb-8` with card-level contained scrolling.
+- **Application Shell Clearance**: Main viewport bottom padding increased to `pb-6 sm:pb-8` with `mt-auto pt-8 pb-3` on footer, guaranteeing zero cutoffs or overlaps across all 9 standard viewports.
+- **Automated Verification**: Dedicated test suite `src/tests/dashboard-page-expansion-and-scrolling-visibility-acceptance.test.ts` passed 100%.
+
 
 
 

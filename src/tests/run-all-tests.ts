@@ -394,6 +394,7 @@ import { runPhase48Phase49Phase50Tests } from './phase48-49-50-auditor-batch-sub
 import { runPhase51ReportsOversightAudit } from './phase51-admin-reports-oversight-scrolling-visibility.test.ts';
 import { runPhase52CheckerBulkNbeAndPhase53AuditorMatrixAcceptanceTests } from './phase52-53-checker-bulk-nbe-and-auditor-matrix-acceptance.test.ts';
 import { runUserRegistrationLoginBiometricsRememberMeAcceptanceSuite } from './user-registration-login-biometrics-remember-me-acceptance.test.ts';
+import { runDashboardPageExpansionAndScrollingAcceptanceTests } from './dashboard-page-expansion-and-scrolling-visibility-acceptance.test.ts';
 
 async function runFullApplicationTestSuite() {
   runRegulatoryCoreTests();
@@ -458,6 +459,7 @@ async function runFullApplicationTestSuite() {
   await runPhase51ReportsOversightAudit();
   await runPhase52CheckerBulkNbeAndPhase53AuditorMatrixAcceptanceTests();
   await runUserRegistrationLoginBiometricsRememberMeAcceptanceSuite();
+  await runDashboardPageExpansionAndScrollingAcceptanceTests();
 
   console.log('\n========================================================================');
   console.log('✅ ALL COMPREHENSIVE AUTOMATED TEST SUITES PASSED CLEANLY (100% SUCCESS)');
