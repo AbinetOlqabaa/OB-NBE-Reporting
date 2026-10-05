@@ -26,6 +26,8 @@ import { NBE_REPORTS } from '../data/report-registry.ts';
 import { OROMIA_BANK_DEPARTMENTS, getDepartmentForReport } from '../data/organizationHierarchy.ts';
 import { submissionService } from '../services/submissionService.ts';
 import type { ReportSubmission, SubmissionStatus, UserSession } from '../types/regulatory.ts';
+import { MaximizedViewModal } from './MaximizedViewModal.tsx';
+import { MaximizeButton } from './MaximizeButton.tsx';
 
 export interface RegulatoryDeadlineItem {
   id: string;
@@ -62,6 +64,7 @@ export const RegulatoryCalendarCard: React.FC<RegulatoryCalendarCardProps> = ({
   const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<'TIMELINE' | 'GRID'>('TIMELINE');
   const [reminderNotices, setReminderNotices] = useState<Record<string, boolean>>({});
+  const [isMaximized, setIsMaximized] = useState(false);
 
   // Dynamic calculation of upcoming NBE filing deadlines
   const deadlines = useMemo<RegulatoryDeadlineItem[]>(() => {
@@ -270,7 +273,7 @@ export const RegulatoryCalendarCard: React.FC<RegulatoryCalendarCardProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs transition-colors space-y-4">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs transition-colors space-y-4 pb-6">
       {/* 1. Header & Timeline Summary */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
@@ -346,6 +349,11 @@ export const RegulatoryCalendarCard: React.FC<RegulatoryCalendarCardProps> = ({
               Schedule Grid
             </button>
           </div>
+
+          <MaximizeButton
+            onClick={() => setIsMaximized(true)}
+            title="Maximize Regulatory Calendar Visual Timeline (Esc to restore)"
+          />
         </div>
       </div>
 
@@ -536,6 +544,74 @@ export const RegulatoryCalendarCard: React.FC<RegulatoryCalendarCardProps> = ({
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {/* Maximized View Modal */}
+      {isMaximized && (
+        <MaximizedViewModal
+          isOpen={isMaximized}
+          onClose={() => setIsMaximized(false)}
+          title="Regulatory Calendar & Statutory Filing Deadlines"
+          badge="NBE Timelines"
+          subtitle="Full-screen chronological timeline and schedule grid of statutory compliance deadlines"
+        >
+          <div className="p-4 space-y-4">
+            <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Filing Deadlines ({filteredDeadlines.length} returns shown)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewMode(viewMode === 'TIMELINE' ? 'GRID' : 'TIMELINE')}
+                  className="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-ob-indigo-600 dark:text-ob-indigo-400 cursor-pointer"
+                >
+                  Switch to {viewMode === 'TIMELINE' ? 'Schedule Grid' : 'Timeline View'}
+                </button>
+              </div>
+            </div>
+
+            {/* Grid of All Deadlines in Full View */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredDeadlines.map((item) => {
+                const colors = getUrgencyNodeColor(item.urgency, item.submissionStatus);
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-2 shadow-2xs hover:border-ob-indigo-300 dark:hover:border-ob-indigo-700 transition-colors"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-mono text-xs font-black text-ob-indigo-600 dark:text-ob-indigo-400">
+                          {item.reportKey}
+                        </span>
+                        {getStatusBadge(item.submissionStatus)}
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
+                        {item.title}
+                      </h4>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        {item.department} ({item.departmentShort}) • {item.frequency}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                      <div>
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Statutory Due</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200">
+                          {item.deadlineFormatted} (17:00 EAT)
+                        </div>
+                      </div>
+                      <span className={`text-xs font-bold ${colors.text}`}>
+                        {item.urgencyLabel}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </MaximizedViewModal>
+      )}
     </div>
   );
 };

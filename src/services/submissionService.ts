@@ -19,6 +19,8 @@ import type {
   RemovalImpactAssessment,
   GovernedRemovalResult,
   ReviewerAssignment,
+  BatchSubmissionResult,
+  BatchSubmissionItemResult,
 } from '../types/regulatory.ts';
 import {
   deriveLibraryLifecycleState,
@@ -2226,6 +2228,129 @@ class SubmissionServiceClass {
   }
 
   /**
+   * Phase 36: Checker open/claim review - records event and notifies Maker that review is underway.
+   */
+  public openReview(id: string, user: UserSession): ReportSubmission {
+    const sub = this.submissions.get(id);
+    if (!sub) throw new Error(`Submission not found: ${id}`);
+
+    const evalResult = effectiveAccessEngine.evaluateAccess(user, sub.reportKey, 'REVIEW', sub);
+    if (!evalResult.allowed) {
+      throw new Error(`Review denied: ${evalResult.reason}`);
+    }
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'OPEN_REVIEW',
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_' + id,
+      details: `Checker ${user.name} opened review for return ${sub.reportKey} (submission ${id})`,
+    });
+
+    if (sub.makerId) {
+      notificationService.addNotification({
+        recipientUserId: sub.makerId,
+        recipientRole: 'MAKER',
+        recipientDepartment: sub.makerDepartment || user.department,
+        targetReportKey: sub.reportKey,
+        title: `Review in Progress: ${sub.reportKey}`,
+        message: `Checker ${user.name} has opened and is reviewing return ${sub.reportKey}.`,
+        category: 'WORKFLOW',
+        priority: 'MEDIUM',
+        actionTab: 'MAKER_WORKSPACE',
+        metadata: {
+          submissionId: id,
+          reportKey: sub.reportKey,
+          checkerId: user.id,
+          checkerName: user.name,
+        },
+      });
+    }
+
+    return sub;
+  }
+
+  /**
+   * Phase 36: Reassign Checkers on an in-flight submission.
+   */
+  public reassignCheckers(
+    id: string,
+    user: UserSession,
+    newCheckerIds: string[],
+    reason?: string
+  ): ReportSubmission {
+    const sub = this.submissions.get(id);
+    if (!sub) throw new Error(`Submission not found: ${id}`);
+
+    if (sub.status !== 'PENDING_CHECKER') {
+      throw new Error(`Cannot reassign reviewers for submission in '${sub.status}' status. Must be PENDING_CHECKER.`);
+    }
+
+    const val = effectiveAccessEngine.validateCheckerSelection(
+      sub.reportKey,
+      { id: sub.makerId || user.id, name: sub.makerName || user.name, role: 'MAKER' } as UserSession,
+      newCheckerIds,
+      sub
+    );
+    if (!val.valid) {
+      throw new Error(val.error);
+    }
+
+    const assignedCheckers = val.selectedCheckers;
+    const reviewerAssignments: ReviewerAssignment[] = assignedCheckers.map((c, idx) => ({
+      checkerId: c.id,
+      checkerName: c.name,
+      assignedAt: new Date().toISOString(),
+      isPrimary: idx === 0,
+      status: 'PENDING',
+    }));
+
+    sub.assignedCheckerIds = newCheckerIds;
+    sub.checkerId = assignedCheckers[0]?.id;
+    sub.checkerName = assignedCheckers[0]?.name;
+    sub.checkerDepartment = assignedCheckers[0]?.department;
+    sub.reviewerAssignments = reviewerAssignments;
+    sub.version = (sub.version || 1) + 1;
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'REASSIGN_CHECKER',
+      entityType: 'REPORT_SUBMISSION',
+      entityId: id,
+      correlationId: 'corr_' + id,
+      details: `${user.role} ${user.name} reassigned Checkers for ${sub.reportKey} to: ${assignedCheckers.map((c) => c.name).join(', ')}. Reason: ${reason || 'Administrative re-routing'}`,
+    });
+
+    assignedCheckers.forEach((c) => {
+      notificationService.addNotification({
+        recipientUserId: c.id,
+        recipientRole: 'CHECKER',
+        recipientDepartment: c.department,
+        targetReportKey: sub.reportKey,
+        title: `Assigned Return for 4-Eyes Review: ${sub.reportKey}`,
+        message: `You have been assigned to review return ${sub.reportKey} by ${user.name}. Reason: ${reason || 'Workflow re-assignment'}.`,
+        category: 'WORKFLOW',
+        priority: 'HIGH',
+        actionTab: 'CHECKER_INBOX',
+        metadata: {
+          submissionId: id,
+          reportKey: sub.reportKey,
+          assignedBy: user.name,
+        },
+      });
+    });
+
+    this.events.emit('submissionsUpdated', Array.from(this.submissions.values()));
+    this.events.emit('submissionChange', sub);
+    return sub;
+  }
+
+  /**
    * Maker delivers an approved submission to NBE via the NBEAdapter.
    * Requirement: "It's the Maker who makes the final submission of the report to the NBE."
    */
@@ -2373,6 +2498,306 @@ class SubmissionServiceClass {
     });
 
     return result;
+  }
+
+  /**
+   * Phase 50: Batch Submit to Checker for Makers.
+   * Allows selecting multiple draft/editable returns and triggering a single batch submission with a bulk comment.
+   */
+  public batchSubmitToChecker(
+    submissionIds: string[],
+    user: UserSession,
+    bulkComment: string,
+    selectedCheckerIds?: string[]
+  ): BatchSubmissionResult {
+    const batchId = `BATCH_CHK_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const timestamp = new Date().toISOString();
+    const results: BatchSubmissionItemResult[] = [];
+    const updatedSubmissions: ReportSubmission[] = [];
+
+    submissionIds.forEach((id) => {
+      const sub = this.submissions.get(id);
+      if (!sub) {
+        results.push({
+          submissionId: id,
+          reportKey: 'UNKNOWN',
+          previousStatus: 'DRAFT',
+          newStatus: 'DRAFT',
+          success: false,
+          error: `Submission not found: ${id}`,
+        });
+        return;
+      }
+
+      const prevStatus = sub.status;
+      try {
+        const updated = this.submitToChecker(
+          id,
+          user,
+          bulkComment || 'Batch submitted to Checker for 4-eyes review',
+          sub.version,
+          selectedCheckerIds
+        );
+        results.push({
+          submissionId: id,
+          reportKey: sub.reportKey,
+          previousStatus: prevStatus,
+          newStatus: updated.status,
+          success: true,
+        });
+        updatedSubmissions.push(updated);
+      } catch (err: any) {
+        results.push({
+          submissionId: id,
+          reportKey: sub.reportKey,
+          previousStatus: prevStatus,
+          newStatus: prevStatus,
+          success: false,
+          error: err.message || 'Batch submit to checker failed',
+        });
+      }
+    });
+
+    const succeededCount = results.filter((r) => r.success).length;
+    const failedCount = results.length - succeededCount;
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'BATCH_SUBMIT_TO_CHECKER',
+      entityType: 'REPORT_SUBMISSION_BATCH',
+      entityId: batchId,
+      correlationId: `corr_${batchId}`,
+      details: `Maker ${user.name} batch submitted ${succeededCount} of ${submissionIds.length} return(s) to Checker queue. Notes: "${bulkComment || 'Batch submission'}"`,
+    });
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'WORKFLOW_STATUS_CHANGED',
+        action: 'BATCH_SUBMIT_TO_CHECKER',
+        domain: 'WORKFLOW',
+        entityId: batchId,
+        topic: 'WORKFLOWS',
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Batch submitted ${succeededCount} return(s) to Checker queue`,
+        payload: {
+          batchId,
+          total: submissionIds.length,
+          succeededCount,
+          failedCount,
+        },
+      });
+    } catch (_) {}
+
+    return {
+      batchId,
+      actionType: 'BATCH_SUBMIT_TO_CHECKER',
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      bulkComment,
+      timestamp,
+      totalRequested: submissionIds.length,
+      totalProcessed: results.length,
+      succeededCount,
+      failedCount,
+      success: failedCount === 0,
+      results,
+      updatedSubmissions,
+    };
+  }
+
+  /**
+   * Phase 50: Batch Submit to NBE for Checkers (and Makers for approved returns).
+   * Allows selecting multiple submissions and triggering a single batch transmission to the NBE Gateway.
+   */
+  public async batchSubmitToNBE(
+    submissionIds: string[],
+    user: UserSession,
+    bulkComment: string
+  ): Promise<BatchSubmissionResult> {
+    const batchId = `BATCH_NBE_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const timestamp = new Date().toISOString();
+    const results: BatchSubmissionItemResult[] = [];
+    const updatedSubmissions: ReportSubmission[] = [];
+
+    for (const id of submissionIds) {
+      const sub = this.submissions.get(id);
+      if (!sub) {
+        results.push({
+          submissionId: id,
+          reportKey: 'UNKNOWN',
+          previousStatus: 'DRAFT',
+          newStatus: 'DRAFT',
+          success: false,
+          error: `Submission not found: ${id}`,
+        });
+        continue;
+      }
+
+      const prevStatus = sub.status;
+
+      try {
+        if (user.role === 'MAKER' && sub.status !== 'APPROVED') {
+          throw new Error(
+            `SEGREGATION_OF_DUTIES_VIOLATION: Makers cannot directly submit unapproved reports to NBE. Return must be reviewed and endorsed by a verified Checker first.`
+          );
+        }
+
+        let activeSub = sub;
+        // If Checker is submitting a return that is in PENDING_CHECKER or DRAFT/CORRECTION_REQUIRED in their department, sign it off first
+        if (user.role === 'CHECKER') {
+          if (sub.status === 'PENDING_CHECKER' || sub.status === 'DRAFT' || sub.status === 'CORRECTION_REQUIRED') {
+            activeSub = this.reviewSubmission(
+              id,
+              'APPROVE',
+              user,
+              bulkComment || `Batch approved and authorized for NBE delivery by Checker ${user.name}`
+            );
+          }
+        }
+
+        // Deliver to NBE Gateway using the adapter
+        const deliveryResult = await nbeAdapter.deliverReport(activeSub);
+        const finalStatus: SubmissionStatus = deliveryResult.success ? 'SENT' : 'FAILED';
+        const receiptNum =
+          deliveryResult.response?.receiptNumber ||
+          deliveryResult.response?.submissionReceiptNumber ||
+          `NBE-REC-${Date.now().toString().slice(-6)}`;
+
+        const finalValuesSnapshot = JSON.parse(JSON.stringify(activeSub.values));
+        const finalDynamicSnapshot = JSON.parse(JSON.stringify(activeSub.dynamicRows));
+        const tmpl = activeSub.templateSnapshot || this.createTemplateSnapshot(this.getEffectiveTemplate(activeSub));
+        const integrityHash = this.computeIntegrityHash({
+          id: activeSub.id,
+          reportKey: activeSub.reportKey,
+          version: activeSub.version,
+          templateVersion: activeSub.templateVersion || 1,
+          values: finalValuesSnapshot,
+          status: finalStatus,
+        });
+
+        const deliverySnapshot: SubmissionSnapshot = {
+          snapshotId: `snap_${activeSub.id}_v${activeSub.version}_batch_nbe_${Date.now()}`,
+          version: activeSub.version,
+          templateVersion: activeSub.templateVersion || 1,
+          dataVersion: activeSub.dataVersion || activeSub.version,
+          timestamp: new Date().toISOString(),
+          status: finalStatus,
+          capturedBy: user.name,
+          capturedByRole: user.role,
+          reason: bulkComment || `Batch submitted to NBE (Receipt: ${receiptNum})`,
+          values: finalValuesSnapshot,
+          dynamicRows: finalDynamicSnapshot,
+          templateSnapshot: tmpl,
+          structuralHash: activeSub.structuralHash,
+          integrityHash,
+          nbeReferenceNumber: receiptNum,
+        };
+
+        const finalizedSub: ReportSubmission = {
+          ...activeSub,
+          status: finalStatus,
+          submittedVersion: activeSub.version,
+          dataSnapshot: finalValuesSnapshot,
+          dynamicRowsSnapshot: finalDynamicSnapshot,
+          integrityHash,
+          nbeReferenceNumber: receiptNum,
+          updatedAt: new Date().toISOString(),
+          deliveryAttempts: [...activeSub.deliveryAttempts, deliveryResult.attempt],
+          historicalSnapshots: [...(activeSub.historicalSnapshots || []), deliverySnapshot],
+          snapshots: [...(activeSub.historicalSnapshots || []), deliverySnapshot],
+          comments: [
+            ...activeSub.comments,
+            {
+              id: 'comm_' + Math.random().toString(36).substring(2, 9),
+              userId: user.id,
+              userName: user.name,
+              userRole: user.role as any,
+              comment: deliveryResult.success
+                ? `Batch transmission to NBE Gateway confirmed. Receipt: ${receiptNum}. Notes: ${bulkComment || 'N/A'}`
+                : `Batch NBE Gateway delivery failed: ${deliveryResult.error}`,
+              action: deliveryResult.success ? 'APPROVE' : 'NOTE',
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        };
+
+        this.submissions.set(id, finalizedSub);
+        indexedDbStorage.saveDraft(finalizedSub).catch(() => {});
+        updatedSubmissions.push(finalizedSub);
+
+        results.push({
+          submissionId: id,
+          reportKey: activeSub.reportKey,
+          previousStatus: prevStatus,
+          newStatus: finalStatus,
+          success: deliveryResult.success,
+          nbeReceiptNumber: receiptNum,
+          nbeReferenceNumber: receiptNum,
+          error: deliveryResult.error,
+        });
+      } catch (err: any) {
+        results.push({
+          submissionId: id,
+          reportKey: sub.reportKey,
+          previousStatus: prevStatus,
+          newStatus: prevStatus,
+          success: false,
+          error: err.message || 'Batch submit to NBE failed',
+        });
+      }
+    }
+
+    const succeededCount = results.filter((r) => r.success).length;
+    const failedCount = results.length - succeededCount;
+
+    auditService.log({
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'BATCH_SUBMIT_TO_NBE',
+      entityType: 'REPORT_SUBMISSION_BATCH',
+      entityId: batchId,
+      correlationId: `corr_${batchId}`,
+      details: `${user.role} ${user.name} batch submitted ${succeededCount} of ${submissionIds.length} return(s) to NBE Gateway. Notes: "${bulkComment || 'Batch NBE transmission'}"`,
+    });
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'WORKFLOW_STATUS_CHANGED',
+        action: 'BATCH_SUBMIT_TO_NBE',
+        domain: 'WORKFLOW',
+        entityId: batchId,
+        topic: 'WORKFLOWS',
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Batch submitted ${succeededCount} return(s) to NBE Gateway`,
+        payload: {
+          batchId,
+          total: submissionIds.length,
+          succeededCount,
+          failedCount,
+        },
+      });
+    } catch (_) {}
+
+    return {
+      batchId,
+      actionType: 'BATCH_SUBMIT_TO_NBE',
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      bulkComment,
+      timestamp,
+      totalRequested: submissionIds.length,
+      totalProcessed: results.length,
+      succeededCount,
+      failedCount,
+      success: failedCount === 0,
+      results,
+      updatedSubmissions,
+    };
   }
 
   /**

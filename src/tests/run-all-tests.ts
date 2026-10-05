@@ -389,6 +389,11 @@ import { runReportingPerformanceAnalyticsTests } from './reporting-performance-a
 import { runXlsxExportAndDynamicValidationTests } from './xlsx-export-and-dynamic-validation.test.ts';
 import { runDataQualityHeatmapAndRegulatoryCalendarTests } from './data-quality-heatmap-and-regulatory-calendar.test.ts';
 import { runAuditor12MonthHistoricalTrendTests } from './auditor-12month-historical-trend.test.ts';
+import { runPhase47VisibilityAndResponsiveAudit } from './phase47-dashboard-component-visibility-responsive-viewing-audit.test.ts';
+import { runPhase48Phase49Phase50Tests } from './phase48-49-50-auditor-batch-submission.test.ts';
+import { runPhase51ReportsOversightAudit } from './phase51-admin-reports-oversight-scrolling-visibility.test.ts';
+import { runPhase52CheckerBulkNbeAndPhase53AuditorMatrixAcceptanceTests } from './phase52-53-checker-bulk-nbe-and-auditor-matrix-acceptance.test.ts';
+import { runUserRegistrationLoginBiometricsRememberMeAcceptanceSuite } from './user-registration-login-biometrics-remember-me-acceptance.test.ts';
 
 async function runFullApplicationTestSuite() {
   runRegulatoryCoreTests();
@@ -448,6 +453,11 @@ async function runFullApplicationTestSuite() {
   await runReportingPerformanceAnalyticsTests();
   await runDataQualityHeatmapAndRegulatoryCalendarTests();
   await runAuditor12MonthHistoricalTrendTests();
+  await runPhase47VisibilityAndResponsiveAudit();
+  await runPhase48Phase49Phase50Tests();
+  await runPhase51ReportsOversightAudit();
+  await runPhase52CheckerBulkNbeAndPhase53AuditorMatrixAcceptanceTests();
+  await runUserRegistrationLoginBiometricsRememberMeAcceptanceSuite();
 
   console.log('\n========================================================================');
   console.log('✅ ALL COMPREHENSIVE AUTOMATED TEST SUITES PASSED CLEANLY (100% SUCCESS)');

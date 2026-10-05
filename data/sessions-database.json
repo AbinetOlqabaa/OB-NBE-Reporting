@@ -1,0 +1,169 @@
+[
+  [
+    "psess_1791209589272_dg0a6r7",
+    {
+      "id": "psess_1791209589272_dg0a6r7",
+      "userId": "usr_auditor_1791209589229_r7ean",
+      "userEmail": "http_reg_1791209589142@oromiabank.com",
+      "tokenHash": "thash_50a5b78f315165cd1a2ff5f07f4858ac",
+      "createdAt": "2026-10-05T14:13:09.272Z",
+      "lastUsedAt": "2026-10-05T14:13:09.281Z",
+      "expiresAt": "2026-11-04T14:13:09.272Z",
+      "isRevoked": true,
+      "deviceInfo": "HTTP Acceptance Browser",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:13:09.272Z",
+      "requiresBiometricStepUp": true,
+      "revokedAt": "2026-10-05T14:13:09.288Z",
+      "revokedReason": "EXPLICIT_LOGOUT"
+    }
+  ],
+  [
+    "psess_1791209938587_4vya6kq",
+    {
+      "id": "psess_1791209938587_4vya6kq",
+      "userId": "usr_checker_1",
+      "userEmail": "chala.desta@oromiabank.com",
+      "tokenHash": "thash_34f0c78c4ef227883dbb4dc16f2942fd",
+      "createdAt": "2026-10-05T14:18:58.587Z",
+      "lastUsedAt": "2026-10-05T14:18:58.602Z",
+      "expiresAt": "2026-11-04T14:18:58.587Z",
+      "isRevoked": true,
+      "deviceInfo": "node",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:18:58.585Z",
+      "requiresBiometricStepUp": false,
+      "revokedAt": "2026-10-05T14:18:58.610Z",
+      "revokedReason": "EXPLICIT_LOGOUT"
+    }
+  ],
+  [
+    "psess_1791209940143_k66ykts",
+    {
+      "id": "psess_1791209940143_k66ykts",
+      "userId": "usr_auditor_1791209940100_wp04e",
+      "userEmail": "http_reg_1791209940096@oromiabank.com",
+      "tokenHash": "thash_4181a5030f7224cb578132c011df43d0",
+      "createdAt": "2026-10-05T14:19:00.143Z",
+      "lastUsedAt": "2026-10-05T14:19:00.147Z",
+      "expiresAt": "2026-11-04T14:19:00.143Z",
+      "isRevoked": true,
+      "deviceInfo": "HTTP Acceptance Browser",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:19:00.143Z",
+      "requiresBiometricStepUp": true,
+      "revokedAt": "2026-10-05T14:19:00.150Z",
+      "revokedReason": "EXPLICIT_LOGOUT"
+    }
+  ],
+  [
+    "psess_1791210063479_yqjb4t4",
+    {
+      "id": "psess_1791210063479_yqjb4t4",
+      "userId": "usr_checker_1",
+      "userEmail": "chala.desta@oromiabank.com",
+      "tokenHash": "thash_26a1e1f52a075977049e14d200c44e52",
+      "createdAt": "2026-10-05T14:21:03.479Z",
+      "lastUsedAt": "2026-10-05T14:21:03.492Z",
+      "expiresAt": "2026-11-04T14:21:03.479Z",
+      "isRevoked": true,
+      "deviceInfo": "node",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:21:03.478Z",
+      "requiresBiometricStepUp": false,
+      "revokedAt": "2026-10-05T14:21:03.500Z",
+      "revokedReason": "EXPLICIT_LOGOUT"
+    }
+  ],
+  [
+    "psess_1791210064866_lp4agb5",
+    {
+      "id": "psess_1791210064866_lp4agb5",
+      "userId": "usr_auditor_1791210064842_ao9s0",
+      "userEmail": "http_reg_1791210064840@oromiabank.com",
+      "tokenHash": "thash_034275197472e431724e916c74f7d4c4",
+      "createdAt": "2026-10-05T14:21:04.866Z",
+      "lastUsedAt": "2026-10-05T14:21:04.869Z",
+      "expiresAt": "2026-11-04T14:21:04.866Z",
+      "isRevoked": true,
+      "deviceInfo": "HTTP Acceptance Browser",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:21:04.865Z",
+      "requiresBiometricStepUp": true,
+      "revokedAt": "2026-10-05T14:21:04.871Z",
+      "revokedReason": "EXPLICIT_LOGOUT"
+    }
+  ],
+  [
+    "psess_1791210310017_50vtzac",
+    {
+      "id": "psess_1791210310017_50vtzac",
+      "userId": "usr_admin_1",
+      "userEmail": "admin@oromiabank.com",
+      "tokenHash": "thash_7e6b2d7e32026ace3920aedb6c37dd51",
+      "createdAt": "2026-10-05T14:25:10.017Z",
+      "lastUsedAt": "2026-10-05T14:25:10.017Z",
+      "expiresAt": "2026-11-04T14:25:10.017Z",
+      "isRevoked": false,
+      "deviceInfo": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:25:10.015Z",
+      "requiresBiometricStepUp": false
+    }
+  ],
+  [
+    "psess_1791210392298_l6en1v8",
+    {
+      "id": "psess_1791210392298_l6en1v8",
+      "userId": "usr_auditor_1791210254607_3ifb6",
+      "userEmail": "deginet.alemu@oromiabank.com",
+      "tokenHash": "thash_52392f2029e8e28e59a9084f33f50f71",
+      "createdAt": "2026-10-05T14:26:32.298Z",
+      "lastUsedAt": "2026-10-05T14:26:32.298Z",
+      "expiresAt": "2026-11-04T14:26:32.298Z",
+      "isRevoked": false,
+      "deviceInfo": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:26:32.298Z",
+      "requiresBiometricStepUp": false
+    }
+  ],
+  [
+    "psess_1791211837546_uzckub7",
+    {
+      "id": "psess_1791211837546_uzckub7",
+      "userId": "usr_checker_1",
+      "userEmail": "chala.desta@oromiabank.com",
+      "tokenHash": "thash_6d079a931b78e08f0062c5545e982588",
+      "createdAt": "2026-10-05T14:50:37.546Z",
+      "lastUsedAt": "2026-10-05T14:50:37.560Z",
+      "expiresAt": "2026-11-04T14:50:37.546Z",
+      "isRevoked": true,
+      "deviceInfo": "node",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:50:37.546Z",
+      "requiresBiometricStepUp": false,
+      "revokedAt": "2026-10-05T14:50:37.568Z",
+      "revokedReason": "EXPLICIT_LOGOUT"
+    }
+  ],
+  [
+    "psess_1791211838929_6hww5kj",
+    {
+      "id": "psess_1791211838929_6hww5kj",
+      "userId": "usr_auditor_1791211838900_ylim5",
+      "userEmail": "http_reg_1791211838897@oromiabank.com",
+      "tokenHash": "thash_1a4ad41008e8b6be3ba284d73576f039",
+      "createdAt": "2026-10-05T14:50:38.929Z",
+      "lastUsedAt": "2026-10-05T14:50:38.932Z",
+      "expiresAt": "2026-11-04T14:50:38.929Z",
+      "isRevoked": true,
+      "deviceInfo": "HTTP Acceptance Browser",
+      "ipAddress": "127.0.0.1",
+      "passwordVersionAtCreation": "2026-10-05T14:50:38.929Z",
+      "requiresBiometricStepUp": true,
+      "revokedAt": "2026-10-05T14:50:38.935Z",
+      "revokedReason": "EXPLICIT_LOGOUT"
+    }
+  ]
+]

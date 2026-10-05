@@ -97,8 +97,77 @@ export class SessionServiceClass {
   // Index by user email for multi-session and bulk revocation
   private userSessionsIndex: Map<string, Set<string>> = new Map(); // normalized email -> Set of sessionIds
 
+  // Persistence provider for Node.js / file database
+  private persistenceProvider?: {
+    load: () => Array<[string, PersistentSessionRecord]> | null;
+    save: (records: Array<[string, PersistentSessionRecord]>) => void;
+    clear: () => void;
+  };
+
   constructor() {
+    this.loadPersistedSessions();
     this.initCleanupInterval();
+  }
+
+  public setPersistenceProvider(provider: {
+    load: () => Array<[string, PersistentSessionRecord]> | null;
+    save: (records: Array<[string, PersistentSessionRecord]>) => void;
+    clear?: () => void;
+  }): void {
+    this.persistenceProvider = {
+      ...provider,
+      clear: provider.clear || (() => {}),
+    };
+    try {
+      const loaded = this.persistenceProvider.load();
+      if (loaded && Array.isArray(loaded) && loaded.length > 0) {
+        loaded.forEach(([id, s]) => {
+          this.sessions.set(id, s);
+          this.tokenHashIndex.set(s.tokenHash, id);
+          const norm = s.userEmail.toLowerCase().trim();
+          if (!this.userSessionsIndex.has(norm)) {
+            this.userSessionsIndex.set(norm, new Set());
+          }
+          this.userSessionsIndex.get(norm)!.add(id);
+        });
+      }
+    } catch {}
+  }
+
+  private persist(): void {
+    const entries = Array.from(this.sessions.entries());
+    if (this.persistenceProvider) {
+      try {
+        this.persistenceProvider.save(entries);
+      } catch {}
+    }
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('ob_sessions_db', JSON.stringify(entries));
+      } catch {}
+    }
+  }
+
+  private loadPersistedSessions(): void {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('ob_sessions_db');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.forEach(([id, s]: [string, PersistentSessionRecord]) => {
+              this.sessions.set(id, s);
+              this.tokenHashIndex.set(s.tokenHash, id);
+              const norm = s.userEmail.toLowerCase().trim();
+              if (!this.userSessionsIndex.has(norm)) {
+                this.userSessionsIndex.set(norm, new Set());
+              }
+              this.userSessionsIndex.get(norm)!.add(id);
+            });
+          }
+        }
+      } catch {}
+    }
   }
 
   private initCleanupInterval(): void {
@@ -177,6 +246,8 @@ export class SessionServiceClass {
       correlationId: `corr_remember_${Date.now()}`,
       details: `Persistent 'Remember Me' session established on ${sessionRecord.deviceInfo}. Expires: ${expiresAt}. (Req 4)`,
     });
+
+    this.persist();
 
     const cookieHeader = this.formatCookieHeader(rawToken, Math.floor(lifetime / 1000));
 
@@ -375,6 +446,7 @@ export class SessionServiceClass {
     }
 
     const clearedCookieHeader = this.formatClearedCookieHeader();
+    this.persist();
 
     return {
       success: true,
@@ -410,6 +482,8 @@ export class SessionServiceClass {
         count++;
       }
     });
+
+    this.persist();
 
     auditService.log({
       actorId: normEmail,
@@ -502,6 +576,17 @@ export class SessionServiceClass {
     this.sessions.clear();
     this.tokenHashIndex.clear();
     this.userSessionsIndex.clear();
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('ob_sessions_db');
+      } catch {}
+    }
+    if (this.persistenceProvider) {
+      try {
+        this.persistenceProvider.clear();
+      } catch {}
+    }
+    this.persist();
   }
 }
 

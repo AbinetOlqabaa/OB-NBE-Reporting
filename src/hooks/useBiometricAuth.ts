@@ -897,7 +897,8 @@ export function useBiometricAuth() {
     async (
       targetEmail?: string,
       type: 'FINGERPRINT' | 'FACE' = 'FINGERPRINT',
-      faceData?: { imageBase64?: string; faceHash?: string }
+      faceData?: { imageBase64?: string; faceHash?: string },
+      rememberMe?: boolean
     ): Promise<{
       success: boolean;
       user?: UserSession;
@@ -1089,6 +1090,7 @@ export function useBiometricAuth() {
                 credentialId: assertionCredentialId,
                 counter: clientCounter,
               },
+              rememberMe,
             }),
           });
           verifyData = await verifyRes.json();
@@ -1126,6 +1128,9 @@ export function useBiometricAuth() {
         localStorage.setItem(LAST_USER_KEY, targetCred.email);
         try {
           localStorage.setItem('ob_logged_in_user', JSON.stringify(userSession));
+          if (rememberMe) {
+            localStorage.setItem('ob_remember_me_active', 'true');
+          }
         } catch {}
         vibrate([30, 45, 35]);
         haptics.success();
@@ -1195,6 +1200,7 @@ export function useBiometricAuth() {
               featureVector,
               qualityMetrics,
               livenessEvidence,
+              rememberMe,
             }),
           });
           verifyData = await verifyRes.json();
@@ -1234,6 +1240,9 @@ export function useBiometricAuth() {
         localStorage.setItem(LAST_USER_KEY, targetCred.email);
         try {
           localStorage.setItem('ob_logged_in_user', JSON.stringify(userSession));
+          if (rememberMe) {
+            localStorage.setItem('ob_remember_me_active', 'true');
+          }
         } catch {}
         vibrate([30, 45, 35]);
         haptics.success();

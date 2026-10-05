@@ -58,6 +58,7 @@ interface BiometricPromptModalProps {
   userEmail?: string;
   userRole?: string;
   initialMethod?: 'FINGERPRINT' | 'FACE';
+  rememberMe?: boolean;
   onSuccess: (method: 'FINGERPRINT' | 'FACE', faceData?: { imageBase64?: string; faceHash?: string }) => void;
   onCancel: () => void;
   onTriggerRecovery?: (failedMethod: 'FINGERPRINT' | 'FACE', reason?: string) => void;
@@ -70,6 +71,7 @@ export const BiometricPromptModal: React.FC<BiometricPromptModalProps> = ({
   userEmail = 'officer@oromiabank.com',
   userRole = 'MAKER',
   initialMethod = 'FINGERPRINT',
+  rememberMe,
   onSuccess,
   onCancel,
   onTriggerRecovery,
@@ -386,7 +388,7 @@ export const BiometricPromptModal: React.FC<BiometricPromptModalProps> = ({
           onSuccess('FACE', captured);
         }, 550);
       } else {
-        const res = await login(userEmail, 'FACE', captured);
+        const res = await login(userEmail, 'FACE', captured, rememberMe);
         if (!res.success) {
           if ((res as any).lockedOut || res.error?.includes('locked')) {
             setScanState('RATE_LIMITED');
@@ -540,7 +542,7 @@ export const BiometricPromptModal: React.FC<BiometricPromptModalProps> = ({
             onSuccess('FINGERPRINT');
           }, 550);
         } else {
-          const res = await login(userEmail, 'FINGERPRINT');
+          const res = await login(userEmail, 'FINGERPRINT', undefined, rememberMe);
           if (!res.success) {
             if ((res as any).lockedOut || res.error?.includes('locked')) {
               setScanState('RATE_LIMITED');

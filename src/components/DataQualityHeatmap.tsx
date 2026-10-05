@@ -45,6 +45,8 @@ import {
   type ValidationErrorCategory,
 } from '../services/dataQualityAnalyticsService.ts';
 import type { UserSession } from '../types/regulatory.ts';
+import { MaximizedViewModal } from './MaximizedViewModal.tsx';
+import { MaximizeButton } from './MaximizeButton.tsx';
 
 interface DataQualityHeatmapProps {
   currentUser: UserSession;
@@ -65,6 +67,7 @@ export const DataQualityHeatmap: React.FC<DataQualityHeatmapProps> = ({
   const [selectedCell, setSelectedCell] = useState<DepartmentHeatmapCell | null>(null);
   const [selectedErrorDetail, setSelectedErrorDetail] = useState<RecurringErrorDetail | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   // Compute analytics
   const analyticsData = useMemo(() => {
@@ -186,7 +189,7 @@ export const DataQualityHeatmap: React.FC<DataQualityHeatmapProps> = ({
   }, [analyticsData.departmentSummaries]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-8">
       {/* 1. Header & Controls Bar */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs transition-colors">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -272,6 +275,11 @@ export const DataQualityHeatmap: React.FC<DataQualityHeatmapProps> = ({
               <Download className="w-3.5 h-3.5 text-ob-indigo-500" />
               <span>Export CSV</span>
             </button>
+
+            <MaximizeButton
+              onClick={() => setIsMaximized(true)}
+              title="Maximize Data Quality Heatmap & Error Matrix (Esc to restore)"
+            />
           </div>
         </div>
       </div>
@@ -856,6 +864,138 @@ export const DataQualityHeatmap: React.FC<DataQualityHeatmapProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Full View / Maximized View Modal */}
+      {isMaximized && (
+        <MaximizedViewModal
+          isOpen={isMaximized}
+          onClose={() => setIsMaximized(false)}
+          title="Data Quality Heatmap & Error Distribution Matrix"
+          badge="Enterprise Quality"
+          subtitle="Systemic pre-flight validation bottleneck analysis across 6 regulatory dimensions and bank departments"
+        >
+          <div className="p-4 space-y-4">
+            <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Heatmap Matrix View (Window: {timeRange} Days • Overall DQI: {analyticsData.overallScore}%)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5 text-ob-indigo-500" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Matrix in Full View */}
+            <div className="overflow-x-auto min-w-full touch-scroll-x border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 p-3">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr>
+                    <th className="py-2.5 px-3 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 rounded-l-lg border-b border-slate-200 dark:border-slate-800 w-64">
+                      Reporting Bank Department
+                    </th>
+                    {VALIDATION_CATEGORIES.map((cat) => (
+                      <th
+                        key={cat.key}
+                        className="py-2.5 px-2 text-center text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800"
+                      >
+                        <div className="truncate max-w-[130px] mx-auto" title={cat.description}>
+                          {cat.shortLabel}
+                        </div>
+                        <div className="text-[9px] text-slate-400 font-normal uppercase tracking-tight truncate">
+                          {cat.defaultSeverity}
+                        </div>
+                      </th>
+                    ))}
+                    <th className="py-2.5 px-3 text-center text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 rounded-r-lg border-b border-slate-200 dark:border-slate-800">
+                      Dept Quality
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {departmentsList.map((dept) => {
+                    const deptSummary = analyticsData.departmentSummaries.find(
+                      (d) => d.departmentId === dept.id
+                    );
+                    return (
+                      <tr key={dept.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-xs text-slate-900 dark:text-white">
+                            {dept.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                            <span className="font-mono font-semibold text-ob-indigo-600 dark:text-ob-indigo-400">
+                              {dept.short}
+                            </span>
+                            <span>•</span>
+                            <span>{deptSummary?.totalSubmissions || 0} returns in window</span>
+                          </div>
+                        </td>
+
+                        {VALIDATION_CATEGORIES.map((cat) => {
+                          const cell = analyticsData.heatmapMatrix.find(
+                            (m) => m.departmentId === dept.id && m.categoryKey === cat.key
+                          );
+                          if (!cell) return <td key={cat.key} className="p-1" />;
+                          const style = getCellStyles(cell);
+
+                          return (
+                            <td key={cat.key} className="p-1 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCell(cell)}
+                                className={`w-full min-h-[52px] p-2 rounded-lg border transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer text-center relative group ${style.bg} ${style.border}`}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <span className={`text-xs font-black ${style.text}`}>
+                                    {cell.errorCount}
+                                  </span>
+                                  {cell.recurringCount > 0 && (
+                                    <span className="text-[9px] font-bold text-rose-500 dark:text-rose-400 flex items-center">
+                                      <Flame className="w-2.5 h-2.5 fill-current" />
+                                      <span>{cell.recurringCount}</span>
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-none">
+                                  {style.label}
+                                </span>
+                              </button>
+                            </td>
+                          );
+                        })}
+
+                        <td className="py-3 px-3 text-center">
+                          <div className="inline-flex flex-col items-center">
+                            <span
+                              className={`text-xs font-black ${
+                                (deptSummary?.dataQualityScore || 100) >= 90
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : (deptSummary?.dataQualityScore || 100) >= 80
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-rose-600 dark:text-rose-400'
+                              }`}
+                            >
+                              {deptSummary?.dataQualityScore || 95}%
+                            </span>
+                            <span className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">
+                              {deptSummary?.riskRating || 'LOW'}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </MaximizedViewModal>
       )}
     </div>
   );

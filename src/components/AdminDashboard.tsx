@@ -47,10 +47,8 @@ import {
   ChevronDown,
   Info,
   Upload,
-  BarChart3,
-  TrendingUp,
   Flame,
-  CalendarDays,
+  BarChart3,
 } from 'lucide-react';
 import { UserAccount, UserRole, UserStatus, userService } from '../services/userService.ts';
 import { ReportMetadata, ReportSubmission, SpecialAccessGrant, UserSession } from '../types/regulatory.ts';
@@ -70,9 +68,11 @@ import { BulkOperationsModal } from './BulkOperationsModal.tsx';
 import { bulkOperationsEngine, type BulkTargetType } from '../services/bulkOperationsEngine.ts';
 import { ConfigurationGovernanceView } from './ConfigurationGovernanceView.tsx';
 import { BiometricSecurityCenter } from './BiometricSecurityCenter.tsx';
-import { ReportingPerformanceAnalytics } from './ReportingPerformanceAnalytics.tsx';
+import { MaximizedViewModal } from './MaximizedViewModal.tsx';
+import { MaximizeButton } from './MaximizeButton.tsx';
 import { RegulatoryCalendarCard } from './RegulatoryCalendarCard.tsx';
 import { DataQualityHeatmap } from './DataQualityHeatmap.tsx';
+import { ReportingPerformanceAnalytics } from './ReportingPerformanceAnalytics.tsx';
 
 interface AdminDashboardProps {
   currentUser: UserSession;
@@ -80,16 +80,7 @@ interface AdminDashboardProps {
   onUserStatusChanged?: () => void;
 }
 
-type AdminSubTab =
-  | 'REPORTS_OVERSIGHT'
-  | 'CALENDAR'
-  | 'DATA_QUALITY'
-  | 'ANALYTICS'
-  | 'SPECIAL_ACCESS'
-  | 'PENDING'
-  | 'ALL_USERS'
-  | 'DEPARTMENTS'
-  | 'GOVERNANCE';
+type AdminSubTab = 'REPORTS_OVERSIGHT' | 'SPECIAL_ACCESS' | 'PENDING' | 'ALL_USERS' | 'DEPARTMENTS' | 'GOVERNANCE';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
@@ -104,9 +95,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [studioReportKey, setStudioReportKey] = useState<string | undefined>(undefined);
   const [isNbeImportOpen, setIsNbeImportOpen] = useState(false);
-  const [showAnalyticsWidget, setShowAnalyticsWidget] = useState<boolean>(true);
-  const [showCalendarWidget, setShowCalendarWidget] = useState<boolean>(false);
-  const [showHeatmapWidget, setShowHeatmapWidget] = useState<boolean>(false);
+  const [isReportsOversightMaximized, setIsReportsOversightMaximized] = useState(false);
+  const [isUsersDirectoryMaximized, setIsUsersDirectoryMaximized] = useState(false);
+  const [oversightVisualView, setOversightVisualView] = useState<'NONE' | 'CALENDAR' | 'HEATMAP' | 'ANALYTICS'>('NONE');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -1070,7 +1061,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden space-y-2.5 font-sans">
+    <div className="min-h-full flex flex-col space-y-3 font-sans pb-6">
       {/* 1. Administrator Executive Oversight Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-ob-indigo-950 text-white rounded-xl p-3 shadow-sm border border-slate-800 shrink-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -1247,45 +1238,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveSubTab('CALENDAR')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
-              activeSubTab === 'CALENDAR'
-                ? 'bg-ob-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title="Regulatory Calendar: Upcoming NBE statutory filing deadlines with chronological timeline visualization"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Regulatory Calendar</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('DATA_QUALITY')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
-              activeSubTab === 'DATA_QUALITY'
-                ? 'bg-rose-600 text-white shadow-2xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title="Data Quality Heatmap: Recharts visualization highlighting departments with recurring validation errors"
-          >
-            <Flame className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
-            <span>Data Quality Heatmap</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('ANALYTICS')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
-              activeSubTab === 'ANALYTICS'
-                ? 'bg-ob-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title="Regulatory Performance: Submission Acceptance Rate, Average Turnaround Time, and Pending Review Aging"
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span>Regulatory Performance</span>
-          </button>
-
-          <button
             onClick={() => setActiveSubTab('SPECIAL_ACCESS')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 touch-manipulation touch-press ${
               activeSubTab === 'SPECIAL_ACCESS'
@@ -1389,7 +1341,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 4. Tab Content 1: REPORTS OVERSIGHT CENTER */}
       {activeSubTab === 'REPORTS_OVERSIGHT' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors">
+        <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors">
           <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60 flex flex-wrap items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -1400,14 +1352,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Visual Display Toggles: Calendar, Heatmap, Analytics */}
+              <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setOversightVisualView(oversightVisualView === 'CALENDAR' ? 'NONE' : 'CALENDAR')}
+                  className={`min-h-[34px] px-2.5 py-1 text-xs font-bold rounded transition-colors flex items-center gap-1 cursor-pointer touch-manipulation ${
+                    oversightVisualView === 'CALENDAR'
+                      ? 'bg-ob-indigo-600 text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-ob-indigo-600'
+                  }`}
+                  title="Toggle Regulatory Calendar visual timeline map"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Calendar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOversightVisualView(oversightVisualView === 'HEATMAP' ? 'NONE' : 'HEATMAP')}
+                  className={`min-h-[34px] px-2.5 py-1 text-xs font-bold rounded transition-colors flex items-center gap-1 cursor-pointer touch-manipulation ${
+                    oversightVisualView === 'HEATMAP'
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-rose-600'
+                  }`}
+                  title="Toggle Data Quality Heatmap visual distribution map"
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Heatmap</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOversightVisualView(oversightVisualView === 'ANALYTICS' ? 'NONE' : 'ANALYTICS')}
+                  className={`min-h-[34px] px-2.5 py-1 text-xs font-bold rounded transition-colors flex items-center gap-1 cursor-pointer touch-manipulation ${
+                    oversightVisualView === 'ANALYTICS'
+                      ? 'bg-purple-600 text-white shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-purple-600'
+                  }`}
+                  title="Toggle Regulatory Performance Analytics charts"
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Analytics</span>
+                </button>
+              </div>
+
               <select
                 value={departmentFilter}
                 onChange={(e) => {
                   setDepartmentFilter(e.target.value);
                   setReportsPage(1);
                 }}
-                className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer min-h-[34px] touch-manipulation"
               >
                 <option value="ALL">All Departments</option>
                 {departments.map((d) => (
@@ -1423,7 +1418,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   setStatusFilter(e.target.value);
                   setReportsPage(1);
                 }}
-                className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer"
+                className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer min-h-[34px] touch-manipulation"
               >
                 <option value="ALL">All Status</option>
                 <option value="DRAFT">Draft</option>
@@ -1433,107 +1428,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <option value="SENT">Delivered to NBE</option>
               </select>
 
-              <button
-                type="button"
-                onClick={() => setShowCalendarWidget(!showCalendarWidget)}
-                className={`text-xs border rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
-                  showCalendarWidget
-                    ? 'bg-ob-indigo-600 text-white border-ob-indigo-700 shadow-2xs'
-                    : 'bg-ob-indigo-50 dark:bg-ob-indigo-950/70 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900 border-ob-indigo-200 dark:border-ob-indigo-800 text-ob-indigo-700 dark:text-ob-indigo-300'
-                }`}
-                title={showCalendarWidget ? 'Hide Regulatory Calendar' : 'Show Regulatory Calendar Timeline'}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>{showCalendarWidget ? 'Calendar (On)' : 'Calendar'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowHeatmapWidget(!showHeatmapWidget)}
-                className={`text-xs border rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
-                  showHeatmapWidget
-                    ? 'bg-rose-600 text-white border-rose-700 shadow-2xs'
-                    : 'bg-rose-50 dark:bg-rose-950/70 hover:bg-rose-100 dark:hover:bg-rose-900 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
-                }`}
-                title={showHeatmapWidget ? 'Hide Quality Heatmap' : 'Show Data Quality Heatmap'}
-              >
-                <Flame className="w-3.5 h-3.5" />
-                <span>{showHeatmapWidget ? 'Quality Heatmap (On)' : 'Quality Heatmap'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowAnalyticsWidget(!showAnalyticsWidget)}
-                className={`text-xs border rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
-                  showAnalyticsWidget
-                    ? 'bg-ob-indigo-600 text-white border-ob-indigo-700 shadow-2xs'
-                    : 'bg-ob-indigo-50 dark:bg-ob-indigo-950/70 hover:bg-ob-indigo-100 dark:hover:bg-ob-indigo-900 border-ob-indigo-200 dark:border-ob-indigo-800 text-ob-indigo-700 dark:text-ob-indigo-300'
-                }`}
-                title={showAnalyticsWidget ? 'Hide Regulatory Performance Widget' : 'Show Regulatory Performance Widget'}
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                <span>{showAnalyticsWidget ? 'Performance (On)' : 'Performance'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSubTab('ANALYTICS')}
-                className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg px-2.5 py-1 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
-                title="Open Full Regulatory Performance Suite & SLA Deep Dive"
-              >
-                <span>Regulatory Suite</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              <MaximizeButton
+                onClick={() => setIsReportsOversightMaximized(true)}
+                title="Maximize Institutional Reporting Ledger (Esc to restore)"
+              />
             </div>
           </div>
 
-          {/* Embedded Regulatory Calendar Widget */}
-          {showCalendarWidget && (
-            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 shrink-0">
+          {/* Embedded Visual Displays (Bounded with max-h-[500px] overflow-y-auto touch-scroll-y shrink-0) */}
+          {oversightVisualView === 'CALENDAR' && (
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 max-h-[500px] overflow-y-auto touch-scroll-y shrink-0">
               <RegulatoryCalendarCard
                 currentUser={currentUser}
                 onInspectSubmission={(sub) => setInspectingSub(sub)}
-                onViewAllSubmissions={() => {
-                  setShowCalendarWidget(false);
-                  setReportsPage(1);
-                }}
-                onOpenReport={(rk) => {
-                  setStudioReportKey(rk);
-                  setIsStudioOpen(true);
-                }}
+                onViewAllSubmissions={() => setOversightVisualView('NONE')}
               />
             </div>
           )}
 
-          {/* Embedded Data Quality Heatmap Widget */}
-          {showHeatmapWidget && (
-            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 shrink-0">
+          {oversightVisualView === 'HEATMAP' && (
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 max-h-[500px] overflow-y-auto touch-scroll-y shrink-0">
               <DataQualityHeatmap
                 currentUser={currentUser}
                 onInspectReport={(rk) => {
-                  setStudioReportKey(rk);
-                  setIsStudioOpen(true);
+                  const sub = submissions.find((s) => s.reportKey === rk);
+                  if (sub) setInspectingSub(sub);
                 }}
-                onNavigateToSubmissions={() => {
-                  setShowHeatmapWidget(false);
-                  setReportsPage(1);
-                }}
+                onNavigateToSubmissions={() => setOversightVisualView('NONE')}
               />
             </div>
           )}
 
-          {/* Embedded Regulatory Performance Widget */}
-          {showAnalyticsWidget && (
-            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 shrink-0">
+          {oversightVisualView === 'ANALYTICS' && (
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 max-h-[500px] overflow-y-auto touch-scroll-y shrink-0">
               <ReportingPerformanceAnalytics
                 currentUser={currentUser}
                 compact={true}
-                onViewAllSubmissions={() => setActiveSubTab('ANALYTICS')}
+                onViewAllSubmissions={() => setOversightVisualView('NONE')}
+                onOpenReport={(rk) => {
+                  const sub = submissions.find((s) => s.reportKey === rk);
+                  if (sub) setInspectingSub(sub);
+                }}
               />
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-[360px] max-h-[620px] overflow-y-auto touch-scroll-y">
             {paginatedReports.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8">
                 <FileSpreadsheet className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
@@ -1544,7 +1484,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             ) : (
               <div className="overflow-x-auto min-w-full touch-scroll-x">
-                <table className="min-w-[700px] w-full text-left border-collapse text-xs">
+                <table className="min-w-[850px] w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-semibold sticky top-0 z-10">
                     <th className="py-2.5 px-3">Return Code</th>
@@ -1589,9 +1529,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => setInspectingSub(sub)}
-                            className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            className="min-h-[36px] px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer touch-manipulation"
                           >
-                            <Eye className="w-3 h-3 text-ob-indigo-600 dark:text-ob-indigo-400" />
+                            <Eye className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
                             <span>Inspect Return</span>
                           </button>
                         </td>
@@ -1617,48 +1557,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* Tab Content: REGULATORY CALENDAR DASHBOARD CARD & TIMELINE */}
-      {activeSubTab === 'CALENDAR' && (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <RegulatoryCalendarCard
-            currentUser={currentUser}
-            onInspectSubmission={(sub) => setInspectingSub(sub)}
-            onViewAllSubmissions={() => setActiveSubTab('REPORTS_OVERSIGHT')}
-            onOpenReport={(rk) => {
-              setStudioReportKey(rk);
-              setIsStudioOpen(true);
-            }}
-          />
-        </div>
-      )}
-
-      {/* Tab Content: DATA QUALITY HEATMAP & RECURRING VALIDATION ERRORS */}
-      {activeSubTab === 'DATA_QUALITY' && (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <DataQualityHeatmap
-            currentUser={currentUser}
-            onInspectReport={(rk) => {
-              setStudioReportKey(rk);
-              setIsStudioOpen(true);
-            }}
-            onNavigateToSubmissions={() => setActiveSubTab('REPORTS_OVERSIGHT')}
-          />
-        </div>
-      )}
-
-      {/* Tab Content: REPORTING PERFORMANCE ANALYTICS WIDGET & CHARTS */}
-      {activeSubTab === 'ANALYTICS' && (
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <ReportingPerformanceAnalytics
-            currentUser={currentUser}
-            onViewAllSubmissions={() => setActiveSubTab('REPORTS_OVERSIGHT')}
-          />
-        </div>
-      )}
-
       {/* 5. Tab Content 2: SPECIAL ACCESS & DELEGATION MANAGER */}
       {activeSubTab === 'SPECIAL_ACCESS' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors">
+        <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs transition-colors">
           <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/60 flex items-center justify-between shrink-0">
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -1957,6 +1858,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>Create User</span>
               </button>
+
+              <MaximizeButton
+                onClick={() => setIsUsersDirectoryMaximized(true)}
+                title="Maximize Users Directory (Esc to restore)"
+              />
             </div>
           </div>
 
@@ -4275,6 +4181,290 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           </div>
         </div>
+      )}
+
+      {/* PHASE 51 & 47: FULL VIEW / MAXIMIZED INSTITUTIONAL REPORTING LEDGER */}
+      {isReportsOversightMaximized && (
+        <MaximizedViewModal
+          isOpen={isReportsOversightMaximized}
+          onClose={() => setIsReportsOversightMaximized(false)}
+          title="Institutional Regulatory Reporting Ledger"
+          badge="Admin Oversight"
+          subtitle="Comprehensive institutional oversight and regulatory status for all statutory returns filed across Oromia Bank directorates"
+        >
+          <div className="space-y-4">
+            {/* Maximized Toolbar with Search & Filters */}
+            <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex-1 min-w-[280px]">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Filter returns by code, report title, maker, or checker..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Visual Display Toggles inside Maximized View */}
+                <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setOversightVisualView(oversightVisualView === 'CALENDAR' ? 'NONE' : 'CALENDAR')}
+                    className={`min-h-[34px] px-2.5 py-1 text-xs font-bold rounded transition-colors flex items-center gap-1 cursor-pointer touch-manipulation ${
+                      oversightVisualView === 'CALENDAR'
+                        ? 'bg-ob-indigo-600 text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-ob-indigo-600'
+                    }`}
+                    title="Toggle Regulatory Calendar visual timeline map"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Calendar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOversightVisualView(oversightVisualView === 'HEATMAP' ? 'NONE' : 'HEATMAP')}
+                    className={`min-h-[34px] px-2.5 py-1 text-xs font-bold rounded transition-colors flex items-center gap-1 cursor-pointer touch-manipulation ${
+                      oversightVisualView === 'HEATMAP'
+                        ? 'bg-rose-600 text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-rose-600'
+                    }`}
+                    title="Toggle Data Quality Heatmap visual distribution map"
+                  >
+                    <Flame className="w-3.5 h-3.5" />
+                    <span>Heatmap</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOversightVisualView(oversightVisualView === 'ANALYTICS' ? 'NONE' : 'ANALYTICS')}
+                    className={`min-h-[34px] px-2.5 py-1 text-xs font-bold rounded transition-colors flex items-center gap-1 cursor-pointer touch-manipulation ${
+                      oversightVisualView === 'ANALYTICS'
+                        ? 'bg-purple-600 text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-purple-600'
+                    }`}
+                    title="Toggle Regulatory Performance Analytics charts"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>Analytics</span>
+                  </button>
+                </div>
+
+                <select
+                  value={departmentFilter}
+                  onChange={(e) => {
+                    setDepartmentFilter(e.target.value);
+                    setReportsPage(1);
+                  }}
+                  className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer min-h-[36px]"
+                >
+                  <option value="ALL">All Departments</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.name}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setReportsPage(1);
+                  }}
+                  className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-1 focus:ring-ob-indigo-500 cursor-pointer min-h-[36px]"
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="PENDING_CHECKER">Pending Checker</option>
+                  <option value="CORRECTION_REQUIRED">Needs Correction</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="SENT">Delivered to NBE</option>
+                </select>
+
+                <span className="text-xs font-mono font-bold text-ob-indigo-600 dark:text-ob-indigo-400 px-2 py-1 bg-ob-indigo-50 dark:bg-ob-indigo-950 rounded border border-ob-indigo-200 dark:border-ob-indigo-800">
+                  Showing {filteredSubmissions.length} of {submissions.length} Total Filings
+                </span>
+              </div>
+            </div>
+
+            {/* Visual Displays in Full View (Unclipped, fluid responsive scrolling) */}
+            {oversightVisualView === 'CALENDAR' && (
+              <div className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/40 dark:bg-slate-900/40 overflow-y-auto touch-scroll-y">
+                <RegulatoryCalendarCard
+                  currentUser={currentUser}
+                  onInspectSubmission={(sub) => setInspectingSub(sub)}
+                  onViewAllSubmissions={() => setOversightVisualView('NONE')}
+                />
+              </div>
+            )}
+
+            {oversightVisualView === 'HEATMAP' && (
+              <div className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/40 dark:bg-slate-900/40 overflow-y-auto touch-scroll-y">
+                <DataQualityHeatmap
+                  currentUser={currentUser}
+                  onInspectReport={(rk) => {
+                    const sub = submissions.find((s) => s.reportKey === rk);
+                    if (sub) setInspectingSub(sub);
+                  }}
+                  onNavigateToSubmissions={() => setOversightVisualView('NONE')}
+                />
+              </div>
+            )}
+
+            {oversightVisualView === 'ANALYTICS' && (
+              <div className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/40 dark:bg-slate-900/40 overflow-y-auto touch-scroll-y">
+                <ReportingPerformanceAnalytics
+                  currentUser={currentUser}
+                  compact={false}
+                  onViewAllSubmissions={() => setOversightVisualView('NONE')}
+                  onOpenReport={(rk) => {
+                    const sub = submissions.find((s) => s.reportKey === rk);
+                    if (sub) setInspectingSub(sub);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Maximized Table */}
+            <div className="overflow-x-auto min-w-full touch-scroll-x border border-slate-200 dark:border-slate-800 rounded-xl">
+              <table className="min-w-[850px] w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 font-bold sticky top-0 z-10">
+                    <th className="py-3 px-3.5">Return Code</th>
+                    <th className="py-3 px-3.5">Report Title</th>
+                    <th className="py-3 px-3.5">Responsible Department</th>
+                    <th className="py-3 px-3.5">Status</th>
+                    <th className="py-3 px-3.5">Maker Details</th>
+                    <th className="py-3 px-3.5">Checker Details</th>
+                    <th className="py-3 px-3.5 text-right">Oversight Inspector</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {paginatedReports.map((sub) => {
+                    const tpl = templates.find((t) => t.ReturnKey === sub.reportKey);
+                    return (
+                      <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="py-3 px-3.5 font-mono font-bold text-ob-indigo-700 dark:text-ob-indigo-400">
+                          {sub.reportKey}
+                        </td>
+                        <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white max-w-sm">
+                          {tpl?.Title || sub.reportKey}
+                        </td>
+                        <td className="py-3 px-3.5 text-slate-600 dark:text-slate-400">
+                          {sub.department || getDepartmentForReport(sub.reportKey)}
+                        </td>
+                        <td className="py-3 px-3.5">{getStatusBadge(sub.status)}</td>
+                        <td className="py-3 px-3.5">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{sub.makerName}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{sub.makerDepartment || 'Credit Operations'}</div>
+                        </td>
+                        <td className="py-3 px-3.5">
+                          {sub.checkerName ? (
+                            <div>
+                              <div className="font-semibold text-emerald-700 dark:text-emerald-400">{sub.checkerName}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{sub.checkerDepartment || 'Credit Operations'}</div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Awaiting assignment</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setInspectingSub(sub)}
+                            className="min-h-[36px] px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer touch-manipulation"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-ob-indigo-600 dark:text-ob-indigo-400" />
+                            <span>Inspect Return</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination inside Modal */}
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl">
+              <Pagination
+                currentPage={reportsPage}
+                totalItems={filteredSubmissions.length}
+                pageSize={reportsPageSize}
+                onPageChange={setReportsPage}
+                onPageSizeChange={setReportsPageSize}
+                pageSizeOptions={[6, 9, 12, 24]}
+              />
+            </div>
+          </div>
+        </MaximizedViewModal>
+      )}
+
+      {/* PHASE 47: FULL VIEW / MAXIMIZED USERS DIRECTORY */}
+      {isUsersDirectoryMaximized && (
+        <MaximizedViewModal
+          isOpen={isUsersDirectoryMaximized}
+          onClose={() => setIsUsersDirectoryMaximized(false)}
+          title="Oromia Bank Staff Directory & RBAC Governance"
+          badge="Admin Governance"
+          subtitle="Complete administrative directory of active and pending officers across all bank directorates"
+        >
+          <div className="space-y-4">
+            <div className="overflow-x-auto min-w-full touch-scroll-x border border-slate-200 dark:border-slate-800 rounded-xl">
+              <table className="min-w-[750px] w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 font-bold sticky top-0 z-10">
+                    <th className="py-3 px-3.5">Officer & Email</th>
+                    <th className="py-3 px-3.5">Role & Scope</th>
+                    <th className="py-3 px-3.5">Department</th>
+                    <th className="py-3 px-3.5">Employee ID</th>
+                    <th className="py-3 px-3.5">Account Status</th>
+                    <th className="py-3 px-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {users.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white">
+                        <div>{u.name}</div>
+                        <div className="text-[11px] text-slate-500 font-normal">{u.email}</div>
+                      </td>
+                      <td className="py-3 px-3.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-ob-indigo-50 dark:bg-ob-indigo-950 text-ob-indigo-700 dark:text-ob-indigo-300 border border-ob-indigo-200 dark:border-ob-indigo-800">
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300">{u.department}</td>
+                      <td className="py-3 px-3.5 font-mono text-slate-500">{u.employeeId}</td>
+                      <td className="py-3 px-3.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          u.status === 'ACTIVE'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                        }`}>
+                          {u.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleInspectUser(u)}
+                          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-xs transition-colors inline-flex items-center gap-1 cursor-pointer min-h-[36px] touch-manipulation"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-ob-indigo-600" />
+                          <span>View Details</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </MaximizedViewModal>
       )}
     </div>
   );

@@ -52,6 +52,8 @@ import {
 import { departmentService } from '../services/departmentService.ts';
 import type { UserSession } from '../types/regulatory.ts';
 import { DataQualityHeatmap } from './DataQualityHeatmap.tsx';
+import { MaximizedViewModal } from './MaximizedViewModal.tsx';
+import { MaximizeButton } from './MaximizeButton.tsx';
 
 interface ReportingPerformanceAnalyticsProps {
   currentUser: UserSession;
@@ -76,6 +78,7 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
     'VOLUME' | 'ACCEPTANCE' | 'TURNAROUND' | 'AGING' | 'STATUS' | 'DEPARTMENTS' | 'DATA_QUALITY_HEATMAP'
   >('VOLUME');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [departments, setDepartments] = useState(() => departmentService.getAll());
 
   // Subscribe to live submission updates
@@ -866,6 +869,11 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
               >
                 <span>JSON</span>
               </button>
+
+              <MaximizeButton
+                onClick={() => setIsMaximized(true)}
+                title="Maximize Regulatory Performance Analytics (Esc to restore)"
+              />
             </div>
           </div>
         </div>
@@ -1751,6 +1759,158 @@ export const ReportingPerformanceAnalytics: React.FC<ReportingPerformanceAnalyti
           )}
         </div>
       </div>
+
+      {/* PHASE 47: FULL VIEW / MAXIMIZED PERFORMANCE ANALYTICS */}
+      {isMaximized && (
+        <MaximizedViewModal
+          isOpen={isMaximized}
+          onClose={() => setIsMaximized(false)}
+          title="Regulatory Reporting Performance & SLA Compliance Analytics"
+          badge={`Live Analytics (${timeRange}D)`}
+          subtitle="Dual-control verification velocity, statutory SLA compliance rates, and department performance"
+          icon={BarChart3}
+          actions={
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportCsv}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                title="Export compliance dataset to CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportJson}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                title="Export reporting dataset to JSON"
+              >
+                <span>JSON</span>
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-6">
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 rounded-xl p-3">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Acceptance Rate</span>
+                <div className="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1">
+                  {kpis.submissionAcceptanceRate}%
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Approved & Transmitted</div>
+              </div>
+
+              <div className="bg-ob-indigo-50/50 dark:bg-ob-indigo-950/20 border border-ob-indigo-200/80 dark:border-ob-indigo-800/60 rounded-xl p-3">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Avg Turnaround</span>
+                <div className="text-2xl font-bold font-mono text-ob-indigo-700 dark:text-ob-indigo-300 mt-1">
+                  {kpis.avgTurnaroundHours}h
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">SLA Target &le; 24h</div>
+              </div>
+
+              <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/60 rounded-xl p-3">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Pending Review</span>
+                <div className="text-2xl font-bold font-mono text-amber-700 dark:text-amber-400 mt-1">
+                  {kpis.pendingCheckerCount}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Awaiting Checker</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">SLA Compliance</span>
+                <div className="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1">
+                  {kpis.slaComplianceRate}%
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Within 24h Window</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Total Volume</span>
+                <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1">
+                  {kpis.totalSubmissions30d}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">{kpis.totalDepartmentsReporting} Depts</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">NBE Delivered</span>
+                <div className="text-2xl font-bold font-mono text-purple-700 dark:text-purple-400 mt-1">
+                  {kpis.transmittedCount}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">{kpis.nbeTransmissionRate}% Transmitted</div>
+              </div>
+            </div>
+
+            {/* Maximized Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Daily Volume Trend */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-2">Daily Submission Volume Trend</h4>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data.dailyTrends}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                      <XAxis dataKey="dayLabel" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="createdCount" stroke="#1d4ed8" fill="#3b82f6" fillOpacity={0.2} name="Submissions" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Status Distribution */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-2">Statutory Pipeline Status</h4>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.statusDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#4f46e5" radius={[4, 4, 0, 0]} name="Submissions" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Department Breakdown Table in Full View */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-3">Department Performance & SLA Breakdown</h4>
+              <div className="overflow-x-auto touch-scroll-x">
+                <table className="w-full text-left text-xs min-w-[700px]">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 text-[11px] font-semibold">
+                      <th className="py-2.5 px-3">Department</th>
+                      <th className="py-2.5 px-3 text-center">Total Returns</th>
+                      <th className="py-2.5 px-3 text-center">Approved</th>
+                      <th className="py-2.5 px-3 text-center">Pending Review</th>
+                      <th className="py-2.5 px-3 text-center">Avg Turnaround</th>
+                      <th className="py-2.5 px-3 text-right">SLA Compliance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    {data.departmentPerformance.map((dept) => (
+                      <tr key={dept.department} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">{dept.department}</td>
+                        <td className="py-2.5 px-3 text-center font-mono">{dept.totalSubmissions}</td>
+                        <td className="py-2.5 px-3 text-center font-mono text-emerald-600">{dept.approvedCount}</td>
+                        <td className="py-2.5 px-3 text-center font-mono text-amber-600">{dept.pendingCount}</td>
+                        <td className="py-2.5 px-3 text-center font-mono">{dept.avgTurnaroundHours}h</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600">{dept.complianceRate}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </MaximizedViewModal>
+      )}
     </div>
   );
 };

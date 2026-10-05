@@ -170,6 +170,7 @@ export interface ReportSubmission {
   dataSnapshot?: Record<string, string | number>;
   dynamicRowsSnapshot?: Record<number, DynamicRowRecord[]>;
   historicalSnapshots?: SubmissionSnapshot[];
+  snapshots?: SubmissionSnapshot[];
   structuralHash?: string;
   integrityHash?: string;
   revisionHistory?: Array<{
@@ -449,6 +450,8 @@ export interface AuditFinding {
   regulatoryReference?: string;
   affectedField?: string;
   financialVariance?: number;
+  financialVarianceETB?: number;
+  tamperHash?: string;
   auditorId: string;
   auditorName: string;
   createdAt: string;
@@ -531,4 +534,114 @@ export interface AuditWorkQueueItem {
   pendingRemediations: number;
   updatedAt: string;
 }
+
+export interface AuditorPerformanceMetrics {
+  totalSubmissions: number;
+  pendingCorrections: number;
+  approvedToday: number;
+  avgProcessingTimeHours: number;
+  avgProcessingTimeFormatted: string;
+  sentToNbeCount: number;
+  pendingCheckerCount: number;
+  draftCount: number;
+  slaComplianceRate: number;
+}
+
+export type AnomalyPatternType =
+  | 'STATISTICAL_VARIANCE_SPIKE'
+  | 'OFF_HOURS_SUBMISSION'
+  | 'RAPID_VERSION_CHURN'
+  | 'CROSS_SCHEDULE_IMBALANCE'
+  | 'PROVISION_COVERAGE_DROP'
+  | 'SLA_BOTTLENECK'
+  | 'SUDDEN_VALUE_CHANGE'
+  | 'UNUSUAL_SIGN_REVERSAL'
+  | 'UNEXPECTED_ZERO_OR_BLANK'
+  | 'REGULATORY_RATIO_OUT_OF_BOUNDS'
+  | 'REPEATED_CORRECTION_CYCLES'
+  | 'SUBMISSION_TIMING_ANOMALY'
+  | 'DUPLICATE_SIGNATURE'
+  | 'UNEXPECTED_DEPARTMENT_REPORT'
+  | 'CALCULATED_VS_REPORTED_VARIANCE'
+  | 'NBE_REJECTION_PATTERN';
+
+export type AnomalyStatus = 'ACTIVE' | 'INVESTIGATING' | 'CONVERTED_TO_FINDING' | 'DISMISSED';
+
+export interface RegulatoryAnomalyItem {
+  id: string;
+  submissionId: string;
+  reportKey: string;
+  reportTitle: string;
+  department: string;
+  severity: AuditFindingSeverity;
+  patternType: AnomalyPatternType;
+  patternLabel: string;
+  title: string;
+  description: string;
+  explanation?: string;
+  ruleCode?: string;
+  evidenceRef?: string;
+  affectedField: string;
+  expectedRange: string;
+  observedValue: string;
+  deviationScore: string;
+  confidencePct: number;
+  detectedAt: string;
+  status: AnomalyStatus;
+  linkedFindingId?: string;
+}
+
+export type AuditorExportFormat = 'CSV' | 'XLSX' | 'PDF' | 'JSON' | 'XML';
+
+export type AuditorExportScope =
+  | 'WORK_QUEUE'
+  | 'FINDINGS'
+  | 'ANOMALY_FEED'
+  | 'PERFORMANCE_KPIS'
+  | 'EVIDENCE_VAULT'
+  | 'REMEDIATIONS'
+  | 'FULL_AUDIT_DOSSIER';
+
+export interface BatchSubmissionItemResult {
+  submissionId: string;
+  reportKey: string;
+  previousStatus: SubmissionStatus;
+  newStatus: SubmissionStatus;
+  success: boolean;
+  nbeReceiptNumber?: string;
+  nbeReferenceNumber?: string;
+  error?: string;
+}
+
+export interface BatchSubmissionResult {
+  batchId: string;
+  actionType: 'BATCH_SUBMIT_TO_CHECKER' | 'BATCH_SUBMIT_TO_NBE';
+  actorId: string;
+  actorName: string;
+  actorRole: string;
+  bulkComment: string;
+  timestamp: string;
+  totalRequested: number;
+  totalProcessed?: number;
+  succeededCount: number;
+  failedCount: number;
+  success?: boolean;
+  results: BatchSubmissionItemResult[];
+  updatedSubmissions: ReportSubmission[];
+}
+
+export interface EligibleCheckerSummary {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  employeeId: string;
+  status: string;
+  isAvailable: boolean;
+  authorizationReason: string;
+  authorizedVia?: string;
+  specialAccessGrant?: SpecialAccessGrant;
+}
+
+
 

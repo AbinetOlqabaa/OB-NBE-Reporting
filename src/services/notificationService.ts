@@ -346,7 +346,7 @@ class NotificationService extends BrowserSafeEventEmitter {
     };
   }
 
-  public markAsRead(id: string): boolean {
+  public markAsRead(id: string, _user?: any): boolean {
     const n = this.notifications.find((item) => item.id === id);
     if (n) {
       n.isRead = true;
@@ -355,6 +355,30 @@ class NotificationService extends BrowserSafeEventEmitter {
       return true;
     }
     return false;
+  }
+
+  public markAllAsRead(user?: {
+    id?: string;
+    email?: string;
+    role?: string;
+    department?: string;
+    allowedReportKeys?: string[];
+  }): number {
+    if (user) {
+      return this.markAllAsReadForUser(user);
+    }
+    let count = 0;
+    this.notifications.forEach((n) => {
+      if (!n.isRead) {
+        n.isRead = true;
+        count++;
+      }
+    });
+    if (count > 0) {
+      this.persist();
+      this.emit('notifications_updated', this.notifications);
+    }
+    return count;
   }
 
   public markAllAsReadForUser(user: {

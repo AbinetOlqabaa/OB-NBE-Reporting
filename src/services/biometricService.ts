@@ -80,6 +80,13 @@ export class BiometricServiceClass {
   // In-memory credential registry (SSOT for Phase 10 normalized credentials)
   private credentials: Map<string, BiometricCredentialRecord> = new Map();
 
+  // Persistence provider hook for server/test database saving
+  private persistenceProvider?: {
+    load: () => Array<[string, BiometricCredentialRecord]> | null;
+    save: (records: Array<[string, BiometricCredentialRecord]>) => void;
+    clear: () => void;
+  };
+
   // Active challenges registry
   private challenges: Map<string, BiometricChallenge> = new Map();
 
@@ -103,6 +110,7 @@ export class BiometricServiceClass {
   constructor() {
     // Initial data migration from existing seed/user accounts
     this.migrateLegacyCredentials();
+    this.loadPersistedCredentials();
 
     // Hook up seed reset listener
     userService.onSeedReset(() => this.resetDevelopmentSeedData());
@@ -116,6 +124,55 @@ export class BiometricServiceClass {
     }
   }
 
+  public setPersistenceProvider(provider: {
+    load: () => Array<[string, BiometricCredentialRecord]> | null;
+    save: (records: Array<[string, BiometricCredentialRecord]>) => void;
+    clear?: () => void;
+  }): void {
+    this.persistenceProvider = {
+      ...provider,
+      clear: provider.clear || (() => {}),
+    };
+    try {
+      const loaded = this.persistenceProvider.load();
+      if (loaded && Array.isArray(loaded) && loaded.length > 0) {
+        loaded.forEach(([k, cred]) => {
+          this.credentials.set(k, cred);
+        });
+      }
+    } catch {}
+  }
+
+  private persist(): void {
+    const entries = Array.from(this.credentials.entries());
+    if (this.persistenceProvider) {
+      try {
+        this.persistenceProvider.save(entries);
+      } catch {}
+    }
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('ob_biometrics_db', JSON.stringify(entries));
+      } catch {}
+    }
+  }
+
+  private loadPersistedCredentials(): void {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('ob_biometrics_db');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.forEach(([k, cred]: [string, BiometricCredentialRecord]) => {
+              this.credentials.set(k, cred);
+            });
+          }
+        }
+      } catch {}
+    }
+  }
+
   /**
    * Resets all credentials, challenges, reset tokens, and rate limits.
    */
@@ -124,6 +181,17 @@ export class BiometricServiceClass {
     this.challenges.clear();
     this.resetTokens.clear();
     this.rateLimits.clear();
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('ob_biometrics_db');
+      } catch {}
+    }
+    if (this.persistenceProvider) {
+      try {
+        this.persistenceProvider.clear();
+      } catch {}
+    }
+    this.persist();
   }
 
   // =========================================================================
@@ -526,8 +594,8 @@ export class BiometricServiceClass {
       return { success: false, message: 'User account not found for biometric enrollment.' };
     }
 
-    if (user.status !== 'ACTIVE') {
-      return { success: false, message: 'Only active authorized accounts may enroll biometric passkeys.' };
+    if (user.status !== 'ACTIVE' && user.status !== 'PENDING_APPROVAL') {
+      return { success: false, message: 'Only active or newly registered accounts may enroll biometric passkeys.' };
     }
 
     // Verify challenge
@@ -595,6 +663,7 @@ export class BiometricServiceClass {
     };
 
     this.credentials.set(recordKey, newRecord);
+    this.persist();
 
     // Keep userService synchronized for backward-compatibility
     userService.registerBiometric(norm, {
@@ -907,8 +976,8 @@ export class BiometricServiceClass {
       return { success: false, message: 'User account not found for face enrollment.' };
     }
 
-    if (user.status !== 'ACTIVE') {
-      return { success: false, message: 'Only active authorized accounts may enroll Face ID biometrics.' };
+    if (user.status !== 'ACTIVE' && user.status !== 'PENDING_APPROVAL') {
+      return { success: false, message: 'Only active or newly registered accounts may enroll Face ID biometrics.' };
     }
 
     // Verify challenge
@@ -994,6 +1063,7 @@ export class BiometricServiceClass {
     };
 
     this.credentials.set(recordKey, newRecord);
+    this.persist();
 
     // Keep userService synchronized
     userService.registerBiometric(norm, {

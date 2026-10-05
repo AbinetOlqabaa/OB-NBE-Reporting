@@ -347,6 +347,21 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         employeeId: payload.employeeId,
       });
 
+      // Synchronize client-side userService so local components immediately recognize the new registrant
+      if (!userService.getByEmail(normEmail)) {
+        userService.register({
+          name: payload.name,
+          email: normEmail,
+          password: payload.password,
+          role: payload.role,
+          department: payload.department,
+          employeeId: payload.employeeId,
+          phoneNumber: payload.phoneNumber,
+          auditorJustification: payload.auditorJustification,
+          auditScope: payload.auditScope,
+        });
+      }
+
       vibrate([25, 45, 30]);
       haptics.success();
 
@@ -1001,7 +1016,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
               userEmail={email}
               userRole={role}
               initialMethod={
-                hardwareCapabilities?.canRegisterFace && !hardwareCapabilities?.canRegisterFingerprint
+                !enrolledMethods.includes('FACE') && hardwareCapabilities?.canRegisterFace && enrolledMethods.includes('FINGERPRINT')
+                  ? 'FACE'
+                  : !enrolledMethods.includes('FINGERPRINT') && hardwareCapabilities?.canRegisterFingerprint && enrolledMethods.includes('FACE')
+                  ? 'FINGERPRINT'
+                  : hardwareCapabilities?.canRegisterFace && !hardwareCapabilities?.canRegisterFingerprint
                   ? 'FACE'
                   : 'FINGERPRINT'
               }

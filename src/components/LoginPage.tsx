@@ -146,6 +146,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   useEffect(() => {
     if (!isBioPrefEnabled) return;
 
+    // 0. Check if user is remembered via persistent session requiring biometric unlock (Phase 29 Req 10)
+    try {
+      const rememberedBio = sessionStorage.getItem('ob_remembered_biometric_user');
+      if (rememberedBio) {
+        const u = JSON.parse(rememberedBio);
+        if (u?.email) {
+          setEmail(u.email);
+          setRememberMe(true);
+          setBiometricNotice(
+            `Welcome back, ${u.name}! Your persistent session is active on this device. Touch your fingerprint sensor or scan with your camera to unlock.`
+          );
+          if (hasAnyBiometric) {
+            setBiometricModalMode('AUTHENTICATE');
+            setSelectedBiometricMethod(isCameraSupported && !isFingerprintSupported ? 'FACE' : 'FINGERPRINT');
+            setIsBiometricModalOpen(true);
+          }
+          return;
+        }
+      }
+    } catch {}
+
     // 1. Check if user just completed password reset
     const resetEmail = localStorage.getItem('ob_prompt_biometric_after_reset');
     if (resetEmail) {
@@ -246,27 +267,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     // Authenticate user session
     if (biometricModalMode === 'AUTHENTICATE') {
+      const targetEmail = targetUser?.email || email.trim();
       const stored = localStorage.getItem('ob_logged_in_user');
       if (stored) {
         try {
           const loggedUser = JSON.parse(stored);
-          triggerHaptic('success');
-          const roleTabMap: Record<string, string> = {
-            ADMIN: 'ADMIN_DASHBOARD',
-            MAKER: 'MAKER_WORKSPACE',
-            CHECKER: 'CHECKER_INBOX',
-            AUDITOR: 'AUDITOR_DASHBOARD',
-          };
-          const redirectTab = loggedUser.redirectTab || roleTabMap[loggedUser.role] || 'MAKER_WORKSPACE';
-          onLoginSuccess(loggedUser, redirectTab);
-          return;
+          if (loggedUser && (!targetEmail || loggedUser.email?.toLowerCase() === targetEmail.toLowerCase())) {
+            triggerHaptic('success');
+            const roleTabMap: Record<string, string> = {
+              ADMIN: 'ADMIN_DASHBOARD',
+              MAKER: 'MAKER_WORKSPACE',
+              CHECKER: 'CHECKER_INBOX',
+              AUDITOR: 'AUDITOR_DASHBOARD',
+            };
+            const redirectTab = loggedUser.redirectTab || roleTabMap[loggedUser.role] || 'MAKER_WORKSPACE';
+            onLoginSuccess(loggedUser, redirectTab, rememberMe);
+            return;
+          }
         } catch {}
       }
-      const targetEmail = targetUser?.email || email.trim();
-      const result = await login(targetEmail, method, faceData);
+      const result = await login(targetEmail, method, faceData, rememberMe);
       if (result.success && result.user) {
         triggerHaptic('success');
-        onLoginSuccess(result.user, result.redirectTab);
+        onLoginSuccess(result.user, result.redirectTab, rememberMe);
       } else if (result.error) {
         setErrorMessage(result.error);
       }
@@ -565,6 +588,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               userEmail={resolvedTargetEmail || currentTargetUser?.email || email}
               userRole={currentTargetUser?.role || 'MAKER'}
               initialMethod={selectedBiometricMethod}
+              rememberMe={rememberMe}
               onSuccess={handleBiometricModalSuccess}
               onCancel={() => setIsBiometricModalOpen(false)}
             />

@@ -290,14 +290,69 @@ export const DEV_SEED_USERS: UserAccount[] = [
 class UserServiceClass {
   private users: Map<string, UserAccount> = new Map();
   private otps: Map<string, OtpRecord> = new Map();
+  private persistenceProvider?: {
+    load: () => UserAccount[] | null;
+    save: (users: UserAccount[]) => void;
+    clear: () => void;
+  };
 
   constructor() {
     this.seedUsers();
+    this.loadPersistedUsers();
     try {
       configService.onDepartmentRename((oldName, newName) => {
         this.renameDepartment(oldName, newName);
       });
     } catch (_) {}
+  }
+
+  public setPersistenceProvider(provider: {
+    load: () => UserAccount[] | null;
+    save: (users: UserAccount[]) => void;
+    clear?: () => void;
+  }): void {
+    this.persistenceProvider = {
+      ...provider,
+      clear: provider.clear || (() => {}),
+    };
+    try {
+      const loaded = this.persistenceProvider.load();
+      if (loaded && Array.isArray(loaded) && loaded.length > 0) {
+        loaded.forEach((u) => {
+          this.users.set(u.id, u);
+        });
+      }
+    } catch {}
+  }
+
+  private persist(): void {
+    const allUsers = Array.from(this.users.values());
+    if (this.persistenceProvider) {
+      try {
+        this.persistenceProvider.save(allUsers);
+      } catch {}
+    }
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('ob_users_db', JSON.stringify(allUsers));
+      } catch {}
+    }
+  }
+
+  private loadPersistedUsers(): void {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('ob_users_db');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.forEach((u: UserAccount) => {
+              this.users.set(u.id, u);
+            });
+          }
+        }
+      } catch {}
+    }
   }
 
   private seedUsers(): void {
@@ -326,6 +381,17 @@ class UserServiceClass {
     this.users.clear();
     this.seedUsers();
     sessionService.resetSessions();
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('ob_users_db');
+      } catch {}
+    }
+    if (this.persistenceProvider) {
+      try {
+        this.persistenceProvider.clear();
+      } catch {}
+    }
+    this.persist();
     this.resetListeners.forEach((cb) => {
       try { cb(); } catch {}
     });
@@ -425,6 +491,21 @@ class UserServiceClass {
     };
 
     this.users.set(newId, newUser);
+    this.persist();
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'USER_CHANGED',
+        action: 'CREATE',
+        domain: 'USER',
+        entityId: newUser.id,
+        topic: 'ADMIN:CONFIG',
+        actor: { id: newUser.id, name: newUser.name, role: newUser.role },
+        summary: `User registration submitted for ${newUser.name} (${newUser.email}) [${newUser.role}] - Pending Approval`,
+        payload: { userId: newUser.id, email: newUser.email, role: newUser.role, department: newUser.department, status: newUser.status },
+      });
+    } catch (_) {}
+
     const { password, ...safe } = newUser;
     return {
       success: true,
@@ -607,6 +688,7 @@ class UserServiceClass {
     }
 
     user.password = newPassword;
+    this.persist();
     sessionService.revokeAllUserSessions(normEmail, 'PASSWORD_CHANGED');
     const { password: pw, ...safe } = user;
     return {
@@ -644,6 +726,20 @@ class UserServiceClass {
       );
     }
     user.biometricCredentials.push(credential);
+    this.persist();
+
+    try {
+      realtimeSsotEngine.publishEvent({
+        eventType: 'USER_CHANGED',
+        action: 'UPDATE',
+        domain: 'USER',
+        entityId: user.id,
+        topic: `USER:${user.id}`,
+        actor: { id: user.id, name: user.name, role: user.role },
+        summary: `Biometric credential enrolled for ${user.email} (${credential.type})`,
+        payload: { userId: user.id, email: user.email, biometricType: credential.type },
+      });
+    } catch (_) {}
 
     const { password: pw, ...safe } = user;
     return {
@@ -793,6 +889,7 @@ class UserServiceClass {
       sessionService.revokeAllUserSessions(user.email, 'ACCOUNT_DISABLED');
     }
     effectiveAccessEngine.invalidateUser(userId);
+    this.persist();
 
     const { password, ...safe } = user;
 
@@ -810,6 +907,15 @@ class UserServiceClass {
     } catch (_) {}
 
     return { success: true, user: safe as UserAccount };
+  }
+
+  public updateStatus(
+    userId: string,
+    status: UserStatus,
+    adminId?: string,
+    adminName?: string
+  ): { success: boolean; user?: UserAccount; message?: string } {
+    return this.updateUserStatus(userId, status, adminName || adminId || 'Administrator');
   }
 
   public authorizeUser(
@@ -874,6 +980,7 @@ class UserServiceClass {
     };
 
     this.users.set(id, newUser);
+    this.persist();
 
     const { password, ...safe } = newUser;
 
@@ -962,6 +1069,7 @@ class UserServiceClass {
 
     const { password, ...safe } = user;
     effectiveAccessEngine.invalidateUser(user.id);
+    this.persist();
 
     auditService.log({
       actorId: 'usr_admin',
@@ -1051,6 +1159,7 @@ class UserServiceClass {
     const targetUser = this.users.get(userId);
     this.users.delete(userId);
     effectiveAccessEngine.invalidateUser(userId);
+    this.persist();
 
     auditService.log({
       actorId: 'usr_admin',
@@ -1186,6 +1295,7 @@ class UserServiceClass {
       ? `report ${grantData.reportKey}`
       : `department(s) ${targetDepts.join(', ')}`;
 
+    this.persist();
     try {
       realtimeSsotEngine.publishEvent({
         eventType: 'SPECIAL_ACCESS_CHANGED',
@@ -1236,6 +1346,7 @@ class UserServiceClass {
     }
 
     effectiveAccessEngine.onSpecialAccessChange(userId);
+    this.persist();
 
     try {
       realtimeSsotEngine.publishEvent({
@@ -1318,6 +1429,9 @@ class UserServiceClass {
         });
       }
     }
+    if (affected > 0) {
+      this.persist();
+    }
     return affected;
   }
 
@@ -1333,7 +1447,21 @@ class UserServiceClass {
         affected++;
       }
     }
+    if (affected > 0) {
+      this.persist();
+    }
     return affected;
+  }
+
+  /**
+   * Returns active, eligible Checkers for a given return and Maker
+   */
+  public getEligibleCheckersForSubmission(
+    maker: UserSession,
+    reportKey: string,
+    submission?: any
+  ) {
+    return effectiveAccessEngine.getEligibleCheckersForReport(reportKey, maker, submission);
   }
 }
 

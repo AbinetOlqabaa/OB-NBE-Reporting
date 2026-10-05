@@ -1,0 +1,92 @@
+[
+  [
+    "usr_auditor_1791209574420_nhag4_FINGERPRINT_http_cred_1791209574444",
+    {
+      "id": "bio_fp_wp3lnxsu",
+      "userId": "usr_auditor_1791209574420_nhag4",
+      "email": "http_reg_1791209574324@oromiabank.com",
+      "institutionCode": "0000013",
+      "type": "FINGERPRINT",
+      "status": "ENROLLED",
+      "credentialId": "http_cred_1791209574444",
+      "counter": 0,
+      "transports": [
+        "internal"
+      ],
+      "deviceLabel": "HTTP Live Test Authenticator",
+      "enrolledAt": "2026-10-05T14:12:54.450Z"
+    }
+  ],
+  [
+    "usr_auditor_1791209589229_r7ean_FINGERPRINT_http_cred_1791209589248",
+    {
+      "id": "bio_fp_nyrc6u1h",
+      "userId": "usr_auditor_1791209589229_r7ean",
+      "email": "http_reg_1791209589142@oromiabank.com",
+      "institutionCode": "0000013",
+      "type": "FINGERPRINT",
+      "status": "ENROLLED",
+      "credentialId": "http_cred_1791209589248",
+      "counter": 0,
+      "transports": [
+        "internal"
+      ],
+      "deviceLabel": "HTTP Live Test Authenticator",
+      "enrolledAt": "2026-10-05T14:13:09.253Z"
+    }
+  ],
+  [
+    "usr_auditor_1791209940100_wp04e_FINGERPRINT_http_cred_1791209940118",
+    {
+      "id": "bio_fp_hai7icdp",
+      "userId": "usr_auditor_1791209940100_wp04e",
+      "email": "http_reg_1791209940096@oromiabank.com",
+      "institutionCode": "0000013",
+      "type": "FINGERPRINT",
+      "status": "ENROLLED",
+      "credentialId": "http_cred_1791209940118",
+      "counter": 0,
+      "transports": [
+        "internal"
+      ],
+      "deviceLabel": "HTTP Live Test Authenticator",
+      "enrolledAt": "2026-10-05T14:19:00.121Z"
+    }
+  ],
+  [
+    "usr_auditor_1791210064842_ao9s0_FINGERPRINT_http_cred_1791210064856",
+    {
+      "id": "bio_fp_2iuzhmsy",
+      "userId": "usr_auditor_1791210064842_ao9s0",
+      "email": "http_reg_1791210064840@oromiabank.com",
+      "institutionCode": "0000013",
+      "type": "FINGERPRINT",
+      "status": "ENROLLED",
+      "credentialId": "http_cred_1791210064856",
+      "counter": 0,
+      "transports": [
+        "internal"
+      ],
+      "deviceLabel": "HTTP Live Test Authenticator",
+      "enrolledAt": "2026-10-05T14:21:04.858Z"
+    }
+  ],
+  [
+    "usr_auditor_1791211838900_ylim5_FINGERPRINT_http_cred_1791211838916",
+    {
+      "id": "bio_fp_uwiwaezu",
+      "userId": "usr_auditor_1791211838900_ylim5",
+      "email": "http_reg_1791211838897@oromiabank.com",
+      "institutionCode": "0000013",
+      "type": "FINGERPRINT",
+      "status": "ENROLLED",
+      "credentialId": "http_cred_1791211838916",
+      "counter": 0,
+      "transports": [
+        "internal"
+      ],
+      "deviceLabel": "HTTP Live Test Authenticator",
+      "enrolledAt": "2026-10-05T14:50:38.919Z"
+    }
+  ]
+]

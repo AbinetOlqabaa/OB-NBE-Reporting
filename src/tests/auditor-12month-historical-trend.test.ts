@@ -79,6 +79,43 @@ export async function runAuditor12MonthHistoricalTrendTests() {
     console.log(`  ✓ Successfully switched metric to: ${customTrend.primaryFieldName} (${secondFieldCode})`);
   }
 
+  // 5. DATE RANGE PICKER & PRESET FILTERING (BEYOND 12 MONTHS)
+  console.log('\n--- 5. Date Range Picker & Custom Window Filtering ---');
+  const trend3M = auditorService.getHistoricalTrend('ANARN001', { monthsCount: 3 });
+  assert(trend3M.months.length === 3, `3M filter returns 3 months (got ${trend3M.months.length})`);
+  console.log('  ✓ 3-Month filter verified.');
+
+  const trend6M = auditorService.getHistoricalTrend('ANARN001', { monthsCount: 6 });
+  assert(trend6M.months.length === 6, `6M filter returns 6 months (got ${trend6M.months.length})`);
+  console.log('  ✓ 6-Month filter verified.');
+
+  const trend24M = auditorService.getHistoricalTrend('ANARN001', { monthsCount: 24 });
+  assert(trend24M.months.length === 24, `24M filter returns 24 months (got ${trend24M.months.length})`);
+  console.log('  ✓ 24-Month filter verified.');
+
+  const trendCustom = auditorService.getHistoricalTrend('ANARN001', {
+    startDate: '2025-01-01',
+    endDate: '2025-08-31',
+  });
+  assert(trendCustom.months.length >= 1, 'Custom date range returns filtered months');
+  console.log(`  ✓ Custom date range filtering verified (${trendCustom.months.length} months returned).`);
+
+  // 6. CSV EXPORT FOR OFFLINE REGULATORY ANALYSIS
+  console.log('\n--- 6. Verification of CSV Export for Offline Regulatory Analysis ---');
+  const csvOutput = auditorService.generateCsvExport(trend, 'Senior Auditor Tester');
+  assert(typeof csvOutput === 'string' && csvOutput.length > 0, 'CSV export generates string content.');
+  assert(csvOutput.includes('OFFLINE REGULATORY ANALYSIS & HISTORICAL SUBMISSION TREND EXPORT'), 'Header title found in CSV.');
+  assert(csvOutput.includes('Report Key,"ANARN001"'), 'Return Key metadata present in CSV.');
+  assert(csvOutput.includes('Auditor Export Actor,"Senior Auditor Tester"'), 'Exporter audit actor metadata present.');
+  assert(csvOutput.includes('Period Key,Month Label,Cutoff Date,Primary Statutory Value (ETB)'), 'Column headers present in CSV.');
+  
+  // Verify rows match monthly data
+  trend.months.forEach((m) => {
+    assert(csvOutput.includes(m.period), `CSV includes period row for ${m.period}`);
+    assert(csvOutput.includes(m.status), `CSV includes status ${m.status}`);
+  });
+  console.log('  ✓ CSV structure, metadata headers, statistical summary, and data row integrity verified.');
+
   console.log('\n========================================================================');
   console.log('✅ ALL AUDITOR 12-MONTH HISTORICAL TREND ACCEPTANCE GATES SATISFIED (100% PASS)');
   console.log('========================================================================\n');

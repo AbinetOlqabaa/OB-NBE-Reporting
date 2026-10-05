@@ -14,6 +14,7 @@
 
 | Module | Core Files | Status | Test Coverage |
 |---|---|---|---|
+| **Phase 47 Dashboard Component Visibility, Responsive Layout & Full-Page Viewing Audit** | `src/components/MaximizedViewModal.tsx`, `src/components/MaximizeButton.tsx`, `src/components/Navbar.tsx`, `src/components/DynamicReportForm.tsx`, `src/components/AdminDashboard.tsx`, `src/components/MakerWorkspace.tsx`, `src/components/CheckerInbox.tsx`, `src/components/AuditorDashboard.tsx`, `src/components/MakerLibraryView.tsx`, `src/components/AuditTrailView.tsx`, `src/components/DynamicAreaTable.tsx`, `src/components/HistoricalSubmissionTrendChart.tsx`, `src/components/ReportingPerformanceAnalytics.tsx`, `src/components/NbeSimulatorView.tsx`, `src/tests/phase47-dashboard-component-visibility-responsive-viewing-audit.test.ts`, `OB_Phase_47_Dashboard_Component_Visibility_Responsive_Viewing_Audit/47_DASHBOARD_COMPONENT_VISIBILITY_RESPONSIVE_FULL_VIEW_AUDIT_REPORT.md` | COMPLETED & VERIFIED | 100% pass across all 7 verification sections (75+ assertions): Section 1 (Top Navbar microsecond indicator and NBE text removal verified, authentic OB brand preserved); Section 2 (Maker report creation "Help" button label verified with 4-part validation retention); Section 3 (Reusable MaximizedViewModal and MaximizeButton verified across 9 candidate views); Section 4 (Modal keyboard Escape key handlers verified in all modals); Section 5 (Page-boundary contract, overflow-x-hidden, and contained scrolling verified with regulatory min-widths); Section 6 (9 representative viewports from 320px to 1920px verified); Section 7 (RBAC, SSOT, notification, and simulator regression verification clean). |
 | **Phase 37 Cross-Phase Integration, Security, Regression & Acceptance** | `src/tests/phase37-cross-phase-integration-security-regression-and-acceptance.test.ts`, `37_CROSS_PHASE_INTEGRATION_SECURITY_REGRESSION_AND_ACCEPTANCE.md`, `src/services/nbeReportPackageNormalizer.ts`, `src/services/nbeEndpointRegistry.ts`, `src/services/templateInitializationService.ts`, `src/services/submissionService.ts`, `src/services/effectiveAccessEngine.ts`, `src/services/notificationService.ts`, `src/services/configService.ts`, `src/App.tsx`, `server.ts` | COMPLETED & VERIFIED | 100% pass across all 6 End-to-End Scenarios, complete Security Regression Matrix, and sub-millisecond Performance Benchmarks (70+ assertions): Scenario 1 (Admin import to usable Maker report lifecycle with schema normalization and zero sample leakage); Scenario 2 (Maker definition immutability blocking title, code, formula, and endpoint modification); Scenario 3 (Checker eligibility, assignment, and isolated notifications); Scenario 4 (Single-role dashboard isolation and tamper redirection); Scenario 5 (Empty-template neutral initialization and 4-part validation); Scenario 6 (Historical snapshot preservation across version bumps); Security Matrix (attack surface defense for role, department, forged ID, optimistic locking, duplicate review, and self-approval); Performance Benchmarks (<50ms import, <30ms schema, <25ms draft, <30ms validation, <15ms notification, <10ms simulator, <25ms library, <5ms route auth). |
 | **Phase 36 Maker-Selected Checker Assignment & Notification Workflow** | `src/components/CheckerSelector.tsx`, `src/services/effectiveAccessEngine.ts`, `src/services/submissionService.ts`, `src/services/notificationService.ts`, `src/types/regulatory.ts`, `server.ts`, `src/components/DynamicReportForm.tsx`, `src/components/MakerLibraryView.tsx`, `src/App.tsx`, `src/tests/phase36-maker-selected-checker-assignment-and-notification-workflow.test.ts`, `36_MAKER_SELECTED_CHECKER_ASSIGNMENT_AND_NOTIFICATION_WORKFLOW.md` | COMPLETED & VERIFIED | 100% pass across all 15 test gates (50+ assertions): Gate 1 (Same-department Checker filtering); Gate 2 (Inactive & disabled Checkers excluded); Gate 3 (Cross-department Checkers excluded without grant); Gate 4 (Maker cannot select self / segregation of duties); Gate 5 (Forged/tampered Checker IDs strictly rejected); Gate 6 (Duplicate Checker selection prevented); Gate 7 (Single & multiple Checker selection and ReviewerAssignment workflow record persistence with clear primary reviewer concept); Gate 8 (Authoritative smart notifications dispatched to all assigned Checkers with cross-department leakage shielding); Gate 9 (Unauthorized review action blocked when specific reviewers are designated); Gate 10 (Checker accept/open review lifecycle transition to ACCEPTED with Maker notification); Gate 11 (Authoritative review decision with instant Maker outcome notification); Gate 12 (Concurrency & conflicting reviewer actions safely prevented by authoritative workflow state); Gate 13 (Correction request workflow and Maker notification); Gate 14 (Special Access reviewer eligibility and assignment); Gate 15 (Immutable audit trail logging for assignment, review, and notification dispatch). |
 | **Phase 35 Role-Locked Dashboards & Notification-Centered Navigation** | `src/components/Navbar.tsx`, `src/components/NotificationCenter.tsx`, `src/services/notificationService.ts`, `server.ts`, `src/App.tsx`, `src/components/Sidebar.tsx`, `src/components/BottomNavigation.tsx`, `src/components/MobileBottomNav.tsx`, `src/components/CommandPaletteModal.tsx`, `src/hooks/useSwipeGesture.ts`, `src/tests/phase35-role-locked-dashboards-and-notification-navigation.test.ts`, `35_ROLE_LOCKED_DASHBOARDS_AND_NOTIFICATION_NAVIGATION.md` | COMPLETED & VERIFIED | 100% pass across all 9 gates (40+ assertions): Gate 1 (Single-role locked dashboard access model: ADMIN → Admin Dashboard only; MAKER → Maker Workspace only; CHECKER → Checker Inbox only; AUDITOR → Auditor Dashboard only); Gate 2 (Direct route access, URL query tampering, hash manipulation, and browser popstate history strictly rejected & redirected to authorized dashboard); Gate 3 (Navbar dashboard-switching dropdown control eliminated and replaced by authoritative read-only role badge); Gate 4 (NBE Simulator completely removed from Maker, Checker, and Auditor dashboards; retained strictly in Administrator dashboard); Gate 5 (Notification bell icon renders in authenticated navbar with live unread badge count, opening accessible Notification Center dialog with read/unread toggle and mark-all-read); Gate 6 (Server-side permission-filtered notifications grouped by WORKFLOW, GOVERNANCE, SECURITY, SYSTEM); Gate 7 (Cross-department notification leakage strictly prevented under NBE BSD/03/2020); Gate 8 (Maker navbar has the two specified unimportant icons beside OB logo removed while preserving required navigation & accessibility controls); Gate 9 (Desktop, tablet, and mobile navigation role-locked and touch accessible with >=44px touch targets). |
@@ -849,6 +850,49 @@ Phase 1 of the visual design system and color standardization cycle has been com
   - `GET /api/nbe-simulator/reports/:key/payload` (Generates dynamic template payload)
   - `POST /api/nbe-simulator/reports/:key/transmit` (Executes simulated report submission and generates digital receipt)
   - `GET /api/config/nbe-endpoints` & `GET /api/config/nbe-auth-profiles`
+
+### Phase 47: Dashboard Component Visibility, Contained Scrolling & Full-View Audit
+- **Status**: VERIFIED & ACCEPTED
+- **Page-Boundary Contract**: Eliminated rigid root `overflow-hidden` height-locks; enabled natural parent page scrolling on `<main>` with contained child overflow.
+- **Contained Scrolling**: Wide multi-column tables wrapped in `overflow-x-auto min-w-[850px] touch-scroll-x`.
+- **Maximized View Architecture**: Reusable `MaximizedViewModal` and `MaximizeButton` components integrated across dense tables, heatmaps, and analytics.
+- **Bottom Cutoff Resolution**: Removed clipping `overflow-hidden` from `REPORTS_OVERSIGHT` and `SPECIAL_ACCESS` containers in `AdminDashboard`; added `pb-8` to `DataQualityHeatmap` and `pb-6` to `RegulatoryCalendarCard`.
+- **Responsive Viewports**: All 9 canonical viewports (320×568 up to 1920×1080) verified with >=44px touch targets.
+
+### Phase 48: Auditor Dashboard Executive Metrics & Anomaly Feed
+- **Status**: VERIFIED & ACCEPTED
+- **Executive Metric Cards**: Total Submissions, Pending Corrections, Approved Today, Avg Processing Time, and SLA Compliance Rate.
+- **Anomaly Detection Feed**: Detects statistical spikes, off-hours submissions, version churn, cross-schedule imbalances, and provision coverage drops.
+- **Supervisory Controls**: Anomaly severity filtering (`CRITICAL`, `HIGH`, `MEDIUM`), regulatory explanation citations, evidence reference linkage, and conversion into formal audit findings.
+
+### Phase 49: Auditor Audit Workspace Drilldown & Review Toolkit
+- **Status**: VERIFIED & ACCEPTED
+- **Deep Inspection Shell**: Complete field-level values, validation indicators, historical version comparisons, and revision diffs via `getInspectionData` / `getReportAuditInspection`.
+- **Audit Findings Lifecycle**: Create, edit, and track findings with regulatory references, financial variances (`financialVarianceETB`), and cryptographic tamper hashes (`FINDING-SEAL-...`).
+- **Evidence Vault Integration**: Cryptographic SHA-256 evidence hashing and immutable audit event linkage.
+
+### Phase 50: Auditor Multi-Format Export Center
+- **Status**: VERIFIED & ACCEPTED
+- **Supported Formats**: CSV, XLSX, JSON, PDF, XML.
+- **Security & Integrity**: Spreadsheet formula injection protection (neutralizing `=`, `+`, `-`, `@`), and cryptographic audit packaging (`OB-SEAL-...`).
+- **Scopes & Modes**: Single-record extraction and bulk dossier exports across Work Queue, Findings, Anomaly Feed, Performance KPIs, Evidence, and Remediations.
+
+### Phase 51: Maker Library Bulk Submission to Checker
+- **Status**: VERIFIED & ACCEPTED
+- **Eligibility Governance**: Server-authoritative state checks (`DRAFT`, `IN_PROGRESS`, `RETURNED`); exclusion of locked/approved returns.
+- **Multi-Step Modal Flow**: Selection summary, validation preview, shared audit preparation comment, checker assignment, and explicit confirmation.
+- **Atomic & Partial-Success Semantics**: Row-level outcomes with optimistic concurrency verification (`expectedVersion`).
+
+### Phase 52: Checker Library Bulk Submit to NBE Gateway
+- **Status**: VERIFIED & ACCEPTED
+- **4-Eyes Governance**: Enforces dual-control; makers blocked from direct NBE submission (`SEGREGATION_OF_DUTIES_VIOLATION`).
+- **NBE Transmission Engine**: Leverages canonical `nbeAdapter`, unique batch ID generation (`BATCH_NBE_...`), official digital receipt persistence (`NBE-REC-...`), and delivery snapshot creation.
+- **Row-Level Outcome Reporting**: Downloadable audit reports and real-time SSOT event broadcasting.
+
+### Phase 53: Auditor Feature Matrix, Regression & Acceptance
+- **Status**: VERIFIED & ACCEPTED
+- **Acceptance Gate**: 100% test pass across all 53 phases in `run-all-tests.ts`.
+- **Truthful Hardware Reporting**: Physical optical scanners and FIDO2 keys marked `HARDWARE_PENDING`; Samsung tablet on-glass execution marked `DEVICE-DEPENDENT`; software pipelines, encryption, and layout contracts marked `VERIFIED`.
 
 
 
