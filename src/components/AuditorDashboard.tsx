@@ -347,7 +347,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 <span>FIRST-CLASS AUDITOR DESK</span>
               </span>
               <span className="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">
-                INSTCODE: 0000013 (OROMIA BANK S.C.)
+                OROMIA BANK S.C.
               </span>
               <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
                 <Lock className="w-3 h-3" />
