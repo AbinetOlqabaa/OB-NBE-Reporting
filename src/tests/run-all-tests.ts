@@ -388,6 +388,7 @@ import { runPhase37CrossPhaseIntegrationSecurityRegressionAndAcceptanceTests } f
 import { runReportingPerformanceAnalyticsTests } from './reporting-performance-analytics.test.ts';
 import { runXlsxExportAndDynamicValidationTests } from './xlsx-export-and-dynamic-validation.test.ts';
 import { runDataQualityHeatmapAndRegulatoryCalendarTests } from './data-quality-heatmap-and-regulatory-calendar.test.ts';
+import { runAuditor12MonthHistoricalTrendTests } from './auditor-12month-historical-trend.test.ts';
 
 async function runFullApplicationTestSuite() {
   runRegulatoryCoreTests();
@@ -446,6 +447,7 @@ async function runFullApplicationTestSuite() {
   await runPhase9PlatformHardeningAcceptanceTests();
   await runReportingPerformanceAnalyticsTests();
   await runDataQualityHeatmapAndRegulatoryCalendarTests();
+  await runAuditor12MonthHistoricalTrendTests();
 
   console.log('\n========================================================================');
   console.log('✅ ALL COMPREHENSIVE AUTOMATED TEST SUITES PASSED CLEANLY (100% SUCCESS)');

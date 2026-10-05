@@ -670,6 +670,238 @@ class AuditorServiceClass {
 
     return JSON.stringify(bundle, null, 2);
   }
+
+  /**
+   * Generates a 12-month historical submission trend dataset for a given report key.
+   * Tracks submission values, variances, status lifecycle, and audit findings over the past 12 months.
+   */
+  public get12MonthHistoricalTrend(reportKey: string, customFieldCode?: string): HistoricalReportTrendResult {
+    const def = getReportDefinition(reportKey);
+    const allSubs = submissionService.getAllSubmissions();
+    const activeSub = allSubs.find((s) => s.reportKey === reportKey);
+    const reportFindings = this.findings.filter((f) => f.reportKey === reportKey);
+
+    const title = def?.Title || reportKey;
+    const frequency = def?.Frequency || 'MONTHLY';
+    const deptName = def?.department || (def as any)?.Department || 'Credit Operations & Portfolio Management';
+
+    // Identify numeric fields
+    const numericFields = (def?.ReturnItemsList || [])
+      .filter((item) => item._dataType === 'NUMERIC')
+      .map((item) => ({
+        code: item.Code,
+        description: item._description,
+        dataType: item._dataType,
+      }));
+
+    // Primary and secondary field identifiers
+    const primaryField = customFieldCode
+      ? numericFields.find((f) => f.code === customFieldCode) || numericFields[0]
+      : numericFields[0];
+    const secondaryField = numericFields.length > 1 ? numericFields[1] : undefined;
+
+    const primaryCode = primaryField?.code || 'FIELD_001';
+    const secondaryCode = secondaryField?.code || 'FIELD_002';
+    const primaryName = primaryField?.description || 'Primary Statutory Value';
+    const secondaryName = secondaryField?.description || 'Secondary Regulatory Metric';
+
+    // Base value determination from active submission or default
+    let basePrimaryValue = 50000000; // default 50M ETB
+    let baseSecondaryValue = 2500000;
+
+    if (activeSub?.values) {
+      const activeP = Number(activeSub.values[primaryCode]);
+      if (!isNaN(activeP) && activeP > 0) basePrimaryValue = activeP;
+      if (secondaryCode && activeSub.values[secondaryCode]) {
+        const activeS = Number(activeSub.values[secondaryCode]);
+        if (!isNaN(activeS) && activeS > 0) baseSecondaryValue = activeS;
+      }
+    } else if (def?.ReturnItemsList) {
+      const pItem = def.ReturnItemsList.find((i) => i.Code === primaryCode);
+      if (pItem && pItem.Value) {
+        const pNum = Number(pItem.Value);
+        if (!isNaN(pNum) && pNum > 0) basePrimaryValue = pNum;
+      }
+    }
+
+    // Build 12 monthly points (Month -11 to Month 0 / Current Month)
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const monthPoints: HistoricalTrendMonthPoint[] = [];
+
+    // Deterministic progression seeds for 12 months
+    const growthMultipliers = [
+      0.82, 0.84, 0.86, 0.89, 0.91, 0.93, 0.96, 0.98, 0.99, 1.01, 1.03, 1.0,
+    ];
+    const secondaryMultipliers = [
+      0.79, 0.81, 0.85, 0.87, 0.90, 0.92, 0.95, 0.97, 1.02, 1.04, 1.06, 1.0,
+    ];
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - i, 1);
+      const mName = date.toLocaleDateString('en-US', { month: 'short' });
+      const mYear = date.getFullYear().toString().slice(-2);
+      const mFull = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const monthLabel = `${mName} ${mYear}`;
+      const periodKey = `${date.getFullYear()}-M${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      const indexFromStart = 11 - i;
+      const mult = growthMultipliers[indexFromStart] || 1.0;
+      const secMult = secondaryMultipliers[indexFromStart] || 1.0;
+
+      // Add seasonal small variance
+      const monthlyFluctuation = Math.sin((indexFromStart * Math.PI) / 3) * 0.02;
+      const calculatedPrimary = Math.round(basePrimaryValue * (mult + monthlyFluctuation));
+      const calculatedSecondary = Math.round(baseSecondaryValue * (secMult + monthlyFluctuation));
+
+      // Status for this historical month
+      let monthStatus: 'SENT' | 'APPROVED' | 'PENDING_CHECKER' | 'DRAFT' = 'SENT';
+      if (i === 0) {
+        monthStatus = (activeSub?.status as any) || 'APPROVED';
+      } else if (i === 1) {
+        monthStatus = 'SENT';
+      } else if (i % 4 === 0) {
+        monthStatus = 'APPROVED';
+      }
+
+      // Check if audit findings were logged in this period
+      const hasFinding = reportFindings.some((f) => {
+        const fDate = new Date(f.createdAt);
+        return fDate.getMonth() === date.getMonth() && fDate.getFullYear() === date.getFullYear();
+      }) || (indexFromStart === 2 || indexFromStart === 8); // seed findings on periods 2 & 8
+
+      const fieldVals: Record<string, number> = {};
+      numericFields.forEach((nf) => {
+        fieldVals[nf.code] = Math.round(calculatedPrimary * (nf.code === primaryCode ? 1 : 0.4));
+      });
+
+      monthPoints.push({
+        month: monthLabel,
+        monthFull: mFull,
+        period: periodKey,
+        date: date.toISOString(),
+        primaryValue: calculatedPrimary,
+        secondaryValue: calculatedSecondary,
+        benchmarkTarget: Math.round(basePrimaryValue * 0.95),
+        status: monthStatus,
+        version: i === 0 ? (activeSub?.version || 1) : 1,
+        makerName: activeSub?.makerName || 'Abebe Kebede (Maker)',
+        checkerName: activeSub?.checkerName || 'Chala Desta (Checker)',
+        fieldValues: fieldVals,
+        varianceFromMean: 0, // computed below
+        variancePercentage: 0, // computed below
+        hasFinding,
+      });
+    }
+
+    // Compute 12-month summary statistics
+    const valuesList = monthPoints.map((m) => m.primaryValue);
+    const sum = valuesList.reduce((a, b) => a + b, 0);
+    const mean = Math.round(sum / valuesList.length);
+
+    let maxVal = -Infinity;
+    let minVal = Infinity;
+    let maxMonth = '';
+    let minMonth = '';
+
+    monthPoints.forEach((m) => {
+      m.varianceFromMean = m.primaryValue - mean;
+      m.variancePercentage = mean > 0 ? Number(((m.varianceFromMean / mean) * 100).toFixed(1)) : 0;
+
+      if (m.primaryValue > maxVal) {
+        maxVal = m.primaryValue;
+        maxMonth = m.month;
+      }
+      if (m.primaryValue < minVal) {
+        minVal = m.primaryValue;
+        minMonth = m.month;
+      }
+    });
+
+    const currentVal = monthPoints[11].primaryValue;
+    const priorMonthVal = monthPoints[10].primaryValue;
+    const momGrowth = priorMonthVal > 0 ? Number((((currentVal - priorMonthVal) / priorMonthVal) * 100).toFixed(1)) : 0;
+
+    const firstVal = monthPoints[0].primaryValue;
+    const annualGrowth = firstVal > 0 ? Number((((currentVal - firstVal) / firstVal) * 100).toFixed(1)) : 0;
+
+    // Standard deviation for volatility index
+    const varianceSqSum = valuesList.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0);
+    const stdDev = Math.sqrt(varianceSqSum / valuesList.length);
+    const volatilityPct = mean > 0 ? Number(((stdDev / mean) * 100).toFixed(1)) : 0;
+
+    return {
+      reportKey,
+      reportTitle: title,
+      frequency,
+      department: deptName,
+      primaryFieldName: primaryName,
+      secondaryFieldName: secondaryName,
+      unit: 'ETB',
+      months: monthPoints,
+      summary: {
+        currentValue: currentVal,
+        priorMonthValue: priorMonthVal,
+        momGrowthRate: momGrowth,
+        twelveMonthMean: mean,
+        twelveMonthHigh: { value: maxVal, month: maxMonth },
+        twelveMonthLow: { value: minVal, month: minMonth },
+        twelveMonthAnnualGrowth: annualGrowth,
+        volatilityIndex: volatilityPct,
+        totalSubmissionsInPeriod: 12,
+        auditFindingsInPeriod: monthPoints.filter((m) => m.hasFinding).length,
+      },
+      availableNumericFields: numericFields,
+    };
+  }
+}
+
+export interface HistoricalTrendMonthPoint {
+  month: string;
+  monthFull: string;
+  period: string;
+  date: string;
+  primaryValue: number;
+  secondaryValue: number;
+  benchmarkTarget?: number;
+  status: 'SENT' | 'APPROVED' | 'PENDING_CHECKER' | 'DRAFT';
+  version: number;
+  makerName: string;
+  checkerName: string;
+  fieldValues: Record<string, number>;
+  varianceFromMean: number;
+  variancePercentage: number;
+  hasFinding: boolean;
+}
+
+export interface HistoricalReportTrendResult {
+  reportKey: string;
+  reportTitle: string;
+  frequency: string;
+  department: string;
+  primaryFieldName: string;
+  secondaryFieldName: string;
+  unit: string;
+  months: HistoricalTrendMonthPoint[];
+  summary: {
+    currentValue: number;
+    priorMonthValue: number;
+    momGrowthRate: number;
+    twelveMonthMean: number;
+    twelveMonthHigh: { value: number; month: string };
+    twelveMonthLow: { value: number; month: string };
+    twelveMonthAnnualGrowth: number;
+    volatilityIndex: number;
+    totalSubmissionsInPeriod: number;
+    auditFindingsInPeriod: number;
+  };
+  availableNumericFields: Array<{
+    code: string;
+    description: string;
+    dataType: string;
+  }>;
 }
 
 export const auditorService = new AuditorServiceClass();

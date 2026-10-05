@@ -35,6 +35,7 @@ import {
   AlertOctagon,
   Sparkles,
   ExternalLink,
+  TrendingUp,
 } from 'lucide-react';
 import type {
   UserSession,
@@ -54,10 +55,12 @@ import { DEPARTMENTS } from '../data/organizationHierarchy.ts';
 import { getAllReports, getReportDefinition } from '../data/report-registry.ts';
 import { vibrate, haptics } from '../utils/haptics.ts';
 import { Pagination } from './Pagination.tsx';
+import { HistoricalSubmissionTrendChart } from './HistoricalSubmissionTrendChart.tsx';
 
 type AuditorTab =
   | 'WORK_QUEUE'
   | 'REPORT_AUDIT'
+  | 'HISTORICAL_TRENDS'
   | 'TIMELINE'
   | 'FINDINGS'
   | 'EVIDENCE'
@@ -470,6 +473,7 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
           {[
             { id: 'WORK_QUEUE', label: 'Audit Work Queue', count: workQueue.length, icon: ClipboardCheck },
             { id: 'REPORT_AUDIT', label: 'Report Inspection', count: null, icon: Eye },
+            { id: 'HISTORICAL_TRENDS', label: '12M Historical Trends', count: null, icon: TrendingUp },
             { id: 'TIMELINE', label: 'Workflow Timeline', count: null, icon: History },
             { id: 'FINDINGS', label: 'Audit Findings', count: findings.length, icon: AlertTriangle },
             { id: 'EVIDENCE', label: 'Evidence Vault', count: evidences.length, icon: Upload },
@@ -844,6 +848,24 @@ export const AuditorDashboard: React.FC<AuditorDashboardProps> = ({
                 </div>
               )}
             </div>
+
+            {/* 12-Month Historical Value Trend Line Chart (Embedded in Inspection) */}
+            <HistoricalSubmissionTrendChart
+              currentUser={currentUser}
+              initialReportKey={selectedReportKey}
+              onSelectReportKey={(rk) => setSelectedReportKey(rk)}
+            />
+          </div>
+        )}
+
+        {/* SUB-VIEW: 12-MONTH HISTORICAL VALUE TRENDS */}
+        {activeSubTab === 'HISTORICAL_TRENDS' && (
+          <div className="space-y-4">
+            <HistoricalSubmissionTrendChart
+              currentUser={currentUser}
+              initialReportKey={selectedReportKey}
+              onSelectReportKey={(rk) => setSelectedReportKey(rk)}
+            />
           </div>
         )}
 
